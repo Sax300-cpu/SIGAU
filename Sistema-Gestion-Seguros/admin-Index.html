@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma de Seguros</title>
+    <link rel="stylesheet" href="assets/css/admin-styles.css">
+</head>
+<body>
+    <!-- Barra lateral -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img src="https://via.placeholder.com/80" alt="Foto de perfil">
+            <h3 id="username-display">Bienvenido, Admin</h3>
+        </div>
+                
+    
+        <button class="menu-btn active" data-content="roles">
+            <span>Gestión de Roles </span> 
+        </button>
+        
+            
+            <button class="menu-btn" data-content="usuarios">
+                <span>Administración de Usuarios</span>
+            </button>
+            
+            <button class="menu-btn" data-content="seguros">
+                <span>Gestión de Seguros</span>
+            </button>
+            
+            <button id="salir" class="btn btn-secondary">
+                <span>Cerrar Sesión</span>
+            </button>
+        </nav>
+    </div>
+    
+    <!-- Contenido principal dinámico -->
+    <div class="main-content">
+        <div class="header">
+            <h1 id="content-title">Gestión de Roles</h1>
+            <div class="user-info">
+                <img src="https://via.placeholder.com/50" alt="Foto de perfil pequeña">
+                <span>Administrador</span>
+            </div>
+        </div>
+        
+        <!-- Contenido dinámico -->
+
+        <div id="dynamic-content">
+            <!-- Contenido de Gestión de Roles -->
+            <div class="content-section active" id="roles-content">
+                <div class="card-container">
+                    <div class="card">
+                        <h2>Gestión de Roles</h2>
+                        <ul>
+                            <li><button class="btn btn-danger" id="eliminar-roles">Eliminar roles</button></li>
+                            <li><button class="btn btn-primary" id="editar-roles">Editar roles</button></li>
+                            <li><button class="btn btn-secondary" id="salir-roles">Salir</button></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="card">
+                        <h2>Crear Nuevo Rol</h2>
+                        <ul>
+                            <li>Administrador</li>
+                            <li>Agente</li>
+                            <li>Cliente</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Contenido de Administración de Usuarios -->
+            <div class="content-section hidden" id="usuarios-content">
+                <div class="card-container">
+                    <div class="card">
+                        <h2>Tipos de Usuarios</h2>
+                        <ul>
+                            <li><button class="btn btn-primary">Crear usuario</button></li>
+                            <li><button class="btn btn-primary">Editar usuario</button></li>
+                            <li><button class="btn btn-danger">Eliminar usuario</button></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="card">
+                        <h2>Lista de Usuarios</h2>
+                        <ul>
+                            <li>Administradores (5)</li>
+                            <li>Agentes (23)</li>
+                            <li>Clientes (1,245)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Contenido de Gestión de Seguros -->
+            <div class="content-section hidden" id="seguros-content">
+                <div class="card-container">
+                    <div class="card">
+                        <h2>Operaciones de Seguros</h2>
+                        <ul>
+                            <li><button class="btn btn-primary">Crear póliza</button></li>
+                            <li><button class="btn btn-primary">Registrar siniestro</button></li>
+                            <li><button class="btn btn-primary">Gestionar coberturas</button></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="card">
+                        <h2>Estadísticas</h2>
+                        <ul>
+                            <li>Pólizas activas: 1,089</li>
+                            <li>Siniestros este mes: 42</li>
+                            <li>Coberturas disponibles: 12</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+    </div>
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="modal-title">Confirmación</h2>
+            <p id="modal-message">¿Estás seguro de que deseas continuar?</p>
+            <button id="modal-confirm" class="btn btn-danger">Confirmar</button>
+            <button id="modal-cancel" class="btn btn-secondary">Cancelar</button>
+        </div>
+    </div>
+
+    <script src="assets/js/admin.js"></script>
+</body>
+</html>
