@@ -2,11 +2,11 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Arial', sans-serif;
+    font-family: 'Poppins', sans-serif;
 }
 
 body {
-    background-color: #f5f5dc;
+    background-color: #2E2E2E;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -14,18 +14,24 @@ body {
 }
 
 .login-container {
-    background-color: #c2b2b4;
+    background-color: #3D5A80;
     padding: 40px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border-radius: 15px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
     width: 350px;
     text-align: center;
+    transition: transform 0.3s ease-in-out;
 }
 
-h1 {
-    color: #2f4f4f;
-    margin-bottom: 30px;
+.login-container:hover {
+    transform: scale(1.05);
+}
+
+.login-title {
     font-size: 28px;
+    color: #E0E0E0;
+    margin-bottom: 20px;
+    font-weight: bold;
 }
 
 .login-form {
@@ -41,7 +47,7 @@ h1 {
 }
 
 label {
-    color: #2f4f4f;
+    color: #E0E0E0;
     margin-bottom: 8px;
     font-weight: bold;
 }
@@ -49,16 +55,32 @@ label {
 input {
     width: 100%;
     padding: 12px;
-    border: 2px solid #706256;
-    border-radius: 5px;
+    border: 2px solid #2c425e;
+    border-radius: 8px;
     background-color: #f5f5dc;
-    color: #2f4f4f;
+    color: #A0522D;
     font-size: 16px;
+    transition: box-shadow 0.3s;
 }
 
 input:focus {
     outline: none;
     border-color: #daa520;
+    box-shadow: 0 0 8px #daa520;
+}
+
+/* Estilo para campos con error */
+.input-error {
+    border: 2px solid #f5c6cb !important;
+    animation: shake 0.3s ease-in-out;
+}
+
+/* Animación de vibración */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    50% { transform: translateX(4px); }
+    75% { transform: translateX(-4px); }
 }
 
 button {
@@ -66,49 +88,47 @@ button {
     color: #2f4f4f;
     border: none;
     padding: 12px;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 16px;
     font-weight: bold;
-    transition: background-color 0.3s;
+    transition: background-color 0.3s, transform 0.2s;
     margin-top: 10px;
 }
 
 button:hover {
     background-color: #c6951a;
+    transform: scale(1.05);
 }
 
-.login-title {
-    font-size: 24px;
-    color: #2f4f4f;
-    margin-bottom: 20px;
+/* Estilo del mensaje de error */
+.hidden {
+    display: none;
+}
+
+#error-message {
+    color: #721c24;
+    background-color: #fde2e2;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* Pie de página */
+.login-footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #E0E0E0;
+}
+
+.login-footer a {
+    color: #daa520;
+    text-decoration: none;
     font-weight: bold;
 }
 
-/* dentro de login-styles.css */
-
-/* Mensajes flash dentro de la tarjeta */
-.flash {
-  width: 100%;
-  text-align: left;
-  padding: 10px 12px;
-  margin-bottom: 20px;
-  border-radius: 5px;
-  font-size: 14px;
-  line-height: 1.4;
+.login-footer a:hover {
+    text-decoration: underline;
 }
-
-/* Mensaje informativo */
-.flash-info {
-  background-color: #eef6fb;
-  border: 1px solid #c5ddf0;
-  color: #2f4f4f;
-}
-
-/* Mensaje de error */
-.flash-danger {
-  background-color: #fde2e2;
-  border: 1px solid #f5c6cb;
-  color: #721c24;
-}
-

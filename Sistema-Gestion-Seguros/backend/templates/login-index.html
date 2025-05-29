@@ -4,26 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Iniciar Sesión</title>
-  <!-- Tu CSS personalizado -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/login-styles.css') }}">
+  <script defer src="{{ url_for('static', filename='js/login.js') }}"></script>
 </head>
 <body>
   <main>
     <div class="login-container">
       <div class="login-title">Iniciar Sesión</div>
 
-      <!-- Mensajes flash -->
-      {% with mensajes = get_flashed_messages(with_categories=true) %}
-        {% if mensajes %}
-          {% for categoria, texto in mensajes %}
-            <div class="flash flash-{{ categoria }}">
-              {{ texto }}
-            </div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
+      <!-- Mensaje de error dinámico -->
+      <div id="error-message" class="hidden">Por favor, ingresa tu correo y contraseña.</div>
 
-      <!-- Formulario de login -->
       <form class="login-form" id="loginForm" action="{{ url_for('login') }}" method="post">
         <div class="form-group">
           <label for="email">Correo Electrónico</label>
@@ -35,6 +26,13 @@
         </div>
         <button type="submit">Entrar</button>
       </form>
+
+      <div class="login-footer">
+        <p>¿Olvidaste tu contraseña?</p>
+         <p><a href="#">Recupérala aquí</a></p><br>
+        <p>¿No tienes una cuenta?</p>
+        <p> <a href="#">Regístrate</a></p>
+      </div>
     </div>
   </main>
 </body>
