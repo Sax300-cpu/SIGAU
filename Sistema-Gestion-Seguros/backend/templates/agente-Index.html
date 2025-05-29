@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Agente - Plataforma de Seguros</title>
-    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="/Sistema-Gestion-Seguros/static/css/agente-styles.css">
 </head>
 <body>
@@ -95,6 +94,26 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- Modal para agregar cliente -->
+    <div id="modalCliente" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Registrar Nuevo Cliente</h2>
+            <form>
+                <label for="nombre">Nombre:</label>
+                <input type="text" id="nombre" name="nombre" required>
+                
+                <label for="correo">Correo Electrónico:</label>
+                <input type="email" id="correo" name="correo" required>
+                
+                <label for="telefono">Teléfono:</label>
+                <input type="text" id="telefono" name="telefono" required>
+
+                <button type="submit" class="btn-save">Guardar Cliente</button>
+            </form>
+        </div>
     </div>
 
     <script src="/Sistema-Gestion-Seguros/static/js/agente.js"></script>
