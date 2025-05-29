@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Inicio - Seguros</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/Sistema-Gestion-Seguros/static/css/cliente-styles.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Barra lateral -->
+        <div class="sidebar">
+            <div class="logo">
+                <i class="fas fa-shield-alt"></i>
+                <span>SegurosApp</span>
+            </div>
+            <nav>
+                <ul>
+                    <li class="active">
+                        <a href="#">
+                            <i class="fas fa-home"></i>
+                            <span>Inicio</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fas fa-file-contract"></i>
+                            <span>Mis Pólizas</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fas fa-heartbeat"></i>
+                            <span>Seguro de Salud</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fas fa-user"></i>
+                            <span>Seguro de Vida</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fas fa-car"></i>
+                            <span>Seguro de Auto</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fas fa-house-user"></i>
+                            <span>Seguro de Hogar</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fas fa-credit-card"></i>
+                            <span>Pagos</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fas fa-cog"></i>
+                            <span>Configuración</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="user-info">
+                    <span class="name">Usuario</span>
+                    <span class="role">Cliente</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="main-content">
+            <header>
+                <h1>Panel de Inicio</h1>
+                <div class="search-notification">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Buscar...">
+                    </div>
+                    <div class="notification">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content">
+                <!-- Alerta -->
+                <div class="alert">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span><strong>Alerta:</strong> El contrato de su seguro «Vida» vencerá pronto</span>
+                </div>
+
+                <!-- Tarjetas de seguros -->
+                <div class="insurance-cards">
+                    <div class="insurance-card">
+                        <h3>Seguro de Vida</h3>
+                        <div class="status active">Activo</div>
+                        <div class="details">
+                            <p><strong>N.º de póliza:</strong> 12345</p>
+                            <p><strong>Pago mensual:</strong> $50</p>
+                        </div>
+                        <button class="btn-details">Ver detalles</button>
+                    </div>
+
+                    <div class="insurance-card">
+                        <h3>Seguro de Salud</h3>
+                        <div class="status active">Activo</div>
+                        <div class="details">
+                            <p><strong>N.º de póliza:</strong> 67890</p>
+                            <p><strong>Pago mensual:</strong> $100</p>
+                        </div>
+                        <button class="btn-details">Ver detalles</button>
+                    </div>
+                </div>
+
+                <!-- Sección contratar seguro -->
+                <div class="hire-section">
+                    <h2>Contratar Seguro</h2>
+                    <div class="insurance-options">
+                        <div class="insurance-option">
+                            <i class="fas fa-heartbeat"></i>
+                            <span>Seguro de Salud</span>
+                        </div>
+                        <div class="insurance-option">
+                            <i class="fas fa-user"></i>
+                            <span>Seguro de Vida</span>
+                        </div>
+                        <div class="insurance-option">
+                            <i class="fas fa-car"></i>
+                            <span>Seguro de Auto</span>
+                        </div>
+                        <div class="insurance-option">
+                            <i class="fas fa-house-user"></i>
+                            <span>Seguro de Hogar</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/Sistema-Gestion-Seguros/static/js/cliente.js"></script>
+</body>
+</html>
