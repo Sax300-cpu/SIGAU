@@ -7,18 +7,14 @@ from flask import (
 from models import init_db
 from werkzeug.security import check_password_hash
 
-# 1) Carga las variables de entorno
 load_dotenv()
 
-# 2) Inicializa Flask
 app = Flask(
     __name__,
     static_folder="../static",
     template_folder="templates"
 )
 app.secret_key = os.getenv("SECRET_KEY")
-
-# 3) Inicializa la conexión a la BD
 mysql = init_db(app)
 
 @app.route('/test-db')
@@ -33,15 +29,15 @@ def test_db():
 def home():
     return render_template("login-index.html")
 
-# ← Ruta de login actualizada para usar email
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+
     if request.method == 'POST':
-        # 1) Recoge email y contraseña del formulario
         email    = request.form['email']
         password = request.form['password']
 
-        # 2) Busca ese email en la BD
         cur = mysql.connection.cursor()
         cur.execute(
             "SELECT id, password_hash FROM users WHERE email = %s",
@@ -50,7 +46,6 @@ def login():
         fila = cur.fetchone()
         cur.close()
 
-        # 3) Verifica contraseña y maneja sesión
         if fila and check_password_hash(fila[1], password):
             session.clear()
             session['user_id'] = fila[0]
@@ -58,19 +53,23 @@ def login():
         else:
             flash('Usuario o contraseña incorrectos', 'danger')
 
-    # En GET o fallo de login, muestra el formulario de nuevo
     return render_template('login-index.html')
-# ← Fin de la ruta /login
 
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    return f"<h1>Bienvenido, usuario #{session['user_id']}</h1>"
+    return f"""
+      <h1>Bienvenido, usuario #{session['user_id']}</h1>
+      <p><a href="{ url_for('logout') }">Cerrar sesión</a></p>
+    """
 
-if __name__ == "__main__":
-    app.run(debug=True)
+# ← Mueve ESTA ruta justo aquí, antes del main
 @app.route('/logout')
 def logout():
     session.clear()
+    flash("Has cerrado sesión correctamente.", "info")
     return redirect(url_for('login'))
+
+if __name__ == "__main__":
+    app.run(debug=True)

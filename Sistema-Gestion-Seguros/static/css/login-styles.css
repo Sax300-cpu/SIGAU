@@ -84,3 +84,31 @@ button:hover {
     margin-bottom: 20px;
     font-weight: bold;
 }
+
+/* dentro de login-styles.css */
+
+/* Mensajes flash dentro de la tarjeta */
+.flash {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Mensaje informativo */
+.flash-info {
+  background-color: #eef6fb;
+  border: 1px solid #c5ddf0;
+  color: #2f4f4f;
+}
+
+/* Mensaje de error */
+.flash-danger {
+  background-color: #fde2e2;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+}
+

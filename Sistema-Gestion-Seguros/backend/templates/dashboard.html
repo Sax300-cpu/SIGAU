@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard</title>
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/admin-styles.css') }}"
+  >
+</head>
+<body>
+  <!-- Mensajes flash -->
+  {% with mensajes = get_flashed_messages(with_categories=true) %}
+    {% for categoria, texto in mensajes %}
+      <div class="alert alert-{{ categoria }}">{{ texto }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <header style="display:flex; justify-content: space-between; align-items: center; padding:1rem; background:#f5f5f5;">
+    <h1>Bienvenido, usuario #{{ session['user_id'] }}</h1>
+    <a href="{{ url_for('logout') }}" class="btn btn-danger">Cerrar sesión</a>
+  </header>
+
+  <main style="padding:2rem;">
+    <p>Este será tu panel principal.</p>
+    <!-- Aquí irán los enlaces a la gestión de usuarios, pólizas, etc. -->
+  </main>
+</body>
+</html>
