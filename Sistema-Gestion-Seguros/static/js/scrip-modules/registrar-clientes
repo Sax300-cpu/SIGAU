@@ -1,0 +1,36 @@
+document.addEventListener('DOMContentLoaded', function() {
+    // Seleccionar elementos del formulario
+    const clientForm = document.querySelector('.client-form');
+    
+    // Manejar el envío del formulario
+    if(clientForm) {
+        clientForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Obtener los valores del formulario
+            const formData = {
+                nombreCompleto: Array.from(document.querySelectorAll('.form-group:nth-child(1) input')).map(input => input.value),
+                edad: Array.from(document.querySelectorAll('.form-group:nth-child(2) input')).map(input => input.value),
+                direccion: Array.from(document.querySelectorAll('.form-group:nth-child(3) input')).map(input => input.value),
+                identificacion: Array.from(document.querySelectorAll('.form-group:nth-child(4) input')).map(input => input.value),
+                historialClinico: Array.from(document.querySelectorAll('.form-group:nth-child(5) input')).map(input => input.value),
+                enfermedadesPreexistentes: document.querySelector('.form-group:nth-child(6) input').value,
+                coberturaMedica: document.querySelector('.form-group:nth-child(7) select').value,
+                contactoEmergencia: Array.from(document.querySelectorAll('.form-group:nth-child(8) input')).map(input => input.value),
+                beneficiarios: Array.from(document.querySelectorAll('.form-group:nth-child(9) input')).map(input => input.value)
+            };
+            
+            // Mostrar los datos en consola (para prueba)
+            console.log('Datos del cliente:', formData);
+            
+            // Mostrar mensaje de éxito
+            alert('Cliente registrado exitosamente');
+            
+            // Aquí puedes agregar la lógica para enviar los datos al servidor
+            // o agregar el cliente a la tabla principal
+            
+            // Limpiar el formulario
+            clientForm.reset();
+        });
+    }
+});
