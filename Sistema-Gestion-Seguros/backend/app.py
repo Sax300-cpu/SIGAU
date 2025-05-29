@@ -3,7 +3,8 @@ from functools import wraps
 from dotenv import load_dotenv
 from flask import (
     Flask, render_template, request,
-    redirect, url_for, flash, session, jsonify
+    redirect, url_for, flash, session,
+    jsonify
 )
 from models import init_db
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -19,15 +20,9 @@ app = Flask(
 app.secret_key = os.getenv("SECRET_KEY")
 mysql = init_db(app)
 
-from flask import make_response
-
+# Evitar cache para que BACK no deje páginas atrás de logout
 @app.after_request
 def add_no_cache_headers(response):
-    """
-    Añade cabeceras para que el navegador no guarde
-    en caché las páginas protegidas y siempre pida 
-    de nuevo al servidor.
-    """
     response.headers['Cache-Control'] = (
         'no-store, no-cache, must-revalidate, '
         'max-age=0, post-check=0, pre-check=0'
@@ -36,7 +31,7 @@ def add_no_cache_headers(response):
     response.headers['Expires'] = '0'
     return response
 
-# Decorador para proteger rutas solo a admins
+# Decorador para rutas admin-only
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -56,9 +51,11 @@ def home():
 def login():
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
+
     if request.method == 'POST':
         email    = request.form['email']
         password = request.form['password']
+
         cur = mysql.connection.cursor()
         cur.execute(
             "SELECT id, password_hash, role_id FROM users WHERE email = %s",
@@ -66,13 +63,24 @@ def login():
         )
         fila = cur.fetchone()
         cur.close()
+
         if fila and check_password_hash(fila[1], password):
             session.clear()
-            session['user_id'] = fila[0]
-            session['role_id'] = fila[2]
+            session['user_id']  = fila[0]
+            session['role_id']  = fila[2]
+
+            # Redirección por rol
+            if fila[2] == 1:
+                return redirect(url_for('admin_panel'))
+            elif fila[2] == 2:
+                return redirect(url_for('agente_panel'))
+            elif fila[2] == 3:
+                return redirect(url_for('client_panel'))
+
             return redirect(url_for('dashboard'))
         else:
             flash('Usuario o contraseña incorrectos', 'danger')
+
     return render_template('login-index.html')
 
 @app.route('/dashboard')
@@ -80,13 +88,14 @@ def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    # si es admin, llévalo al panel de admin
-    if session.get('role_id') == 1:
+    role = session.get('role_id')
+    if role == 1:
         return redirect(url_for('admin_panel'))
-
-    # para otros roles, mantén tu dashboard sencillo
-    return render_template('dashboard.html')
-
+    if role == 2:
+        return redirect(url_for('agente_panel'))
+    if role == 3:
+        return redirect(url_for('client_panel'))
+    return redirect(url_for('login'))
 
 @app.route('/logout')
 def logout():
@@ -99,12 +108,27 @@ def logout():
 def admin_panel():
     return render_template('admin-index.html')
 
-# 📋 API de usuarios
+@app.route('/agente')
+def agente_panel():
+    if 'user_id' not in session or session.get('role_id') != 2:
+        return redirect(url_for('login'))
+    return render_template('agente-Index.html')
+
+@app.route('/client')
+def client_panel():
+    if 'user_id' not in session or session.get('role_id') != 3:
+        return redirect(url_for('login'))
+    return render_template('client-index.html')
+
+# API de usuarios (admin only)
 @app.route('/users', methods=['GET'])
 @admin_required
 def list_users():
     cur = mysql.connection.cursor()
-    cur.execute("SELECT id, username, email, role_id, created_at FROM users")
+    cur.execute(
+        "SELECT id, username, email, role_id, created_at "
+        "FROM users"
+    )
     users = [
         {"id": r[0], "username": r[1], "email": r[2],
          "role_id": r[3], "created_at": r[4].isoformat()}
@@ -120,7 +144,9 @@ def create_user():
     pw_hash = generate_password_hash(data['password'])
     cur = mysql.connection.cursor()
     cur.execute(
-        "INSERT INTO users (username,email,password_hash,role_id) VALUES (%s,%s,%s,%s)",
+        "INSERT INTO users "
+        "(username,email,password_hash,role_id) "
+        "VALUES (%s,%s,%s,%s)",
         (data['username'], data['email'], pw_hash, data['role_id'])
     )
     mysql.connection.commit()
@@ -132,8 +158,7 @@ def create_user():
 @admin_required
 def update_user(user_id):
     data = request.get_json()
-    fields = []
-    values = []
+    fields, values = [], []
     if 'email' in data:
         fields.append("email=%s"); values.append(data['email'])
     if 'role_id' in data:
