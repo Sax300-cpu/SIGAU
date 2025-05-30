@@ -2,30 +2,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Aquí puedes añadir la funcionalidad JavaScript
     
 
-    // Seleccionar elementos
-const modal = document.getElementById("modalCliente");
-const btnNuevoCliente = document.querySelector(".btn-add");
-const btnCerrar = document.querySelector(".close");
-
-// Abrir el modal al hacer clic en el botón "Nuevo Cliente"
-btnNuevoCliente.addEventListener("click", () => {
-    modal.style.display = "block";
-});
-
-// Cerrar el modal al hacer clic en la "X"
-btnCerrar.addEventListener("click", () => {
-    modal.style.display = "none";
-});
-
-// Cerrar el modal al hacer clic fuera de la ventana
-window.addEventListener("click", (event) => {
-    if (event.target === modal) {
-        modal.style.display = "none";
-    }
-});
+    
 
     // Ejemplo: Alerta al hacer clic en el botón "Nuevo Cliente"
-
+    const btnAdd = document.querySelector('.btn-add');
+    if(btnAdd) {
+        btnAdd.addEventListener('click', function() {
+            alert('Funcionalidad para agregar nuevo cliente');
+        });
+    }
     
     // Ejemplo: Confirmación al eliminar un cliente
     const deleteButtons = document.querySelectorAll('.btn-delete');
