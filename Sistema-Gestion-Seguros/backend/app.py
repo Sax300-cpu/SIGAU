@@ -17,6 +17,7 @@ app = Flask(
     static_folder="../static",
     template_folder="templates"
 )
+
 app.secret_key = os.getenv("SECRET_KEY")
 mysql = init_db(app)
 

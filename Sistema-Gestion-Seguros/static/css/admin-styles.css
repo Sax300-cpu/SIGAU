@@ -28,7 +28,7 @@ body {
 .sidebar-header {
   text-align: center;
   padding: 20px;
-  border-bottom: 1px solid rgba(224, 224, 224, 0.2);
+  border-bottom: 1px solid white;
 }
 
 .sidebar-header img {
@@ -37,7 +37,7 @@ body {
   border-radius: 50%;
   object-fit: cover;
   margin-bottom: 10px;
-  border: 2px solid #daa520;
+  border: 2px solid #3498db;
 }
 
 .sidebar-header h3 {
@@ -72,8 +72,8 @@ body {
 }
 
 .menu-btn.active {
-  background-color: #daa520;
-  color: #2f4f4f;
+  background-color: #3498db;
+  color: #363636;
   font-weight: 600;
   border-radius: 4px;
 }
@@ -193,7 +193,7 @@ body {
 
 .btn-primary {
   background-color: #daa520;
-  color: #2f4f4f;
+  color: white;
 }
 
 .btn-primary:hover {
@@ -306,9 +306,9 @@ body {
 
 .modal-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
+  justify-content: center; /* Centra los botones horizontalmente */
+  align-items: center; /* Alinea verticalmente */
+  gap: 12px; /* Espaciado entre botones */
 }
 
 .modal-actions .btn {
@@ -465,6 +465,13 @@ body {
   padding: 10px 24px;
   border-radius: 6px;
   font-size: 0.95rem;
+}
+
+.users-table td:last-child {
+  display: flex;
+  justify-content: center; /* Centra los botones horizontalmente */
+  align-items: center; /* Alinea verticalmente */
+  gap: 10px; /* Espaciado entre botones */
 }
 
 
