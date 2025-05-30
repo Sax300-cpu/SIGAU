@@ -5,15 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Iniciar Sesión</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/login-styles.css') }}">
-  <script defer src="{{ url_for('static', filename='js/login.js') }}"></script>
 </head>
 <body>
   <main>
     <div class="login-container">
       <div class="login-title">Iniciar Sesión</div>
 
-      <!-- Mensaje de error dinámico -->
-      <div id="error-message" class="hidden">Por favor, ingresa tu correo y contraseña.</div>
+      <!-- Aviso de error inyectado por Flask-Flash -->
+      {% with mensajes = get_flashed_messages(with_categories=true) %}
+        {% for categoria, texto in mensajes %}
+          {% if categoria == 'danger' %}
+            <div id="error-message">{{ texto }}</div>
+          {% endif %}
+        {% endfor %}
+      {% endwith %}
 
       <form class="login-form" id="loginForm" action="{{ url_for('login') }}" method="post">
         <div class="form-group">
@@ -26,7 +31,6 @@
         </div>
         <button type="submit">Entrar</button>
       </form>
-
     </div>
   </main>
 </body>
