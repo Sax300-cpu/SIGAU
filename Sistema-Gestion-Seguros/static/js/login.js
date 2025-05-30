@@ -8,13 +8,13 @@ document.addEventListener('DOMContentLoaded', () => {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // Validación de credenciales
+      // Validación de credenciales vacías
       if (!emailInput.value.trim() || !passwordInput.value.trim()) {
+        errorMessage.textContent = "Por favor, ingresa tu correo y contraseña.";
         errorMessage.classList.remove('hidden');
         emailInput.classList.add('input-error');
         passwordInput.classList.add('input-error');
 
-        // Eliminar la clase después de un tiempo
         setTimeout(() => {
           emailInput.classList.remove('input-error');
           passwordInput.classList.remove('input-error');
@@ -28,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = new FormData(form);
       const submitButton = form.querySelector('button');
 
-      // Deshabilitar botón y mostrar indicador de carga
       submitButton.disabled = true;
       submitButton.textContent = "Ingresando...";
 
@@ -41,7 +40,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (res.redirected) {
           window.location.href = res.url;
         } else {
-          document.body.innerHTML = await res.text();
+          const responseText = await res.text();
+          
+          // Buscar mensaje de error en la respuesta del servidor
+          if (responseText.includes("Contraseña incorrecta")) {
+            errorMessage.textContent = "Contraseña incorrecta.";
+            errorMessage.classList.remove('hidden');
+          } else {
+            document.body.innerHTML = responseText;
+          }
         }
       } catch (error) {
         console.error("Error en la solicitud de login:", error);
