@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin – Gestión de Usuarios</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-styles.css') }}">
+  <script defer src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </head>
 <body>
   <div class="sidebar">
@@ -12,32 +13,31 @@
       <img src="{{ url_for('static', filename='img/profile.png') }}" alt="Foto de perfil">
       <h3>Bienvenido, Admin</h3>
     </div>
-    <button class="menu-btn active" data-content="roles">Gestión de Roles</button>
-    <button class="menu-btn" data-content="usuarios">Administración de Usuarios</button>
-    <button class="menu-btn" data-content="seguros">Gestión de Seguros</button>
-
-    <!-- Logout con id="salir hola como estas" -->
-    <a id="salir" href="{{ url_for('logout') }}" class="btn btn-secondary" style="display:block; margin:1rem;">
-      Cerrar Sesión
-    </a>
+    <nav class="menu">
+      <button class="menu-btn active" data-content="roles">Gestión de Roles</button>
+      <button class="menu-btn" data-content="usuarios">Administración de Usuarios</button>
+      <button class="menu-btn" data-content="seguros">Gestión de Seguros</button>
+    </nav>
+    <a id="salir" href="{{ url_for('logout') }}" class="btn btn-secondary">Cerrar Sesión</a>
   </div>
 
   <div class="main-content">
-    <div class="header">
+    <header class="header">
       <h1 id="content-title">Gestión de Roles</h1>
       <div class="user-info">
         <img src="{{ url_for('static', filename='img/profile-small.png') }}" alt="Foto de perfil pequeña">
         <span>Administrador</span>
       </div>
-    </div>
+    </header>
 
-    <div id="dynamic-content">
-      <!-- Roles -->
+    <section id="dynamic-content">
+      <!-- Gestión de Roles -->
       <div class="content-section active" id="roles-content">
+        <p>Administración de roles y permisos.</p>
         <!-- ... contenido de roles ... -->
       </div>
 
-      <!-- Usuarios -->
+      <!-- Administración de Usuarios -->
       <div class="content-section" id="usuarios-content">
         <button id="btn-new-user" class="btn btn-primary">Crear usuario</button>
         <table class="table" id="users-table">
@@ -50,14 +50,15 @@
         </table>
       </div>
 
-      <!-- Seguros -->
+      <!-- Gestión de Seguros -->
       <div class="content-section" id="seguros-content">
+        <p>Administración de pólizas y coberturas.</p>
         <!-- ... contenido de seguros ... -->
       </div>
-    </div>
+    </section>
   </div>
 
-  <!-- Modal de confirmación -->
+  <!-- Modal de Confirmación -->
   <div id="modal" class="modal hidden">
     <div class="modal-content">
       <h2 id="modal-title">Confirmación</h2>
@@ -67,9 +68,7 @@
     </div>
   </div>
 
-  <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
-</body>
-<!-- Modal Crear/Editar Usuario -->
+  <!-- Modal Crear/Editar Usuario -->
   <div id="user-modal" class="modal hidden">
     <div class="modal-content">
       <h2 id="user-modal-title">Crear Usuario</h2>
@@ -99,4 +98,5 @@
       </form>
     </div>
   </div>
+</body>
 </html>
