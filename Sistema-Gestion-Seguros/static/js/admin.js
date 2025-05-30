@@ -1,35 +1,31 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const menuButtons     = document.querySelectorAll('.menu-btn');
-  const contentSections = document.querySelectorAll('.content-section');
-  const contentTitle    = document.getElementById('content-title');
-  const sectionTitles   = {
+  const btns      = document.querySelectorAll('.menu-btn');
+  const sections  = document.querySelectorAll('.content-section');
+  const titleEl   = document.getElementById('content-title');
+  const tbody     = document.getElementById('users-tbody');
+  const roleMap   = { 1: 'Admin', 2: 'Agente', 3: 'Cliente' };
+  const sectNames = {
     roles:    'Gestión de Roles',
     usuarios: 'Administración de Usuarios',
     seguros:  'Gestión de Seguros'
   };
 
-  const roleMap = { 1: 'Admin', 2: 'Agente', 3: 'Cliente' };
-
-  function changeSection(section) {
-    menuButtons.forEach(btn =>
-      btn.classList.toggle('active', btn.dataset.content === section)
-    );
-    contentTitle.textContent = sectionTitles[section] || '';
-    contentSections.forEach(sec =>
-      sec.classList.toggle('active', sec.id === section + '-content')
-    );
-    if (section === 'usuarios') loadUsers();
+  // Cambia sección activa y título
+  function showSection(name) {
+    btns.forEach(b => b.classList.toggle('active', b.dataset.content === name));
+    titleEl.textContent = sectNames[name] || '';
+    sections.forEach(s => s.classList.toggle('active', s.id === name + '-content'));
+    if (name === 'usuarios') loadUsers();
   }
 
+  // Carga usuarios y añade botones de editar/eliminar
   async function loadUsers() {
-    const tbody = document.querySelector('#usuarios-content tbody');
     tbody.innerHTML = '';
     try {
-      const res   = await fetch('/users');
+      const res  = await fetch('/users');
       if (!res.ok) throw new Error(res.status);
-      const users = await res.json();
-
-      users.forEach(u => {
+      const list = await res.json();
+      list.forEach(u => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${u.id}</td>
@@ -37,64 +33,57 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${u.email}</td>
           <td>${roleMap[u.role_id] || u.role_id}</td>
           <td>
-            <button class="icon-btn btn-edit" data-id="${u.id}">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="icon-btn btn-delete" data-id="${u.id}">
-              <i class="fas fa-trash-alt"></i>
-            </button>
-          </td>
-        `;
+            <button class="icon-btn btn-edit"   data-id="${u.id}"><i class="fas fa-edit"></i> Editar</button>
+            <button class="icon-btn btn-delete" data-id="${u.id}"><i class="fas fa-trash-alt"></i> Eliminar</button>
+          </td>`;
         tbody.appendChild(tr);
       });
 
-      document.querySelectorAll('.btn-delete').forEach(btn =>
-        btn.addEventListener('click', () =>
-          showModal(
-            '¿Eliminar este usuario?',
-            async () => { await fetch(`/users/${btn.dataset.id}`, { method:'DELETE' }); loadUsers(); }
-          )
-        )
-      );
+      // Listener para eliminar
+      document.querySelectorAll('.btn-delete').forEach(b => {
+        b.onclick = () => showModal('¿Eliminar este usuario?', async () => {
+          await fetch(`/users/${b.dataset.id}`, { method: 'DELETE' });
+          loadUsers();
+        });
+      });
 
-      document.querySelectorAll('.btn-edit').forEach(btn =>
-        btn.addEventListener('click', () =>
-          openUserModal('Editar Usuario', btn.dataset.id)
-        )
-      );
+      // Listener para editar
+      document.querySelectorAll('.btn-edit').forEach(b => {
+        b.onclick = () => openUserModal('Editar Usuario', b.dataset.id);
+      });
 
-    } catch (err) {
-      console.error('Error cargando usuarios:', err);
+    } catch (e) {
+      console.error('Error fetch /users:', e);
     }
   }
 
-  function showModal(msg, onConfirm) {
-    const mod = document.getElementById('modal');
+  // Modal genérico
+  function showModal(msg, onOk) {
+    const modal = document.getElementById('modal');
     document.getElementById('modal-message').textContent = msg;
-    mod.classList.remove('hidden');
+    modal.classList.remove('hidden');
     document.getElementById('modal-confirm').onclick = () => {
-      onConfirm();
-      mod.classList.add('hidden');
+      onOk();
+      modal.classList.add('hidden');
     };
-    document.getElementById('modal-cancel').onclick = () => mod.classList.add('hidden');
+    document.getElementById('modal-cancel').onclick = () => {
+      modal.classList.add('hidden');
+    };
   }
 
-  // Crear / Editar Usuario
-  const userModal    = document.getElementById('user-modal');
-  const userTitle    = document.getElementById('user-modal-title');
-  const userForm     = document.getElementById('user-form');
-  const cancelBtn    = document.getElementById('user-modal-cancel');
-  let editUserId     = null;
+  // Crear / Editar usuario
+  const userModal = document.getElementById('user-modal');
+  const userForm  = document.getElementById('user-form');
+  let editId      = null;
 
-  function openUserModal(title, id=null) {
-    userTitle.textContent = title;
+  function openUserModal(title, id = null) {
+    document.getElementById('user-modal-title').textContent = title;
     userForm.reset();
-    editUserId = id;
+    editId = id;
     if (id) {
-      fetch('/users')
-        .then(r => r.json())
-        .then(list => {
-          const u = list.find(x => x.id == id);
+      fetch(`/users/${id}`)
+        .then(res => res.json())
+        .then(u => {
           document.getElementById('u-username').value = u.username;
           document.getElementById('u-email').value    = u.email;
           document.getElementById('u-role').value     = u.role_id;
@@ -102,44 +91,55 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     userModal.classList.remove('hidden');
   }
-
-  cancelBtn.addEventListener('click', () => {
+  document.getElementById('user-modal-cancel').onclick = () => {
     userModal.classList.add('hidden');
-    editUserId = null;
-  });
+    editId = null;
+  };
 
-  userForm.addEventListener('submit', async e => {
+  userForm.onsubmit = async e => {
     e.preventDefault();
-    const data = {
-      username: userForm.username.value.trim(),
-      email:    userForm.email.value.trim().toLowerCase(),
-      password: userForm.password.value,
-      role_id:  parseInt(userForm.role_id.value, 10)
-    };
-    const url    = editUserId ? `/users/${editUserId}` : '/users';
-    const method = editUserId ? 'PUT' : 'POST';
+
+    // Recoge & sanea
+    const username = userForm.username.value.trim();
+    const email    = userForm.email.value.trim().toLowerCase();
+    const password = userForm.password.value;
+    const role_id  = +userForm.role_id.value;
+
+    // Validaciones breves
+    if (!username || username.length > 30) {
+      return alert('Usuario: 1–30 caracteres.');
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return alert('Email inválido.');
+    }
+    if (password.length < 8) {
+      return alert('Contraseña mínimo 8 caracteres.');
+    }
+
+    const data   = { username, email, password, role_id };
+    const url    = editId ? `/users/${editId}` : '/users';
+    const method = editId ? 'PUT' : 'POST';
 
     const res = await fetch(url, {
       method,
-      headers: { 'Content-Type':'application/json' },
-      body:    JSON.stringify(data)
+      headers: { 'Content-Type': 'application/json' },
+      body:   JSON.stringify(data)
     });
     if (res.ok) {
       loadUsers();
       userModal.classList.add('hidden');
-      editUserId = null;
+      editId = null;
     } else {
       const err = await res.json();
-      alert(err.error || 'Error inesperado');
+      alert(err.error || 'Error al guardar.');
     }
-  });
+  };
 
-  document.getElementById('btn-new-user')
-    .addEventListener('click', () => openUserModal('Crear Usuario'));
+  // Nuevo usuario
+  document.getElementById('btn-new-user').onclick = () =>
+    openUserModal('Crear Usuario');
 
-  menuButtons.forEach(btn =>
-    btn.addEventListener('click', () => changeSection(btn.dataset.content))
-  );
-
-  changeSection('roles');
+  // Sidebar
+  btns.forEach(b => b.onclick = () => showSection(b.dataset.content));
+  showSection('roles');
 });

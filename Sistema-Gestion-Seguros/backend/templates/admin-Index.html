@@ -51,12 +51,13 @@
     </div>
 
     <div id="dynamic-content">
-      <!-- Roles -->
+
+      <!-- ROLES -->
       <div class="content-section active" id="roles-content">
-        <!-- Contenido de gestión de roles -->
+        <!-- … contenido roles … -->
       </div>
 
-      <!-- Usuarios -->
+      <!-- USUARIOS -->
       <div class="content-section" id="usuarios-content">
         <div class="users-header">
           <button id="btn-new-user" class="btn btn-primary">
@@ -70,21 +71,22 @@
                 <th>ID</th><th>Usuario</th><th>Email</th><th>Rol</th><th>Acciones</th>
               </tr>
             </thead>
-            <tbody>
-              <!-- Filas inyectadas dinámicamente -->
+            <tbody id="users-tbody">
+              <!-- Aquí se inyectan filas -->
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Seguros -->
+      <!-- SEGUROS -->
       <div class="content-section" id="seguros-content">
-        <!-- Contenido de gestión de seguros -->
+        <!-- … contenido seguros … -->
       </div>
+
     </div>
   </div>
 
-  <!-- Modal de confirmación -->
+  <!-- MODAL: Confirmación -->
   <div id="modal" class="modal hidden">
     <div class="modal-content">
       <h2 id="modal-title">Confirmación</h2>
@@ -100,7 +102,7 @@
     </div>
   </div>
 
-  <!-- Modal Crear/Editar Usuario -->
+  <!-- MODAL: Crear / Editar Usuario -->
   <div id="user-modal" class="modal hidden">
     <div class="modal-content create-user">
       <h2 id="user-modal-title">Crear Usuario</h2>
