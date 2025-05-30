@@ -4,6 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin – Gestión de Usuarios</title>
+
+  <!-- Font Awesome para los iconos -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    integrity="sha512-p85JYqzZ/D9eZAIzXV9CR98+lXP1fY6fsxo88i27F1Q+T5vU+v+XmqRLpY+gKCJnjslq10sVvKG+Sg/SyXb1LQ=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+
+  <!-- Tu CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-styles.css') }}">
 </head>
 <body>
@@ -53,14 +64,11 @@
 
       <!-- Sección Usuarios -->
       <div class="content-section" id="usuarios-content">
-        <!-- Header con botón “Crear Usuario” -->
         <div class="users-header">
           <button id="btn-new-user" class="btn btn-primary">
-            <i class="fas fa-user-plus"></i>
-            Crear Usuario
+            <i class="fas fa-user-plus"></i> Crear Usuario
           </button>
         </div>
-        <!-- Tabla de Usuarios -->
         <div class="users-table-wrapper">
           <table class="users-table">
             <thead>
@@ -93,12 +101,10 @@
       <p id="modal-message">¿Estás seguro?</p>
       <div class="modal-actions">
         <button id="modal-confirm" class="btn btn-danger">
-          <i class="fas fa-check"></i>
-          Confirmar
+          <i class="fas fa-check"></i> Confirmar
         </button>
         <button id="modal-cancel" class="btn btn-secondary">
-          <i class="fas fa-times"></i>
-          Cancelar
+          <i class="fas fa-times"></i> Cancelar
         </button>
       </div>
     </div>
@@ -111,27 +117,15 @@
       <form id="user-form">
         <div class="form-group">
           <label for="u-username">Usuario</label>
-          <input type="text"
-                 id="u-username"
-                 name="username"
-                 placeholder="Nombre de usuario"
-                 required>
+          <input type="text" id="u-username" name="username" placeholder="Nombre de usuario" required>
         </div>
         <div class="form-group">
           <label for="u-email">Email</label>
-          <input type="email"
-                 id="u-email"
-                 name="email"
-                 placeholder="correo@ejemplo.com"
-                 required>
+          <input type="email" id="u-email" name="email" placeholder="correo@ejemplo.com" required>
         </div>
         <div class="form-group">
           <label for="u-password">Contraseña</label>
-          <input type="password"
-                 id="u-password"
-                 name="password"
-                 placeholder="********"
-                 required>
+          <input type="password" id="u-password" name="password" placeholder="********" required>
         </div>
         <div class="form-group">
           <label for="u-role">Rol</label>
@@ -144,14 +138,10 @@
         </div>
         <div class="modal-actions">
           <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save"></i>
-            Guardar
+            <i class="fas fa-save"></i> Guardar
           </button>
-          <button type="button"
-                  id="user-modal-cancel"
-                  class="btn btn-secondary">
-            <i class="fas fa-times"></i>
-            Cancelar
+          <button type="button" id="user-modal-cancel" class="btn btn-secondary">
+            <i class="fas fa-times"></i> Cancelar
           </button>
         </div>
       </form>
