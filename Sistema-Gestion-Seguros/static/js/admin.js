@@ -25,14 +25,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const res  = await fetch('/users');
       if (!res.ok) throw new Error(res.status);
       const list = await res.json();
-      list.forEach(u => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${u.id}</td>
-          <td>${u.username}</td>
-          <td>${u.email}</td>
-          <td>${roleMap[u.role_id] || u.role_id}</td>
-          <td>
+      list.forEach((u, i) => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${i + 1}</td>               <!-- contador reiniciado -->
+    <td>${u.username}</td>
+    <td>${u.email}</td>
+    <td>${roleMap[u.role_id] || u.role_id}</td>
+    <td>
             <button class="icon-btn btn-edit"   data-id="${u.id}"><i class="fas fa-edit"></i> Editar</button>
             <button class="icon-btn btn-delete" data-id="${u.id}"><i class="fas fa-trash-alt"></i> Eliminar</button>
           </td>`;
@@ -112,10 +112,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return alert('Email inválido.');
     }
-    if (password.length < 8) {
-      return alert('Contraseña mínimo 8 caracteres.');
-    }
-
+    const pwdRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+  if (!pwdRe.test(password)) {
+    return alert(
+      'La contraseña debe tener al menos 8 caracteres,\n' +
+      'incluyendo minúscula, mayúscula, número y símbolo.'
+    );
+  }
     const data   = { username, email, password, role_id };
     const url    = editId ? `/users/${editId}` : '/users';
     const method = editId ? 'PUT' : 'POST';
