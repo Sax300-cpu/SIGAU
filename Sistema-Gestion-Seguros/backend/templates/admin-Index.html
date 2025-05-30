@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin – Gestión de Usuarios</title>
 
-  <!-- Font Awesome para los iconos -->
+  <!-- Font Awesome para iconos -->
   <link
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -14,7 +14,7 @@
     referrerpolicy="no-referrer"
   />
 
-  <!-- Tu CSS -->
+  <!-- Estilos propios -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-styles.css') }}">
 </head>
 <body>
@@ -26,43 +26,37 @@
     </div>
     <div class="nav-menu">
       <button class="menu-btn active" data-content="roles">
-        <i class="fas fa-user-shield"></i>
-        Gestión de Roles
+        <i class="fas fa-user-shield"></i> Gestión de Roles
       </button>
       <button class="menu-btn" data-content="usuarios">
-        <i class="fas fa-users-cog"></i>
-        Administración de Usuarios
+        <i class="fas fa-users-cog"></i> Administración de Usuarios
       </button>
       <button class="menu-btn" data-content="seguros">
-        <i class="fas fa-file-contract"></i>
-        Gestión de Seguros
+        <i class="fas fa-file-contract"></i> Gestión de Seguros
       </button>
     </div>
     <a id="salir" href="{{ url_for('logout') }}" class="btn btn-secondary">
-      <i class="fas fa-sign-out-alt"></i>
-      Cerrar Sesión
+      <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
     </a>
   </div>
 
   <!-- MAIN CONTENT -->
   <div class="main-content">
-    <!-- HEADER -->
     <div class="header">
       <h1 id="content-title">Gestión de Roles</h1>
       <div class="user-info">
-        <img src="{{ url_for('static', filename='img/profile-small.png') }}" alt="Foto de perfil pequeña">
+        <img src="{{ url_for('static', filename='img/profile-small.png') }}" alt="Perfil pequeño">
         <span>Administrador</span>
       </div>
     </div>
 
-    <!-- DYNAMIC CONTENT -->
     <div id="dynamic-content">
-      <!-- Sección Roles -->
+      <!-- Roles -->
       <div class="content-section active" id="roles-content">
-        <!-- … aquí tu contenido de gestión de roles … -->
+        <!-- Contenido de gestión de roles -->
       </div>
 
-      <!-- Sección Usuarios -->
+      <!-- Usuarios -->
       <div class="content-section" id="usuarios-content">
         <div class="users-header">
           <button id="btn-new-user" class="btn btn-primary">
@@ -73,28 +67,24 @@
           <table class="users-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Usuario</th>
-                <th>Email</th>
-                <th>Rol</th>
-                <th>Acciones</th>
+                <th>ID</th><th>Usuario</th><th>Email</th><th>Rol</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <!-- Filas inyectadas por admin.js -->
+              <!-- Filas inyectadas dinámicamente -->
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Sección Seguros -->
+      <!-- Seguros -->
       <div class="content-section" id="seguros-content">
-        <!-- … aquí tu contenido de gestión de seguros … -->
+        <!-- Contenido de gestión de seguros -->
       </div>
     </div>
   </div>
 
-  <!-- MODAL: Confirmación genérica -->
+  <!-- Modal de confirmación -->
   <div id="modal" class="modal hidden">
     <div class="modal-content">
       <h2 id="modal-title">Confirmación</h2>
@@ -110,7 +100,7 @@
     </div>
   </div>
 
-  <!-- MODAL: Crear / Editar Usuario -->
+  <!-- Modal Crear/Editar Usuario -->
   <div id="user-modal" class="modal hidden">
     <div class="modal-content create-user">
       <h2 id="user-modal-title">Crear Usuario</h2>

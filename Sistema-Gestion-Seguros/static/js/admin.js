@@ -8,17 +8,16 @@ document.addEventListener('DOMContentLoaded', () => {
     seguros:  'Gestión de Seguros'
   };
 
-  // Mapa de role_id → nombre
-  const roleMap = {
-    1: 'Admin',
-    2: 'Agente',
-    3: 'Cliente'
-  };
+  const roleMap = { 1: 'Admin', 2: 'Agente', 3: 'Cliente' };
 
   function changeSection(section) {
-    menuButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.content === section));
+    menuButtons.forEach(btn =>
+      btn.classList.toggle('active', btn.dataset.content === section)
+    );
     contentTitle.textContent = sectionTitles[section] || '';
-    contentSections.forEach(sec => sec.classList.toggle('active', sec.id === section + '-content'));
+    contentSections.forEach(sec =>
+      sec.classList.toggle('active', sec.id === section + '-content')
+    );
     if (section === 'usuarios') loadUsers();
   }
 
@@ -38,8 +37,12 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${u.email}</td>
           <td>${roleMap[u.role_id] || u.role_id}</td>
           <td>
-            <button class="icon-btn btn-edit"   data-id="${u.id}"><i class="fas fa-edit"></i></button>
-            <button class="icon-btn btn-delete" data-id="${u.id}"><i class="fas fa-trash-alt"></i></button>
+            <button class="icon-btn btn-edit" data-id="${u.id}">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="icon-btn btn-delete" data-id="${u.id}">
+              <i class="fas fa-trash-alt"></i>
+            </button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -55,7 +58,9 @@ document.addEventListener('DOMContentLoaded', () => {
       );
 
       document.querySelectorAll('.btn-edit').forEach(btn =>
-        btn.addEventListener('click', () => openUserModal('Editar Usuario', btn.dataset.id))
+        btn.addEventListener('click', () =>
+          openUserModal('Editar Usuario', btn.dataset.id)
+        )
       );
 
     } catch (err) {
@@ -67,11 +72,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const mod = document.getElementById('modal');
     document.getElementById('modal-message').textContent = msg;
     mod.classList.remove('hidden');
-    document.getElementById('modal-confirm').onclick = () => { onConfirm(); mod.classList.add('hidden'); };
-    document.getElementById('modal-cancel').onclick  = () => mod.classList.add('hidden');
+    document.getElementById('modal-confirm').onclick = () => {
+      onConfirm();
+      mod.classList.add('hidden');
+    };
+    document.getElementById('modal-cancel').onclick = () => mod.classList.add('hidden');
   }
 
-  // ————————— Crear/Editar Usuario —————————
+  // Crear / Editar Usuario
   const userModal    = document.getElementById('user-modal');
   const userTitle    = document.getElementById('user-modal-title');
   const userForm     = document.getElementById('user-form');
@@ -94,7 +102,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     userModal.classList.remove('hidden');
   }
-  cancelBtn.addEventListener('click', () => { userModal.classList.add('hidden'); editUserId = null; });
+
+  cancelBtn.addEventListener('click', () => {
+    userModal.classList.add('hidden');
+    editUserId = null;
+  });
 
   userForm.addEventListener('submit', async e => {
     e.preventDefault();
