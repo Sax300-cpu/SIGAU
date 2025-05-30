@@ -17,7 +17,7 @@
       <div class="profile-section">
         <div class="profile-pic">
           <img
-            src="{{ url_for('static', filename='agente.jpg') }}"
+            src="{{ url_for('static', filename='img/agente.jpg') }}"
             alt="Foto de perfil del agente"
           >
         </div>
@@ -75,27 +75,6 @@
       </section>
     </main>
   </div>
-
-  <!-- Modal para agregar cliente -->
-  <div id="modalCliente" class="modal hidden">
-    <div class="modal-content">
-      <span class="close">&times;</span>
-      <h2>Registrar Nuevo Cliente</h2>
-      <form id="form-cliente">
-        <label for="nombre">Nombre:</label>
-        <input type="text" id="nombre" name="nombre" required>
-
-        <label for="correo">Correo Electrónico:</label>
-        <input type="email" id="correo" name="correo" required>
-
-        <label for="telefono">Teléfono:</label>
-        <input type="text" id="telefono" name="telefono" required>
-
-        <button type="submit" class="btn-save">Guardar Cliente</button>
-      </form>
-    </div>
-  </div>
-
   <!-- Carga tu JS desde static/ -->
   <script
     src="{{ url_for('static', filename='js/agente.js') }}"
