@@ -7,22 +7,35 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-styles.css') }}">
 </head>
 <body>
+  <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-header">
       <img src="{{ url_for('static', filename='img/profile.png') }}" alt="Foto de perfil">
       <h3>Bienvenido, Admin</h3>
     </div>
-    <button class="menu-btn active" data-content="roles">Gestión de Roles</button>
-    <button class="menu-btn" data-content="usuarios">Administración de Usuarios</button>
-    <button class="menu-btn" data-content="seguros">Gestión de Seguros</button>
-
-    <!-- Logout con id="salir" -->
-    <a id="salir" href="{{ url_for('logout') }}" class="btn btn-secondary" style="display:block; margin:1rem;">
+    <div class="nav-menu">
+      <button class="menu-btn active" data-content="roles">
+        <i class="fas fa-user-shield"></i>
+        Gestión de Roles
+      </button>
+      <button class="menu-btn" data-content="usuarios">
+        <i class="fas fa-users-cog"></i>
+        Administración de Usuarios
+      </button>
+      <button class="menu-btn" data-content="seguros">
+        <i class="fas fa-file-contract"></i>
+        Gestión de Seguros
+      </button>
+    </div>
+    <a id="salir" href="{{ url_for('logout') }}" class="btn btn-secondary">
+      <i class="fas fa-sign-out-alt"></i>
       Cerrar Sesión
     </a>
   </div>
 
+  <!-- MAIN CONTENT -->
   <div class="main-content">
+    <!-- HEADER -->
     <div class="header">
       <h1 id="content-title">Gestión de Roles</h1>
       <div class="user-info">
@@ -31,72 +44,120 @@
       </div>
     </div>
 
+    <!-- DYNAMIC CONTENT -->
     <div id="dynamic-content">
-      <!-- Roles -->
+      <!-- Sección Roles -->
       <div class="content-section active" id="roles-content">
-        <!-- ... contenido de roles ... -->
+        <!-- … aquí tu contenido de gestión de roles … -->
       </div>
 
-      <!-- Usuarios -->
+      <!-- Sección Usuarios -->
       <div class="content-section" id="usuarios-content">
-        <button id="btn-new-user" class="btn btn-primary">Crear usuario</button>
-        <table class="table" id="users-table">
-          <thead>
-            <tr>
-              <th>ID</th><th>Usuario</th><th>Email</th><th>Rol</th><th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+        <!-- Header con botón “Crear Usuario” -->
+        <div class="users-header">
+          <button id="btn-new-user" class="btn btn-primary">
+            <i class="fas fa-user-plus"></i>
+            Crear Usuario
+          </button>
+        </div>
+        <!-- Tabla de Usuarios -->
+        <div class="users-table-wrapper">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Filas inyectadas por admin.js -->
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <!-- Seguros -->
+      <!-- Sección Seguros -->
       <div class="content-section" id="seguros-content">
-        <!-- ... contenido de seguros ... -->
+        <!-- … aquí tu contenido de gestión de seguros … -->
       </div>
     </div>
   </div>
 
-  <!-- Modal de confirmación -->
+  <!-- MODAL: Confirmación genérica -->
   <div id="modal" class="modal hidden">
     <div class="modal-content">
       <h2 id="modal-title">Confirmación</h2>
       <p id="modal-message">¿Estás seguro?</p>
-      <button id="modal-confirm" class="btn btn-danger">Confirmar</button>
-      <button id="modal-cancel" class="btn btn-secondary">Cancelar</button>
+      <div class="modal-actions">
+        <button id="modal-confirm" class="btn btn-danger">
+          <i class="fas fa-check"></i>
+          Confirmar
+        </button>
+        <button id="modal-cancel" class="btn btn-secondary">
+          <i class="fas fa-times"></i>
+          Cancelar
+        </button>
+      </div>
     </div>
   </div>
 
-  <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
-</body>
-<!-- Modal Crear/Editar Usuario -->
+  <!-- MODAL: Crear / Editar Usuario -->
   <div id="user-modal" class="modal hidden">
-    <div class="modal-content">
+    <div class="modal-content create-user">
       <h2 id="user-modal-title">Crear Usuario</h2>
       <form id="user-form">
         <div class="form-group">
           <label for="u-username">Usuario</label>
-          <input type="text" id="u-username" name="username" required>
+          <input type="text"
+                 id="u-username"
+                 name="username"
+                 placeholder="Nombre de usuario"
+                 required>
         </div>
         <div class="form-group">
           <label for="u-email">Email</label>
-          <input type="email" id="u-email" name="email" required>
+          <input type="email"
+                 id="u-email"
+                 name="email"
+                 placeholder="correo@ejemplo.com"
+                 required>
         </div>
         <div class="form-group">
           <label for="u-password">Contraseña</label>
-          <input type="password" id="u-password" name="password" required>
+          <input type="password"
+                 id="u-password"
+                 name="password"
+                 placeholder="********"
+                 required>
         </div>
         <div class="form-group">
           <label for="u-role">Rol</label>
-          <select id="u-role" name="role_id">
+          <select id="u-role" name="role_id" required>
+            <option value="" disabled selected>Selecciona un rol</option>
             <option value="1">Admin</option>
             <option value="2">Agente</option>
             <option value="3">Cliente</option>
           </select>
         </div>
-        <button type="submit" class="btn btn-primary">Guardar</button>
-        <button type="button" id="user-modal-cancel" class="btn btn-secondary">Cancelar</button>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i>
+            Guardar
+          </button>
+          <button type="button"
+                  id="user-modal-cancel"
+                  class="btn btn-secondary">
+            <i class="fas fa-times"></i>
+            Cancelar
+          </button>
+        </div>
       </form>
     </div>
   </div>
+
+  <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+</body>
 </html>
