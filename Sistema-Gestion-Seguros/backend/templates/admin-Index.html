@@ -119,42 +119,96 @@
   </div>
 
   <!-- MODAL: Crear / Editar Usuario -->
-  <div id="user-modal" class="modal hidden">
-    <div class="modal-content create-user">
-      <h2 id="user-modal-title">Crear Usuario</h2>
-      <form id="user-form">
+<div id="user-modal" class="modal hidden">
+  <div class="modal-content create-user">
+    <h2 id="user-modal-title">Crear Usuario</h2>
+    
+    <!-- Paso 1: Selección de tipo de usuario -->
+    <div id="user-type-selection" class="user-step active">
+      <h3>Seleccione el tipo de usuario</h3>
+      <div class="user-type-options">
+        <button class="user-type-btn" data-type="admin">
+          <i class="fas fa-user-shield"></i> Administrador
+        </button>
+        <button class="user-type-btn" data-type="agent">
+          <i class="fas fa-user-tie"></i> Agente
+        </button>
+        <button class="user-type-btn" data-type="client">
+          <i class="fas fa-user"></i> Cliente
+        </button>
+      </div>
+    </div>
+    
+    <!-- Paso 2: Formulario común + específico por tipo -->
+    <form id="user-form" class="user-step">
+      <!-- Campos comunes a todos los usuarios -->
+      <div class="form-group">
+        <label for="u-username">Usuario</label>
+        <input type="text" id="u-username" name="username" placeholder="Nombre de usuario" required>
+      </div>
+      <div class="form-group">
+        <label for="u-email">Email</label>
+        <input type="email" id="u-email" name="email" placeholder="correo@ejemplo.com" required>
+      </div>
+      <div class="form-group">
+        <label for="u-password">Contraseña</label>
+        <input type="password" id="u-password" name="password" placeholder="********" required>
+      </div>
+      
+      <!-- Campos específicos para Cliente (ocultos inicialmente) -->
+      <div id="client-fields" class="hidden">
         <div class="form-group">
-          <label for="u-username">Usuario</label>
-          <input type="text" id="u-username" name="username" placeholder="Nombre de usuario" required>
+          <label for="u-phone">Teléfono</label>
+          <input type="tel" id="u-phone" name="phone" placeholder="+1234567890">
         </div>
         <div class="form-group">
-          <label for="u-email">Email</label>
-          <input type="email" id="u-email" name="email" placeholder="correo@ejemplo.com" required>
+          <label for="u-address">Dirección</label>
+          <input type="text" id="u-address" name="address" placeholder="Dirección completa">
         </div>
         <div class="form-group">
-          <label for="u-password">Contraseña</label>
-          <input type="password" id="u-password" name="password" placeholder="********" required>
+          <label for="u-birthdate">Fecha de Nacimiento</label>
+          <input type="date" id="u-birthdate" name="birthdate">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="u-city">Ciudad</label>
+            <input type="text" id="u-city" name="city" placeholder="Ciudad">
+          </div>
+          <div class="form-group">
+            <label for="u-province">Provincia</label>
+            <input type="text" id="u-province" name="province" placeholder="Provincia">
+          </div>
         </div>
         <div class="form-group">
-          <label for="u-role">Rol</label>
-          <select id="u-role" name="role_id" required>
-            <option value="" disabled selected>Selecciona un rol</option>
-            <option value="1">Admin</option>
-            <option value="2">Agente</option>
-            <option value="3">Cliente</option>
+          <label for="u-country">País</label>
+          <input type="text" id="u-country" name="country" placeholder="País">
+        </div>
+        <div class="form-group">
+          <label for="u-document">Documento de Identidad</label>
+          <input type="text" id="u-document" name="document" placeholder="Número de documento">
+        </div>
+        <div class="form-group">
+          <label for="u-gender">Género</label>
+          <select id="u-gender" name="gender">
+            <option value="">Seleccionar...</option>
+            <option value="M">Masculino</option>
+            <option value="F">Femenino</option>
+            <option value="O">Otro</option>
           </select>
         </div>
-        <div class="modal-actions">
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save"></i> Guardar
-          </button>
-          <button type="button" id="user-modal-cancel" class="btn btn-secondary">
-            <i class="fas fa-times"></i> Cancelar
-          </button>
-        </div>
-      </form>
-    </div>
+      </div>
+      
+      <div class="modal-actions">
+        <button type="button" id="back-to-selection" class="btn btn-secondary">
+          <i class="fas fa-arrow-left"></i> Volver
+        </button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Guardar
+        </button>
+      </div>
+    </form>
   </div>
+</div>
 
   <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>

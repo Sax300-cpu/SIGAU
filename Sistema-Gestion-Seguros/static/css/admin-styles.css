@@ -474,4 +474,63 @@ body {
   gap: 10px; /* Espaciado entre botones */
 }
 
+/* Agregar al final de tu CSS existente */
 
+/* Pasos del formulario */
+.user-step {
+  display: none;
+}
+.user-step.active {
+  display: block;
+}
+
+/* Opciones de tipo de usuario */
+.user-type-options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.user-type-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px;
+  background-color: #3D5A80;
+  border: none;
+  border-radius: 6px;
+  color: #E0E0E0;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.user-type-btn:hover {
+  background-color: #3498db;
+  transform: translateY(-2px);
+}
+
+.user-type-btn i {
+  font-size: 18px;
+}
+
+/* Campos específicos para cliente */
+#client-fields {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(224, 224, 224, 0.2);
+}
+
+.form-row {
+  display: flex;
+  gap: 15px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.hidden {
+  display: none !important;
+}
