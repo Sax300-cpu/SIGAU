@@ -306,9 +306,9 @@ body {
 
 .modal-actions {
   display: flex;
-  justify-content: center; /* Centra los botones horizontalmente */
-  align-items: center; /* Alinea verticalmente */
-  gap: 12px; /* Espaciado entre botones */
+  justify-content: center; 
+  align-items: center;
+  gap: 12px; 
 }
 
 .modal-actions .btn {
