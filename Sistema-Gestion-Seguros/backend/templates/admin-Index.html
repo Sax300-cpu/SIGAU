@@ -32,6 +32,25 @@
 
   <!-- Estilos propios -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-styles.css') }}">
+  <style>
+    /* Asegúrate de tener alguna regla para ocultar el modal cuando tenga la clase .hidden */
+    .modal.hidden {
+      display: none;
+    }
+
+    /* Pequeño estilo para la “X” de cerrar */
+    .close-user-modal {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      font-size: 24px;
+      color: #ffffff;
+      cursor: pointer;
+    }
+    .modal-content.create-user {
+      position: relative; /* para que la “X” se posicione respecto a este contenedor */
+    }
+  </style>
 </head>
 <body>
   <!-- SIDEBAR -->
@@ -67,7 +86,6 @@
     </div>
 
     <div id="dynamic-content">
-
       <!-- ROLES -->
       <div class="content-section active" id="roles-content">
         <!-- … contenido roles … -->
@@ -98,7 +116,6 @@
       <div class="content-section" id="seguros-content">
         <!-- … contenido seguros … -->
       </div>
-
     </div>
   </div>
 
@@ -121,9 +138,13 @@
   <!-- MODAL: Crear / Editar Usuario -->
 <div id="user-modal" class="modal hidden">
   <div class="modal-content create-user">
+    <!-- 1. BOTÓN “X” PARA CERRAR EL MODAL -->
+    <span class="close-user-modal" id="close-user-modal">&times;</span>
+
+    <!-- 2. TÍTULO DEL MODAL -->
     <h2 id="user-modal-title">Crear Usuario</h2>
     
-    <!-- Paso 1: Selección de tipo de usuario -->
+    <!-- 3. PASO 1: Selección de tipo de usuario -->
     <div id="user-type-selection" class="user-step active">
       <h3>Seleccione el tipo de usuario</h3>
       <div class="user-type-options">
@@ -139,77 +160,132 @@
       </div>
     </div>
     
-    <!-- Paso 2: Formulario común + específico por tipo -->
+    <!-- 4. PASO 2: FORMULARIO COMÚN + CAMPOS PARA “CLIENTE” -->
     <form id="user-form" class="user-step">
-      <!-- Campos comunes a todos los usuarios -->
-      <div class="form-group">
-        <label for="u-username">Usuario</label>
-        <input type="text" id="u-username" name="username" placeholder="Nombre de usuario" required>
-      </div>
-      <div class="form-group">
-        <label for="u-email">Email</label>
-        <input type="email" id="u-email" name="email" placeholder="correo@ejemplo.com" required>
-      </div>
-      <div class="form-group">
-        <label for="u-password">Contraseña</label>
-        <input type="password" id="u-password" name="password" placeholder="********" required>
-      </div>
-      
-      <!-- Campos específicos para Cliente (ocultos inicialmente) -->
-      <div id="client-fields" class="hidden">
-        <div class="form-group">
-          <label for="u-phone">Teléfono</label>
-          <input type="tel" id="u-phone" name="phone" placeholder="+1234567890">
-        </div>
-        <div class="form-group">
-          <label for="u-address">Dirección</label>
-          <input type="text" id="u-address" name="address" placeholder="Dirección completa">
-        </div>
-        <div class="form-group">
-          <label for="u-birthdate">Fecha de Nacimiento</label>
-          <input type="date" id="u-birthdate" name="birthdate">
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="u-city">Ciudad</label>
-            <input type="text" id="u-city" name="city" placeholder="Ciudad">
-          </div>
-          <div class="form-group">
-            <label for="u-province">Provincia</label>
-            <input type="text" id="u-province" name="province" placeholder="Provincia">
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="u-country">País</label>
-          <input type="text" id="u-country" name="country" placeholder="País">
-        </div>
-        <div class="form-group">
-          <label for="u-document">Documento de Identidad</label>
-          <input type="text" id="u-document" name="document" placeholder="Número de documento">
-        </div>
-        <div class="form-group">
-          <label for="u-gender">Género</label>
-          <select id="u-gender" name="gender">
-            <option value="">Seleccionar...</option>
-            <option value="M">Masculino</option>
-            <option value="F">Femenino</option>
-            <option value="O">Otro</option>
-          </select>
-        </div>
-      </div>
-      
-      <div class="modal-actions">
-        <button type="button" id="back-to-selection" class="btn btn-secondary">
-          <i class="fas fa-arrow-left"></i> Volver
-        </button>
-        <button type="submit" class="btn btn-primary">
-          <i class="fas fa-save"></i> Guardar
-        </button>
-      </div>
-    </form>
+  <!-- 1) Input oculto para role -->
+  <input type="hidden" id="u-role" name="role_id" value="1">
+
+  <!-- 2) Campos comunes -->
+  <div class="form-group">
+    <label for="u-username">Usuario</label>
+    <input type="text" id="u-username" name="username" placeholder="Nombre de usuario" required>
   </div>
+  <div class="form-group">
+    <label for="u-email">Email</label>
+    <input type="email" id="u-email" name="email" placeholder="correo@ejemplo.com" required>
+  </div>
+  <div class="form-group">
+    <label for="u-password">Contraseña</label>
+    <input type="password" id="u-password" name="password" placeholder="********" required>
+  </div>
+
+  <!-- 3) Campos específicos para Cliente -->
+  <div id="client-fields" class="hidden">
+    <!-- Teléfono -->
+    <div class="form-group">
+      <label for="u-phone">Teléfono</label>
+      <input type="tel" id="u-phone" name="phone" placeholder="+1234567890">
+    </div>
+    <!-- Dirección -->
+    <div class="form-group">
+      <label for="u-address">Dirección</label>
+      <input type="text" id="u-address" name="address" placeholder="Dirección completa">
+    </div>
+    <!-- Fecha de Nacimiento -->
+    <div class="form-group">
+      <label for="u-birthdate">Fecha de Nacimiento</label>
+      <input type="date" id="u-birthdate" name="birthdate">
+    </div>
+
+    <!-- Ciudad / Provincia en una fila -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="u-city">Ciudad</label>
+        <input type="text" id="u-city" name="city" placeholder="Ciudad">
+      </div>
+      <div class="form-group">
+        <label for="u-province">Provincia</label>
+        <input type="text" id="u-province" name="province" placeholder="Provincia">
+      </div>
+    </div>
+
+    <!-- País -->
+    <div class="form-group">
+      <label for="u-country">País</label>
+      <input type="text" id="u-country" name="country" placeholder="País">
+    </div>
+    <!-- Documento de Identidad -->
+    <div class="form-group">
+      <label for="u-document">Documento de Identidad</label>
+      <input type="text" id="u-document" name="document" placeholder="Número de documento">
+    </div>
+    <!-- Género -->
+    <div class="form-group">
+      <label for="u-gender">Género</label>
+      <select id="u-gender" name="gender">
+        <option value="">Seleccionar...</option>
+        <option value="M">Masculino</option>
+        <option value="F">Femenino</option>
+        <option value="O">Otro</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 4) Botones de acción -->
+  <div class="modal-actions">
+    <button type="button" id="back-to-selection" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Volver
+    </button>
+    <button type="submit" class="btn btn-primary">
+      <i class="fas fa-save"></i> Guardar
+    </button>
+  </div>
+</form>
+</div>
 </div>
 
+  <!-- SCRIPTS -->
+  <script>
+    // Referencias al modal de Crear/Editar Usuario y a la “X” de cerrar
+    const userModal       = document.getElementById('user-modal');
+    const btnNewUser      = document.getElementById('btn-new-user');
+    const spanCloseUser   = document.getElementById('close-user-modal');
+
+    // Abrir modal al hacer clic en “Crear Usuario”
+    btnNewUser.addEventListener('click', () => {
+      userModal.classList.remove('hidden');
+    });
+
+    // Cerrar modal al hacer clic en la “X”
+    spanCloseUser.addEventListener('click', () => {
+      userModal.classList.add('hidden');
+      resetUserModal(); // Si tienes que limpiar algún paso o formulario
+    });
+
+    // Cerrar modal al hacer clic fuera del contenido (opcional)
+    userModal.addEventListener('click', (e) => {
+      if (e.target === userModal) {
+        userModal.classList.add('hidden');
+        resetUserModal();
+      }
+    });
+
+    // (Opcional) Función para volver al paso inicial y ocultar campos de cliente
+    function resetUserModal() {
+      // Remover la clase “active” del paso de selección de tipo de usuario
+      document.getElementById('user-type-selection').classList.add('active');
+      // Ocultar el formulario
+      document.getElementById('user-form').classList.remove('active');
+      // Ocultar campos específicos de cliente
+      document.getElementById('client-fields').classList.add('hidden');
+      // Limpiar valores de cada input (si lo deseas)
+      document.getElementById('user-form').reset();
+    }
+
+    // (Resto de tu lógica en admin.js para avanzar/retroceder entre pasos y enviar formulario)
+  </script>
+
+  <!-- Tu archivo JS principal (puedes mantener aquí la referencia) -->
   <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>
 </html>

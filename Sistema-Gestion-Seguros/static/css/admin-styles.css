@@ -1,6 +1,6 @@
-/* admin-styles.css */
-
-/* RESET & BASE */
+/* =========================
+   RESET & BASE
+   ========================= */
 * {
   margin: 0;
   padding: 0;
@@ -15,7 +15,9 @@ body {
   color: #E0E0E0;
 }
 
-/* SIDEBAR */
+/* =========================
+   SIDEBAR
+   ========================= */
 .sidebar {
   width: 280px;
   background-color: #3D5A80;
@@ -88,7 +90,9 @@ body {
   padding: 12px;
 }
 
-/* MAIN CONTENT */
+/* =========================
+   MAIN CONTENT
+   ========================= */
 .main-content {
   margin-left: 280px;
   padding: 30px;
@@ -219,7 +223,9 @@ body {
   background-color: #d62839;
 }
 
-/* MODAL */
+/* =========================
+   MODAL BASE
+   ========================= */
 .modal {
   position: fixed;
   top: 0;
@@ -227,15 +233,18 @@ body {
   width: 100%;
   height: 100%;
   background: rgba(0,0,0,0.6);
-  display: flex;
+  display: flex;             /* ← Centra el contenido con flex */
   justify-content: center;
   align-items: center;
+  z-index: 9999;
 }
 
+/* Ocultar modal cuando tenga .hidden */
 .modal.hidden {
   display: none;
 }
 
+/* Contenido genérico del modal */
 .modal-content {
   background-color: #2E2E2E;
   padding: 20px;
@@ -243,6 +252,9 @@ body {
   text-align: center;
   width: 90%;
   max-width: 400px;
+  box-sizing: border-box;
+  max-height: 90vh;       /* ← Permite scroll interno si el modal es muy largo */
+  overflow-y: auto;
 }
 
 .modal-content h2 {
@@ -255,18 +267,21 @@ body {
   color: #E0E0E0;
 }
 
-/* ----------------------------------------
+/* =========================
    MODAL CREAR / EDITAR USUARIO
----------------------------------------- */
-
+   (Sección específica para el modal de usuarios)
+   ========================= */
 .modal-content.create-user {
   background: #2E2E2E;
-  width: 360px;
-  max-width: 90%;
+  width: 360px;          /* Ancho en desktop */
+  max-width: 90%;        /* ← En móvil ocupa 90% de ancho */
   padding: 24px 32px;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
   color: #E0E0E0;
+  position: relative;    /* ← Necesario para el botón “X” */
+  max-height: 80vh;      /* ← Evita que crezca más allá del 80% de altura */
+  overflow-y: auto;      /* ← Scroll interno si es muy largo */
 }
 
 .modal-content.create-user h2 {
@@ -275,6 +290,22 @@ body {
   text-align: center;
 }
 
+/* =========================
+   BOTÓN “X” PARA CERRAR EL MODAL
+   ========================= */
+.close-user-modal {
+  position: absolute;
+  top: 12px;               /* 12px desde el borde superior */
+  right: 16px;             /* 16px desde el borde derecho */
+  font-size: 24px;         /* Tamaño visible */
+  color: #ffffff;          /* Blanco para contraste */
+  cursor: pointer;         /* Ícono clicable */
+}
+
+/* =========================
+   FORMULARIOS DENTRO DEL MODAL
+   ========================= */
+/* Cada campo ocupa 100% en móvil */
 .modal-content.create-user .form-group {
   display: flex;
   flex-direction: column;
@@ -284,6 +315,7 @@ body {
 .modal-content.create-user .form-group label {
   margin-bottom: 6px;
   font-weight: 600;
+  color: #E0E0E0;
 }
 
 .modal-content.create-user .form-group input,
@@ -295,6 +327,8 @@ body {
   background: #fff;
   color: #333;
   transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .modal-content.create-user .form-group input:focus,
@@ -304,11 +338,16 @@ body {
   box-shadow: 0 0 8px #daa520;
 }
 
+/* =========================
+   BOTONES AL PIE DEL MODAL
+   ========================= */
 .modal-actions {
   display: flex;
   justify-content: center; 
   align-items: center;
   gap: 12px; 
+  flex-wrap: wrap;           /* ← Permite que los botones pasen a nueva línea en pantallas muy pequeñas */
+  margin-top: 16px;
 }
 
 .modal-actions .btn {
@@ -335,10 +374,9 @@ body {
   background-color: #666;
 }
 
-/* ----------------------------------------
+/* =========================
    USUARIOS: HEADER + TABLA
----------------------------------------- */
-
+   ========================= */
 .users-header {
   display: flex;
   justify-content: flex-end;
@@ -381,69 +419,7 @@ body {
   vertical-align: middle;
 }
 
-/* Botones de acción */
-.icon-btn {
-  background: transparent;
-  border: none;
-  color: #daa520;
-  font-size: 1.1rem;
-  margin-right: 8px;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-.icon-btn:last-child {
-  margin-right: 0;
-}
-.icon-btn:hover {
-  color: #c6951a;
-}
-
-/* Ajuste al botón Crear */
-.btn-primary {
-  padding: 10px 24px;
-  border-radius: 6px;
-  font-size: 0.95rem;
-}
-
-/* Si quieres un “card” alrededor de tabla, podrías envolver .users-table-wrapper en un .card */
-
-/* … tu CSS global ya existente … */
-
-/* USUARIOS: HEADER + TABLA */
-.users-header {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 16px;
-}
-.users-table-wrapper {
-  overflow-x: auto;
-}
-.users-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 8px;
-}
-.users-table thead th {
-  position: sticky;
-  top: 0;
-  background-color: #3D5A80;
-  color: #E0E0E0;
-  padding: 12px 16px;
-  font-weight: 600;
-}
-.users-table tbody tr {
-  background-color: #2E2E2E;
-  transition: background-color 0.2s;
-}
-.users-table tbody tr:hover {
-  background-color: #3D5A80;
-}
-.users-table td {
-  padding: 12px 16px;
-  color: #E0E0E0;
-}
-
-/* ICON-BUTTONS para editar/eliminar */
+/* Botones de acción: Editar / Eliminar */
 .icon-btn {
   background: transparent;
   border: none;
@@ -470,13 +446,13 @@ body {
 .users-table td:last-child {
   display: flex;
   justify-content: center; /* Centra los botones horizontalmente */
-  align-items: center; /* Alinea verticalmente */
-  gap: 10px; /* Espaciado entre botones */
+  align-items: center;     /* Alinea verticalmente */
+  gap: 10px;                /* Espaciado entre botones */
 }
 
-/* Agregar al final de tu CSS existente */
-
-/* Pasos del formulario */
+/* =========================
+   USUARIOS: PASOS DEL FORMULARIO
+   ========================= */
 .user-step {
   display: none;
 }
@@ -484,7 +460,9 @@ body {
   display: block;
 }
 
-/* Opciones de tipo de usuario */
+/* =========================
+   OPCIONES DE TIPO DE USUARIO (Paso 1)
+   ========================= */
 .user-type-options {
   display: grid;
   grid-template-columns: 1fr;
@@ -515,22 +493,41 @@ body {
   font-size: 18px;
 }
 
-/* Campos específicos para cliente */
+/* =========================
+   CAMPOS ESPECÍFICOS PARA CLIENTE (Paso 2)
+   ========================= */
 #client-fields {
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid rgba(224, 224, 224, 0.2);
 }
 
+/* Fila con “Ciudad” y “Provincia” */
 .form-row {
   display: flex;
   gap: 15px;
+  flex-wrap: wrap; /* Permite que en pantallas pequeñas se apilen */
 }
 
 .form-row .form-group {
-  flex: 1;
+  flex: 1;       
+  min-width: 48%; /* Ocupan 48% cada uno, dejando 4% de espacio entre ambos */
 }
 
+/* =========================
+   MEDIA QUERY PARA RESPONSIVE
+   - En pantallas < 600px, apilar “Ciudad” y “Provincia”
+   ========================= */
+@media (max-width: 600px) {
+  .form-row .form-group {
+    flex: 1 1 100%;  /* Ocupan 100% cada uno (se apilan) */
+    min-width: 100%;
+  }
+}
+
+/* =========================
+   CLASE UTILITARIA PARA OCULTAR
+   ========================= */
 .hidden {
   display: none !important;
 }
