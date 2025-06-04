@@ -531,3 +531,34 @@ body {
 .hidden {
   display: none !important;
 }
+
+
+
+
+
+/* ESTILOS FORMULARIO DE GESTION DE SEGUROS (2DO AVANCE) */
+#insurance-form textarea {
+  min-height: 80px;
+  padding: 10px 12px;
+  border: 1px solid #555;
+  border-radius: 5px;
+  font-size: 1rem;
+  background: #fff;
+  color: #333;
+  resize: vertical;
+  width: 100%;
+}
+
+#insurance-form select {
+  width: 100%;
+  padding: 10px 12px;
+}
+
+/* Ajustes para la tabla de seguros */
+#insurances-tbody tr td:nth-child(4),
+#insurances-tbody tr td:nth-child(5) {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
