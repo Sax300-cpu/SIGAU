@@ -285,7 +285,101 @@
     // (Resto de tu lógica en admin.js para avanzar/retroceder entre pasos y enviar formulario)
   </script>
 
-  <!-- Tu archivo JS principal (puedes mantener aquí la referencia) -->
+  <!-- SEGUROS -->
+<div class="content-section" id="seguros-content">
+  <div class="users-header">
+    <button id="btn-new-insurance" class="btn btn-primary">
+      <i class="fas fa-plus-circle"></i> Crear Seguro
+    </button>
+  </div>
+  <div class="users-table-wrapper">
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Tipo</th>
+          <th>Cobertura</th>
+          <th>Costo</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="insurances-tbody">
+        <!-- Aquí se inyectarán los seguros -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL: Crear/Editar Seguro -->
+<div id="insurance-modal" class="modal hidden">
+  <div class="modal-content create-user">
+    <h2 id="insurance-modal-title">Crear Seguro</h2>
+    <form id="insurance-form">
+      <div class="form-group">
+        <label for="i-name">Nombre del Seguro</label>
+        <input type="text" id="i-name" name="name" placeholder="Ej: Seguro de Vida Premium" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="i-type">Tipo de Seguro</label>
+        <select id="i-type" name="type" required>
+          <option value="">Seleccionar...</option>
+          <option value="Vida">Vida</option>
+          <option value="Salud">Salud</option>
+          <option value="Automóvil">Automóvil</option>
+          <option value="Hogar">Hogar</option>
+          <option value="Viaje">Viaje</option>
+          <option value="Empresarial">Empresarial</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="i-coverage">Cobertura</label>
+        <textarea id="i-coverage" name="coverage" rows="3" placeholder="Monto máximo de cobertura, condiciones, exclusiones" required></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label for="i-benefits">Beneficios</label>
+        <textarea id="i-benefits" name="benefits" rows="3" placeholder="Servicios incluidos, asistencia médica, indemnización" required></textarea>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="i-cost">Costo</label>
+          <input type="number" id="i-cost" name="cost" step="0.01" min="0" placeholder="0.00" required>
+        </div>
+        <div class="form-group">
+          <label for="i-payment">Frecuencia de Pago</label>
+          <select id="i-payment" name="payment" required>
+            <option value="Mensual">Mensual</option>
+            <option value="Trimestral">Trimestral</option>
+            <option value="Anual">Anual</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="i-status">Estado</label>
+        <select id="i-status" name="status" required>
+          <option value="1">Activo</option>
+          <option value="0">Inactivo</option>
+        </select>
+      </div>
+      
+      <div class="modal-actions">
+        <button type="button" id="cancel-insurance" class="btn btn-secondary">
+          <i class="fas fa-times"></i> Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Guardar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
   <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>
 </html>

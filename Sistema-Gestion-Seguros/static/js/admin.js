@@ -305,3 +305,147 @@ document.addEventListener('DOMContentLoaded', () => {
   showSection('roles');
 });
 
+// ========== GESTIÓN DE SEGUROS ==========
+const insuranceModal = document.getElementById('insurance-modal');
+const insuranceForm = document.getElementById('insurance-form');
+const insurancesTbody = document.getElementById('insurances-tbody');
+let editInsuranceId = null;
+
+// Función para cargar los seguros
+async function loadInsurances() {
+  insurancesTbody.innerHTML = '';
+  try {
+    const res = await fetch('/insurances');
+    if (!res.ok) throw new Error(res.status);
+    const list = await res.json();
+    
+    list.forEach((insurance, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${insurance.name}</td>
+        <td>${insurance.type}</td>
+        <td title="${insurance.coverage}">${insurance.coverage.substring(0, 30)}${insurance.coverage.length > 30 ? '...' : ''}</td>
+        <td>$${insurance.cost} ${insurance.payment}</td>
+        <td>${insurance.status ? 'Activo' : 'Inactivo'}</td>
+        <td>
+          <button class="icon-btn btn-edit-insurance" data-id="${insurance.id}"><i class="fas fa-edit"></i></button>
+          <button class="icon-btn btn-delete-insurance" data-id="${insurance.id}"><i class="fas fa-trash-alt"></i></button>
+        </td>`;
+      insurancesTbody.appendChild(tr);
+    });
+
+    // Eventos para botones de eliminar
+    document.querySelectorAll('.btn-delete-insurance').forEach(b => {
+      b.onclick = () => showModal('¿Eliminar este seguro?', async () => {
+        await fetch(`/insurances/${b.dataset.id}`, { method: 'DELETE' });
+        loadInsurances();
+      });
+    });
+
+    // Eventos para botones de editar
+    document.querySelectorAll('.btn-edit-insurance').forEach(b => {
+      b.onclick = () => openInsuranceModal('Editar Seguro', b.dataset.id);
+    });
+
+  } catch (e) {
+    console.error('Error al cargar seguros:', e);
+  }
+}
+
+// Función para abrir el modal de seguros
+function openInsuranceModal(title, id = null) {
+  document.getElementById('insurance-modal-title').textContent = title;
+  insuranceForm.reset();
+  editInsuranceId = id;
+  
+  if (id) {
+    // Modo edición: cargar los datos del seguro
+    fetch(`/insurances/${id}`)
+      .then(res => res.json())
+      .then(insurance => {
+        document.getElementById('i-name').value = insurance.name;
+        document.getElementById('i-type').value = insurance.type;
+        document.getElementById('i-coverage').value = insurance.coverage;
+        document.getElementById('i-benefits').value = insurance.benefits;
+        document.getElementById('i-cost').value = insurance.cost;
+        document.getElementById('i-payment').value = insurance.payment;
+        document.getElementById('i-status').value = insurance.status ? '1' : '0';
+      });
+  }
+  
+  insuranceModal.classList.remove('hidden');
+}
+
+// Evento para el botón de nuevo seguro
+document.getElementById('btn-new-insurance').onclick = () => 
+  openInsuranceModal('Crear Seguro');
+
+// Evento para cancelar en el modal de seguros
+document.getElementById('cancel-insurance').onclick = () => {
+  insuranceModal.classList.add('hidden');
+  editInsuranceId = null;
+};
+
+// Submit del formulario de seguros
+insuranceForm.onsubmit = async e => {
+  e.preventDefault();
+  
+  // Validaciones básicas
+  const name = insuranceForm.name.value.trim();
+  const type = insuranceForm.type.value;
+  const coverage = insuranceForm.coverage.value.trim();
+  const benefits = insuranceForm.benefits.value.trim();
+  const cost = parseFloat(insuranceForm.cost.value);
+  const payment = insuranceForm.payment.value;
+  const status = insuranceForm.status.value === '1';
+  
+  if (!name || name.length > 100) {
+    return alert('El nombre del seguro debe tener entre 1 y 100 caracteres.');
+  }
+  if (!type) {
+    return alert('Seleccione un tipo de seguro.');
+  }
+  if (!coverage) {
+    return alert('Ingrese la cobertura del seguro.');
+  }
+  if (!benefits) {
+    return alert('Ingrese los beneficios del seguro.');
+  }
+  if (isNaN(cost) || cost <= 0) {
+    return alert('Ingrese un costo válido mayor a cero.');
+  }
+  
+  const data = { name, type, coverage, benefits, cost, payment, status };
+  const url = editInsuranceId ? `/insurances/${editInsuranceId}` : '/insurances';
+  const method = editInsuranceId ? 'PUT' : 'POST';
+  
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    if (res.ok) {
+      loadInsurances();
+      insuranceModal.classList.add('hidden');
+      editInsuranceId = null;
+    } else {
+      const err = await res.json();
+      alert(err.error || 'Error al guardar el seguro.');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error de conexión.');
+  }
+};
+
+// Actualiza la función showSection para cargar seguros cuando corresponda
+function showSection(name) {
+  btns.forEach(b => b.classList.toggle('active', b.dataset.content === name));
+  titleEl.textContent = sectNames[name] || '';
+  sections.forEach(s => s.classList.toggle('active', s.id === name + '-content'));
+  if (name === 'usuarios') loadUsers();
+  if (name === 'seguros') loadInsurances(); // Nueva línea para cargar seguros
+}
