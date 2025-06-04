@@ -1,16 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const btns      = document.querySelectorAll('.menu-btn');
-  const sections  = document.querySelectorAll('.content-section');
-  const titleEl   = document.getElementById('content-title');
-  const tbody     = document.getElementById('users-tbody');
-  const roleMap   = { 1: 'Admin', 2: 'Agente', 3: 'Cliente' };
+  const btns = document.querySelectorAll('.menu-btn');
+  const sections = document.querySelectorAll('.content-section');
+  const titleEl = document.getElementById('content-title');
+  const tbody = document.getElementById('users-tbody');
+  const roleMap = { 1: 'Admin', 2: 'Agente', 3: 'Cliente' };
   const sectNames = {
-    roles:    'Gestión de Roles',
+    roles: 'Gestión de Roles',
     usuarios: 'Administración de Usuarios',
-    seguros:  'Gestión de Seguros'
+    seguros: 'Gestión de Seguros'
   };
 
-  // Cambia sección activa y título
+  // ========== FUNCIONES EXISTENTES (sin cambios) ==========
   function showSection(name) {
     btns.forEach(b => b.classList.toggle('active', b.dataset.content === name));
     titleEl.textContent = sectNames[name] || '';
@@ -18,28 +18,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (name === 'usuarios') loadUsers();
   }
 
-  // Carga usuarios y añade botones de editar/eliminar
   async function loadUsers() {
     tbody.innerHTML = '';
     try {
-      const res  = await fetch('/users');
+      const res = await fetch('/users');
       if (!res.ok) throw new Error(res.status);
       const list = await res.json();
       list.forEach((u, i) => {
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td>${i + 1}</td>               <!-- contador reiniciado -->
-    <td>${u.username}</td>
-    <td>${u.email}</td>
-    <td>${roleMap[u.role_id] || u.role_id}</td>
-    <td>
-            <button class="icon-btn btn-edit"   data-id="${u.id}"><i class="fas fa-edit"></i> Editar</button>
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          <td>${u.username}</td>
+          <td>${u.email}</td>
+          <td>${roleMap[u.role_id] || u.role_id}</td>
+          <td>
+            <button class="icon-btn btn-edit" data-id="${u.id}"><i class="fas fa-edit"></i> Editar</button>
             <button class="icon-btn btn-delete" data-id="${u.id}"><i class="fas fa-trash-alt"></i> Eliminar</button>
           </td>`;
         tbody.appendChild(tr);
       });
 
-      // Listener para eliminar
       document.querySelectorAll('.btn-delete').forEach(b => {
         b.onclick = () => showModal('¿Eliminar este usuario?', async () => {
           await fetch(`/users/${b.dataset.id}`, { method: 'DELETE' });
@@ -47,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
 
-      // Listener para editar
       document.querySelectorAll('.btn-edit').forEach(b => {
         b.onclick = () => openUserModal('Editar Usuario', b.dataset.id);
       });
@@ -57,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Modal genérico
   function showModal(msg, onOk) {
     const modal = document.getElementById('modal');
     document.getElementById('modal-message').textContent = msg;
@@ -71,41 +67,79 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Crear / Editar usuario
+  // ========== NUEVAS FUNCIONES PARA EL MODAL DE 2 PASOS ==========
   const userModal = document.getElementById('user-modal');
-  const userForm  = document.getElementById('user-form');
-  let editId      = null;
+  const userForm = document.getElementById('user-form');
+  let editId = null;
 
   function openUserModal(title, id = null) {
     document.getElementById('user-modal-title').textContent = title;
     userForm.reset();
     editId = id;
-    if (id) {
+    
+    if (!id) {
+      // Modo creación: mostrar selección de tipo primero
+      document.getElementById('user-type-selection').classList.add('active');
+      document.getElementById('user-form').classList.remove('active');
+      document.getElementById('client-fields').classList.add('hidden');
+    } else {
+      // Modo edición: cargar directamente el formulario
+      document.getElementById('user-type-selection').classList.remove('active');
+      document.getElementById('user-form').classList.add('active');
       fetch(`/users/${id}`)
         .then(res => res.json())
         .then(u => {
           document.getElementById('u-username').value = u.username;
-          document.getElementById('u-email').value    = u.email;
-          document.getElementById('u-role').value     = u.role_id;
+          document.getElementById('u-email').value = u.email;
+          document.getElementById('u-role').value = u.role_id;
+          if (u.role_id === 3) { // Si es cliente
+            document.getElementById('client-fields').classList.remove('hidden');
+            // Carga campos adicionales (debes adaptar esto a tu estructura de datos real)
+            if (u.phone) document.getElementById('u-phone').value = u.phone;
+            if (u.address) document.getElementById('u-address').value = u.address;
+            // ...otros campos...
+          }
         });
     }
     userModal.classList.remove('hidden');
   }
-  document.getElementById('user-modal-cancel').onclick = () => {
-    userModal.classList.add('hidden');
-    editId = null;
-  };
 
+  // Listeners para los botones de tipo de usuario
+  document.querySelectorAll('.user-type-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const userType = this.dataset.type;
+      document.getElementById('user-type-selection').classList.remove('active');
+      document.getElementById('user-form').classList.add('active');
+      
+      if (userType === 'client') {
+        document.getElementById('client-fields').classList.remove('hidden');
+        document.getElementById('u-role').value = 3; // Cliente
+      } else if (userType === 'agent') {
+        document.getElementById('client-fields').classList.add('hidden');
+        document.getElementById('u-role').value = 2; // Agente
+      } else {
+        document.getElementById('client-fields').classList.add('hidden');
+        document.getElementById('u-role').value = 1; // Admin
+      }
+    });
+  });
+
+  // Botón "Volver"
+  document.getElementById('back-to-selection').addEventListener('click', function() {
+    document.getElementById('user-form').classList.remove('active');
+    document.getElementById('user-type-selection').classList.add('active');
+  });
+
+  // Submit del formulario (modificado para incluir campos de cliente)
   userForm.onsubmit = async e => {
     e.preventDefault();
 
-    // Recoge & sanea
+    // Validaciones existentes
     const username = userForm.username.value.trim();
-    const email    = userForm.email.value.trim().toLowerCase();
+    const email = userForm.email.value.trim().toLowerCase();
     const password = userForm.password.value;
-    const role_id  = +userForm.role_id.value;
+    const role_id = +userForm.role_id.value;
 
-    // Validaciones breves
     if (!username || username.length > 30) {
       return alert('Usuario: 1–30 caracteres.');
     }
@@ -113,36 +147,54 @@ document.addEventListener('DOMContentLoaded', () => {
       return alert('Email inválido.');
     }
     const pwdRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-  if (!pwdRe.test(password)) {
-    return alert(
-      'La contraseña debe tener al menos 8 caracteres,\n' +
-      'incluyendo minúscula, mayúscula, número y símbolo.'
-    );
-  }
-    const data   = { username, email, password, role_id };
-    const url    = editId ? `/users/${editId}` : '/users';
+    if (!pwdRe.test(password)) {
+      return alert('La contraseña debe tener al menos 8 caracteres,\nincluyendo minúscula, mayúscula y número.');
+    }
+
+    // Recoger datos adicionales para clientes
+    let extraData = {};
+    if (role_id === 3) {
+      extraData = {
+        phone: document.getElementById('u-phone').value.trim(),
+        address: document.getElementById('u-address').value.trim(),
+        birthdate: document.getElementById('u-birthdate').value,
+        city: document.getElementById('u-city').value.trim(),
+        province: document.getElementById('u-province').value.trim(),
+        country: document.getElementById('u-country').value.trim(),
+        document: document.getElementById('u-document').value.trim(),
+        gender: document.getElementById('u-gender').value
+      };
+    }
+
+    const data = { username, email, password, role_id, ...extraData };
+    const url = editId ? `/users/${editId}` : '/users';
     const method = editId ? 'PUT' : 'POST';
 
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body:   JSON.stringify(data)
-    });
-    if (res.ok) {
-      loadUsers();
-      userModal.classList.add('hidden');
-      editId = null;
-    } else {
-      const err = await res.json();
-      alert(err.error || 'Error al guardar.');
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      if (res.ok) {
+        loadUsers();
+        userModal.classList.add('hidden');
+        editId = null;
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Error al guardar.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error de conexión.');
     }
   };
 
-  // Nuevo usuario
-  document.getElementById('btn-new-user').onclick = () =>
+  // ========== LISTENERS INICIALES ==========
+  document.getElementById('btn-new-user').onclick = () => 
     openUserModal('Crear Usuario');
 
-  // Sidebar
   btns.forEach(b => b.onclick = () => showSection(b.dataset.content));
   showSection('roles');
 });
