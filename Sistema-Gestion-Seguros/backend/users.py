@@ -172,4 +172,3 @@ def update_user(user_id):
         mysql.connection.rollback()
         cur.close()
         return jsonify({'error': str(e)}), 500
-

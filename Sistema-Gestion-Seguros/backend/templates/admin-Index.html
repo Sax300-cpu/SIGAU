@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
-  <meta http-equiv="Pragma"        content="no-cache">
-  <meta http-equiv="Expires"       content="0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
 
   <script>
-    window.addEventListener('pageshow', function(event) {
+    // Evitar back/forward cache
+    window.addEventListener('pageshow', function (event) {
       if (event.persisted) {
         window.location.reload();
       }
@@ -25,21 +26,19 @@
   <link
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    integrity="sha512-p85JYqzZ/D9eZAIzXV9CR98+lXP1fY6fsxo88i27F1Q+T5vU+v+XmqRLpY+gKCJnjslq10sVvKG+Sg/SyXb1LQ=="
     crossorigin="anonymous"
     referrerpolicy="no-referrer"
   />
 
   <!-- Estilos propios -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-styles.css') }}" />
 
   <style>
-    /* Asegúrate de tener alguna regla para ocultar el modal cuando tenga la clase .hidden */
+    /* Ocultar el modal cuando tenga la clase .hidden */
     .modal.hidden {
       display: none;
     }
-
-    /* Pequeño estilo para la “X” de cerrar */
+    /* Pequeño estilo para la “X” de cerrar en modales de usuario */
     .close-user-modal {
       position: absolute;
       top: 12px;
@@ -49,15 +48,17 @@
       cursor: pointer;
     }
     .modal-content.create-user {
-      position: relative; /* para que la “X” se posicione respecto a este contenedor */
+      position: relative; /* para que la “X” se posicione correctamente */
     }
   </style>
 </head>
 <body>
-  <!-- SIDEBAR -->
+  <!-- =========================
+       SIDEBAR
+       ========================= -->
   <div class="sidebar">
     <div class="sidebar-header">
-      <img src="{{ url_for('static', filename='img/admin.jpg') }}" alt="Foto de perfil">
+      <img src="{{ url_for('static', filename='img/admin.jpg') }}" alt="Foto de perfil" />
       <h3>Bienvenido, Admin</h3>
     </div>
     <div class="nav-menu">
@@ -76,23 +77,29 @@
     </a>
   </div>
 
-  <!-- MAIN CONTENT -->
+  <!-- =========================
+       MAIN CONTENT
+       ========================= -->
   <div class="main-content">
     <div class="header">
       <h1 id="content-title">Gestión de Roles</h1>
       <div class="user-info">
-        <img src="{{ url_for('static', filename='img/admin.jpg') }}" alt="Perfil pequeño">
+        <img src="{{ url_for('static', filename='img/admin.jpg') }}" alt="Perfil pequeño" />
         <span>Administrador</span>
       </div>
     </div>
 
     <div id="dynamic-content">
-      <!-- ROLES -->
+      <!-- =========================
+           SECCIÓN: ROLES
+           ========================= -->
       <div class="content-section active" id="roles-content">
-        <!-- Aquí iría el contenido completo de Gestión de Roles -->
+        <!-- **Aquí iría TODO lo que necesitas mostrar en “Gestión de Roles”** -->
       </div>
 
-      <!-- USUARIOS -->
+      <!-- =========================
+           SECCIÓN: USUARIOS
+           ========================= -->
       <div class="content-section" id="usuarios-content">
         <div class="users-header">
           <button id="btn-new-user" class="btn btn-primary">
@@ -111,13 +118,15 @@
               </tr>
             </thead>
             <tbody id="users-tbody">
-              <!-- Aquí se inyectan filas de usuarios -->
+              <!-- Se inyectan filas de usuarios vía JS -->
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- SEGUROS -->
+      <!-- =========================
+           SECCIÓN: SEGUROS
+           ========================= -->
       <div class="content-section" id="seguros-content">
         <div class="users-header">
           <button id="btn-new-insurance" class="btn btn-primary">
@@ -138,24 +147,27 @@
               </tr>
             </thead>
             <tbody id="insurances-tbody">
-              <!-- Aquí se inyectarán los seguros -->
+              <!-- Se inyectan filas de seguros vía JS -->
             </tbody>
           </table>
         </div>
       </div>
-    </div>
-  </div>
+    </div> <!-- /#dynamic-content -->
+  </div>   <!-- /.main-content -->
 
-  <!-- MODAL: Crear/Editar Seguro -->
+  <!-- =========================
+       MODAL: Crear/Editar Seguro
+       ========================= -->
   <div id="insurance-modal" class="modal hidden">
     <div class="modal-content create-user">
       <h2 id="insurance-modal-title">Crear Seguro</h2>
       <form id="insurance-form">
+        <!-- Nombre del Seguro -->
         <div class="form-group">
           <label for="i-name">Nombre del Seguro</label>
-          <input type="text" id="i-name" name="name" placeholder="Ej: Seguro de Vida Premium" required>
+          <input type="text" id="i-name" name="name" placeholder="Ej: Seguro de Vida Premium" required />
         </div>
-
+        <!-- Tipo de Seguro -->
         <div class="form-group">
           <label for="i-type">Tipo de Seguro</label>
           <select id="i-type" name="type" required>
@@ -168,32 +180,51 @@
             <option value="Empresarial">Empresarial</option>
           </select>
         </div>
-
+        <!-- Cobertura -->
         <div class="form-group">
           <label for="i-coverage">Cobertura</label>
-          <textarea id="i-coverage" name="coverage" rows="3" placeholder="Monto máximo de cobertura, condiciones, exclusiones" required></textarea>
+          <textarea
+            id="i-coverage"
+            name="coverage"
+            rows="3"
+            placeholder="Monto máximo de cobertura, condiciones, exclusiones"
+            required
+          ></textarea>
         </div>
-
+        <!-- Beneficios -->
         <div class="form-group">
           <label for="i-benefits">Beneficios</label>
-          <textarea id="i-benefits" name="benefits" rows="3" placeholder="Servicios incluidos, asistencia médica, indemnización" required></textarea>
+          <textarea
+            id="i-benefits"
+            name="benefits"
+            rows="3"
+            placeholder="Servicios incluidos, asistencia médica, indemnización"
+            required
+          ></textarea>
         </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="i-cost">Costo</label>
-            <input type="number" id="i-cost" name="cost" step="0.01" min="0" placeholder="0.00" required>
-          </div>
-          <div class="form-group">
-            <label for="i-payment">Frecuencia de Pago</label>
-            <select id="i-payment" name="payment" required>
-              <option value="Mensual">Mensual</option>
-              <option value="Trimestral">Trimestral</option>
-              <option value="Anual">Anual</option>
-            </select>
-          </div>
+        <!-- Costo -->
+        <div class="form-group">
+          <label for="i-cost">Costo</label>
+          <input
+            type="number"
+            id="i-cost"
+            name="cost"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            required
+          />
         </div>
-
+        <!-- **Frecuencia de Pago (cambiamos name="payment_frequency" → name="payment")** -->
+        <div class="form-group">
+          <label for="i-payment">Frecuencia de Pago</label>
+          <select id="i-payment" name="payment" required>
+            <option value="Mensual">Mensual</option>
+            <option value="Trimestral">Trimestral</option>
+            <option value="Anual">Anual</option>
+          </select>
+        </div>
+        <!-- Estado -->
         <div class="form-group">
           <label for="i-status">Estado</label>
           <select id="i-status" name="status" required>
@@ -201,7 +232,7 @@
             <option value="0">Inactivo</option>
           </select>
         </div>
-
+        <!-- Botones al pie del modal -->
         <div class="modal-actions">
           <button type="button" id="cancel-insurance" class="btn btn-secondary">
             <i class="fas fa-times"></i> Cancelar
@@ -214,7 +245,9 @@
     </div>
   </div>
 
-  <!-- MODAL: Confirmación -->
+  <!-- =========================
+       MODAL: Confirmación genérico
+       ========================= -->
   <div id="modal" class="modal hidden">
     <div class="modal-content">
       <h2 id="modal-title">Confirmación</h2>
@@ -230,7 +263,9 @@
     </div>
   </div>
 
-  <!-- MODAL: Crear / Editar Usuario -->
+  <!-- =========================
+       MODAL: Crear / Editar Usuario
+       ========================= -->
   <div id="user-modal" class="modal hidden">
     <div class="modal-content create-user">
       <!-- 1. BOTÓN “X” PARA CERRAR EL MODAL -->
@@ -238,7 +273,7 @@
 
       <!-- 2. TÍTULO DEL MODAL -->
       <h2 id="user-modal-title">Crear Usuario</h2>
-      
+
       <!-- 3. PASO 1: Selección de tipo de usuario -->
       <div id="user-type-selection" class="user-step active">
         <h3>Seleccione el tipo de usuario</h3>
@@ -254,58 +289,95 @@
           </button>
         </div>
       </div>
-      
-      <!-- 4. PASO 2: FORMULARIO COMÚN + CAMPOS PARA “CLIENTE” -->
+
+      <!-- 4. PASO 2: FORMULARIO CÓMUN + CAMPOS PARA “CLIENTE” -->
       <form id="user-form" class="user-step">
         <!-- 4.1) Input oculto para role -->
-        <input type="hidden" id="u-role" name="role_id" value="1">
+        <input type="hidden" id="u-role" name="role_id" value="1" />
 
         <!-- 4.2) Campos comunes -->
         <div class="form-group">
           <label for="u-username">Usuario</label>
-          <input type="text" id="u-username" name="username" placeholder="Nombre de usuario" required>
+          <input
+            type="text"
+            id="u-username"
+            name="username"
+            placeholder="Nombre de usuario"
+            required
+          />
         </div>
         <div class="form-group">
           <label for="u-email">Email</label>
-          <input type="email" id="u-email" name="email" placeholder="correo@ejemplo.com" required>
+          <input
+            type="email"
+            id="u-email"
+            name="email"
+            placeholder="correo@ejemplo.com"
+            required
+          />
         </div>
         <div class="form-group">
           <label for="u-password">Contraseña</label>
-          <input type="password" id="u-password" name="password" placeholder="********" required>
+          <input
+            type="password"
+            id="u-password"
+            name="password"
+            placeholder="********"
+            required
+          />
         </div>
 
-        <!-- 4.3) Campos específicos para Cliente (coinciden con tabla clients) -->
+        <!-- 4.3) Campos específicos para Cliente (ya SIN required) -->
         <div id="client-fields" class="hidden">
-          <!-- 4.3.1 Nombre (first_name) -->
           <div class="form-group">
             <label for="u-first-name">Nombre</label>
-            <input type="text" id="u-first-name" name="first_name" placeholder="Nombre" required>
+            <input
+              type="text"
+              id="u-first-name"
+              name="first_name"
+              placeholder="Nombre"
+            />
           </div>
-          <!-- 4.3.2 Apellido (last_name) -->
           <div class="form-group">
             <label for="u-last-name">Apellido</label>
-            <input type="text" id="u-last-name" name="last_name" placeholder="Apellido" required>
+            <input
+              type="text"
+              id="u-last-name"
+              name="last_name"
+              placeholder="Apellido"
+            />
           </div>
-          <!-- 4.3.3 Fecha de Nacimiento (dob) -->
           <div class="form-group">
             <label for="u-dob">Fecha de Nacimiento</label>
-            <input type="date" id="u-dob" name="dob" required>
+            <input type="date" id="u-dob" name="dob" />
           </div>
-          <!-- 4.3.4 Teléfono (phone) -->
           <div class="form-group">
             <label for="u-phone">Teléfono</label>
-            <input type="tel" id="u-phone" name="phone" placeholder="+1234567890">
+            <input
+              type="tel"
+              id="u-phone"
+              name="phone"
+              placeholder="+1234567890"
+            />
           </div>
-          <!-- 4.3.5 Dirección (address) -->
           <div class="form-group">
             <label for="u-address">Dirección</label>
-            <input type="text" id="u-address" name="address" placeholder="Dirección completa">
+            <input
+              type="text"
+              id="u-address"
+              name="address"
+              placeholder="Dirección completa"
+            />
           </div>
         </div>
 
         <!-- 4.4) Botones de acción -->
         <div class="modal-actions">
-          <button type="button" id="back-to-selection" class="btn btn-secondary">
+          <button
+            type="button"
+            id="back-to-selection"
+            class="btn btn-secondary"
+          >
             <i class="fas fa-arrow-left"></i> Volver
           </button>
           <button type="submit" class="btn btn-primary">
@@ -316,6 +388,9 @@
     </div>
   </div>
 
+  <!-- =========================
+       Carga de admin.js
+       ========================= -->
   <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>
 </html>
