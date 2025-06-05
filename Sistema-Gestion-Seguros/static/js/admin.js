@@ -7,18 +7,18 @@
  *  - Modal de Confirmación (Eliminar)
  *  - Modal de 2 pasos “Crear / Editar Usuario”
  *    • Seleccionar tipo (Admin / Agente / Cliente)
- *    • Rellenar formulario (con campos adicionales para Cliente)
+ *    • Rellenar formulario (con datos específicos de Cliente)
  *    • Cierre con “X” o clic en overlay
  *    • Guardar (POST o PUT) y recargar lista de usuarios
  */
 
 document.addEventListener('DOMContentLoaded', () => {
   // === [VARIABLES GLOBALES] ============================================
-  const btns    = document.querySelectorAll('.menu-btn');
+  const btns     = document.querySelectorAll('.menu-btn');
   const sections = document.querySelectorAll('.content-section');
-  const titleEl = document.getElementById('content-title');
-  const tbody   = document.getElementById('users-tbody');
-  const roleMap = { 1: 'Admin', 2: 'Agente', 3: 'Cliente' };
+  const titleEl  = document.getElementById('content-title');
+  const tbody    = document.getElementById('users-tbody');
+  const roleMap  = { 1: 'Admin', 2: 'Agente', 3: 'Cliente' };
   const sectNames = {
     roles:    'Gestión de Roles',
     usuarios: 'Administración de Usuarios',
@@ -26,16 +26,16 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // MODALES
-  const modalConfirm    = document.getElementById('modal');
-  const userModal       = document.getElementById('user-modal');
+  const modalConfirm = document.getElementById('modal');
+  const userModal    = document.getElementById('user-modal');
 
   // ELEMENTOS DENTRO DEL MODAL “Crear/Editar Usuario”
-  const userForm            = document.getElementById('user-form');
-  const btnNewUser          = document.getElementById('btn-new-user');
-  const spanCloseUser       = document.getElementById('close-user-modal');
-  const backToSelection     = document.getElementById('back-to-selection');
-  const userTypeSelection   = document.getElementById('user-type-selection');
-  const clientFields        = document.getElementById('client-fields');
+  const userForm          = document.getElementById('user-form');
+  const btnNewUser        = document.getElementById('btn-new-user');
+  const spanCloseUser     = document.getElementById('close-user-modal');
+  const backToSelection   = document.getElementById('back-to-selection');
+  const userTypeSelection = document.getElementById('user-type-selection');
+  const clientFields      = document.getElementById('client-fields');
   let editId = null;  // Guarda el ID cuando estemos en modo “Edición”
 
   // =====================================================================
@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     titleEl.textContent = sectNames[name] || '';
     sections.forEach(s => s.classList.toggle('active', s.id === name + '-content'));
     if (name === 'usuarios') loadUsers();
+    if (name === 'seguros') loadInsurances(); // Ahora cargamos seguros también
   }
 
   async function loadUsers() {
@@ -144,17 +145,16 @@ document.addEventListener('DOMContentLoaded', () => {
           // Asegúrate de tener un input hidden con id="u-role" name="role_id"
           document.getElementById('u-role').value     = u.role_id;
 
-          // Si es Cliente (role_id===3), mostrar campos de Cliente y rellenarlos
+          // Si es Cliente (role_id === 3), mostrar campos de Cliente y rellenarlos
           if (u.role_id === 3) {
             clientFields.classList.remove('hidden');
-            if (u.phone)     document.getElementById('u-phone').value     = u.phone;
-            if (u.address)   document.getElementById('u-address').value   = u.address;
-            if (u.birthdate) document.getElementById('u-birthdate').value = u.birthdate;
-            if (u.city)      document.getElementById('u-city').value      = u.city;
-            if (u.province)  document.getElementById('u-province').value  = u.province;
-            if (u.country)   document.getElementById('u-country').value   = u.country;
-            if (u.document)  document.getElementById('u-document').value  = u.document;
-            if (u.gender)    document.getElementById('u-gender').value    = u.gender;
+
+            // Carga campos del objeto u (esquema: first_name, last_name, dob, phone, address)
+            if (u.first_name) document.getElementById('u-first-name').value = u.first_name;
+            if (u.last_name)  document.getElementById('u-last-name').value  = u.last_name;
+            if (u.dob)        document.getElementById('u-dob').value        = u.dob;
+            if (u.phone)      document.getElementById('u-phone').value      = u.phone;
+            if (u.address)    document.getElementById('u-address').value    = u.address;
           }
         })
         .catch(err => {
@@ -190,27 +190,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 3) Botón “Volver” (Paso 2 → Paso 1)
+  // 3) Botón “Volver” (Paso 2 → Paso 1) con reset de campos
   backToSelection.addEventListener('click', () => {
+    // 3.1 Ocultamos el formulario (Paso 2) y mostramos el selector (Paso 1)
     userForm.classList.remove('active');
     userTypeSelection.classList.add('active');
+
+    // 3.2 Limpiamos todos los campos del formulario (incluidos los de Cliente)
+    userForm.reset();
+
+    // 3.3 Ocultamos la sección “Campos específicos para Cliente”
+    clientFields.classList.add('hidden');
+
+    // 3.4 Reiniciamos el estado de edición
+    editId = null;
   });
 
-  document.getElementById('back-to-selection').addEventListener('click', function() {
-  // 1) Ocultamos el Paso 2 (formulario) y mostramos el Paso 1 (selección de tipo)
-  document.getElementById('user-form').classList.remove('active');
-  document.getElementById('user-type-selection').classList.add('active');
-
-  // 2) LIMPIAMOS TODOS LOS CAMPOS DEL FORMULARIO
-  //    Esto vacía todos los inputs/selects, incluyendo los de Cliente si se habían mostrado.
-  userForm.reset();
-
-  // 3) También ocultamos la sección “Campos específicos para Cliente” (por si estaba visible)
-  clientFields.classList.add('hidden');
-
-  // 4) (Opcional) Si guardabas algo en editId, lo borras para asegurarte de que seguimos en “Crear”
-  editId = null;
-});
   // 4) Función para cerrar el modal al pulsar la “X”
   spanCloseUser.addEventListener('click', () => {
     userModal.classList.add('hidden');
@@ -242,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const username = userForm.username.value.trim();
     const email    = userForm.email.value.trim().toLowerCase();
     const password = userForm.password.value;
-    const role_id  = +userForm.role_id.value; // Asegúrate de que haya un <input hidden id="u-role" name="role_id">
+    const role_id  = +userForm.role_id.value; // <input hidden id="u-role" name="role_id">
 
     // 7.2. Validaciones básicas
     if (!username || username.length > 30) {
@@ -253,22 +248,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const pwdRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
     if (!pwdRe.test(password)) {
-      return alert('La contraseña debe tener al menos 8 caracteres,\nincluyendo minúscula, mayúscula y número.');
+      return alert(
+        'La contraseña debe tener al menos 8 caracteres,\nincluyendo minúscula, mayúscula y número.'
+      );
     }
 
     // 7.3. Datos adicionales para Cliente si role_id === 3
     let extraData = {};
     if (role_id === 3) {
       extraData = {
-        phone:     document.getElementById('u-phone').value.trim(),
-        address:   document.getElementById('u-address').value.trim(),
-        birthdate: document.getElementById('u-birthdate').value,
-        city:      document.getElementById('u-city').value.trim(),
-        province:  document.getElementById('u-province').value.trim(),
-        country:   document.getElementById('u-country').value.trim(),
-        document:  document.getElementById('u-document').value.trim(),
-        gender:    document.getElementById('u-gender').value
+        first_name: document.getElementById('u-first-name').value.trim(),
+        last_name:  document.getElementById('u-last-name').value.trim(),
+        dob:        document.getElementById('u-dob').value,
+        phone:      document.getElementById('u-phone').value.trim(),
+        address:    document.getElementById('u-address').value.trim()
       };
+
+      // Validar que first_name, last_name y dob estén presentes
+      if (
+        !extraData.first_name ||
+        !extraData.last_name ||
+        !extraData.dob
+      ) {
+        return alert('Para cliente, Nombre, Apellido y Fecha de Nacimiento son obligatorios.');
+      }
     }
 
     // 7.4. Preparar objeto a enviar
@@ -303,149 +306,142 @@ document.addEventListener('DOMContentLoaded', () => {
   // 9) Navegación inicial entre secciones
   btns.forEach(b => b.onclick = () => showSection(b.dataset.content));
   showSection('roles');
-});
 
-// ========== GESTIÓN DE SEGUROS ==========
-const insuranceModal = document.getElementById('insurance-modal');
-const insuranceForm = document.getElementById('insurance-form');
-const insurancesTbody = document.getElementById('insurances-tbody');
-let editInsuranceId = null;
+  // ====================================================================
+  // ========== GESTIÓN DE SEGUROS ========== (sin cambios del ejemplo)
+  const insuranceModal    = document.getElementById('insurance-modal');
+  const insuranceForm     = document.getElementById('insurance-form');
+  const insurancesTbody   = document.getElementById('insurances-tbody');
+  let editInsuranceId     = null;
 
-// Función para cargar los seguros
-async function loadInsurances() {
-  insurancesTbody.innerHTML = '';
-  try {
-    const res = await fetch('/insurances');
-    if (!res.ok) throw new Error(res.status);
-    const list = await res.json();
-    
-    list.forEach((insurance, i) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${i + 1}</td>
-        <td>${insurance.name}</td>
-        <td>${insurance.type}</td>
-        <td title="${insurance.coverage}">${insurance.coverage.substring(0, 30)}${insurance.coverage.length > 30 ? '...' : ''}</td>
-        <td>$${insurance.cost} ${insurance.payment}</td>
-        <td>${insurance.status ? 'Activo' : 'Inactivo'}</td>
-        <td>
-          <button class="icon-btn btn-edit-insurance" data-id="${insurance.id}"><i class="fas fa-edit"></i></button>
-          <button class="icon-btn btn-delete-insurance" data-id="${insurance.id}"><i class="fas fa-trash-alt"></i></button>
-        </td>`;
-      insurancesTbody.appendChild(tr);
-    });
-
-    // Eventos para botones de eliminar
-    document.querySelectorAll('.btn-delete-insurance').forEach(b => {
-      b.onclick = () => showModal('¿Eliminar este seguro?', async () => {
-        await fetch(`/insurances/${b.dataset.id}`, { method: 'DELETE' });
-        loadInsurances();
+  // Función para cargar los seguros
+  async function loadInsurances() {
+    insurancesTbody.innerHTML = '';
+    try {
+      const res = await fetch('/insurances');
+      if (!res.ok) throw new Error(res.status);
+      const list = await res.json();
+      
+      list.forEach((insurance, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          <td>${insurance.name}</td>
+          <td>${insurance.type}</td>
+          <td title="${insurance.coverage}">${insurance.coverage.substring(0, 30)}${insurance.coverage.length > 30 ? '...' : ''}</td>
+          <td>$${insurance.cost} ${insurance.payment}</td>
+          <td>${insurance.status ? 'Activo' : 'Inactivo'}</td>
+          <td>
+            <button class="icon-btn btn-edit-insurance" data-id="${insurance.id}"><i class="fas fa-edit"></i></button>
+            <button class="icon-btn btn-delete-insurance" data-id="${insurance.id}"><i class="fas fa-trash-alt"></i></button>
+          </td>`;
+        insurancesTbody.appendChild(tr);
       });
-    });
 
-    // Eventos para botones de editar
-    document.querySelectorAll('.btn-edit-insurance').forEach(b => {
-      b.onclick = () => openInsuranceModal('Editar Seguro', b.dataset.id);
-    });
-
-  } catch (e) {
-    console.error('Error al cargar seguros:', e);
-  }
-}
-
-// Función para abrir el modal de seguros
-function openInsuranceModal(title, id = null) {
-  document.getElementById('insurance-modal-title').textContent = title;
-  insuranceForm.reset();
-  editInsuranceId = id;
-  
-  if (id) {
-    // Modo edición: cargar los datos del seguro
-    fetch(`/insurances/${id}`)
-      .then(res => res.json())
-      .then(insurance => {
-        document.getElementById('i-name').value = insurance.name;
-        document.getElementById('i-type').value = insurance.type;
-        document.getElementById('i-coverage').value = insurance.coverage;
-        document.getElementById('i-benefits').value = insurance.benefits;
-        document.getElementById('i-cost').value = insurance.cost;
-        document.getElementById('i-payment').value = insurance.payment;
-        document.getElementById('i-status').value = insurance.status ? '1' : '0';
+      // Eventos para botones de eliminar
+      document.querySelectorAll('.btn-delete-insurance').forEach(b => {
+        b.onclick = () => showModal('¿Eliminar este seguro?', async () => {
+          await fetch(`/insurances/${b.dataset.id}`, { method: 'DELETE' });
+          loadInsurances();
+        });
       });
-  }
-  
-  insuranceModal.classList.remove('hidden');
-}
 
-// Evento para el botón de nuevo seguro
-document.getElementById('btn-new-insurance').onclick = () => 
-  openInsuranceModal('Crear Seguro');
+      // Eventos para botones de editar
+      document.querySelectorAll('.btn-edit-insurance').forEach(b => {
+        b.onclick = () => openInsuranceModal('Editar Seguro', b.dataset.id);
+      });
 
-// Evento para cancelar en el modal de seguros
-document.getElementById('cancel-insurance').onclick = () => {
-  insuranceModal.classList.add('hidden');
-  editInsuranceId = null;
-};
-
-// Submit del formulario de seguros
-insuranceForm.onsubmit = async e => {
-  e.preventDefault();
-  
-  // Validaciones básicas
-  const name = insuranceForm.name.value.trim();
-  const type = insuranceForm.type.value;
-  const coverage = insuranceForm.coverage.value.trim();
-  const benefits = insuranceForm.benefits.value.trim();
-  const cost = parseFloat(insuranceForm.cost.value);
-  const payment = insuranceForm.payment.value;
-  const status = insuranceForm.status.value === '1';
-  
-  if (!name || name.length > 100) {
-    return alert('El nombre del seguro debe tener entre 1 y 100 caracteres.');
-  }
-  if (!type) {
-    return alert('Seleccione un tipo de seguro.');
-  }
-  if (!coverage) {
-    return alert('Ingrese la cobertura del seguro.');
-  }
-  if (!benefits) {
-    return alert('Ingrese los beneficios del seguro.');
-  }
-  if (isNaN(cost) || cost <= 0) {
-    return alert('Ingrese un costo válido mayor a cero.');
-  }
-  
-  const data = { name, type, coverage, benefits, cost, payment, status };
-  const url = editInsuranceId ? `/insurances/${editInsuranceId}` : '/insurances';
-  const method = editInsuranceId ? 'PUT' : 'POST';
-  
-  try {
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    
-    if (res.ok) {
-      loadInsurances();
-      insuranceModal.classList.add('hidden');
-      editInsuranceId = null;
-    } else {
-      const err = await res.json();
-      alert(err.error || 'Error al guardar el seguro.');
+    } catch (e) {
+      console.error('Error al cargar seguros:', e);
     }
-  } catch (error) {
-    console.error('Error:', error);
-    alert('Error de conexión.');
   }
-};
 
-// Actualiza la función showSection para cargar seguros cuando corresponda
-function showSection(name) {
-  btns.forEach(b => b.classList.toggle('active', b.dataset.content === name));
-  titleEl.textContent = sectNames[name] || '';
-  sections.forEach(s => s.classList.toggle('active', s.id === name + '-content'));
-  if (name === 'usuarios') loadUsers();
-  if (name === 'seguros') loadInsurances(); // Nueva línea para cargar seguros
-}
+  // Función para abrir el modal de seguros
+  function openInsuranceModal(title, id = null) {
+    document.getElementById('insurance-modal-title').textContent = title;
+    insuranceForm.reset();
+    editInsuranceId = id;
+    
+    if (id) {
+      // Modo edición: cargar los datos del seguro
+      fetch(`/insurances/${id}`)
+        .then(res => res.json())
+        .then(insurance => {
+          document.getElementById('i-name').value     = insurance.name;
+          document.getElementById('i-type').value     = insurance.type;
+          document.getElementById('i-coverage').value = insurance.coverage;
+          document.getElementById('i-benefits').value = insurance.benefits;
+          document.getElementById('i-cost').value     = insurance.cost;
+          document.getElementById('i-payment').value  = insurance.payment;
+          document.getElementById('i-status').value   = insurance.status ? '1' : '0';
+        });
+    }
+    
+    insuranceModal.classList.remove('hidden');
+  }
+
+  // Evento para el botón de nuevo seguro
+  document.getElementById('btn-new-insurance').onclick = () => 
+    openInsuranceModal('Crear Seguro');
+
+  // Evento para cancelar en el modal de seguros
+  document.getElementById('cancel-insurance').onclick = () => {
+    insuranceModal.classList.add('hidden');
+    editInsuranceId = null;
+  };
+
+  // Submit del formulario de seguros
+  insuranceForm.onsubmit = async e => {
+    e.preventDefault();
+    
+    // Validaciones básicas
+    const name      = insuranceForm.name.value.trim();
+    const type      = insuranceForm.type.value;
+    const coverage  = insuranceForm.coverage.value.trim();
+    const benefits  = insuranceForm.benefits.value.trim();
+    const cost      = parseFloat(insuranceForm.cost.value);
+    const payment   = insuranceForm.payment.value;
+    const status    = insuranceForm.status.value === '1';
+    
+    if (!name || name.length > 100) {
+      return alert('El nombre del seguro debe tener entre 1 y 100 caracteres.');
+    }
+    if (!type) {
+      return alert('Seleccione un tipo de seguro.');
+    }
+    if (!coverage) {
+      return alert('Ingrese la cobertura del seguro.');
+    }
+    if (!benefits) {
+      return alert('Ingrese los beneficios del seguro.');
+    }
+    if (isNaN(cost) || cost <= 0) {
+      return alert('Ingrese un costo válido mayor a cero.');
+    }
+    
+    const data = { name, type, coverage, benefits, cost, payment, status };
+    const url = editInsuranceId ? `/insurances/${editInsuranceId}` : '/insurances';
+    const method = editInsuranceId ? 'PUT' : 'POST';
+    
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (res.ok) {
+        loadInsurances();
+        insuranceModal.classList.add('hidden');
+        editInsuranceId = null;
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Error al guardar el seguro.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error de conexión.');
+    }
+  };
+  
+});

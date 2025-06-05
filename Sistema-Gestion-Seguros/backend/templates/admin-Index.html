@@ -136,249 +136,185 @@
   </div>
 
   <!-- MODAL: Crear / Editar Usuario -->
-<div id="user-modal" class="modal hidden">
-  <div class="modal-content create-user">
-    <!-- 1. BOTÓN “X” PARA CERRAR EL MODAL -->
-    <span class="close-user-modal" id="close-user-modal">&times;</span>
+  <div id="user-modal" class="modal hidden">
+    <div class="modal-content create-user">
+      <!-- 1. BOTÓN “X” PARA CERRAR EL MODAL -->
+      <span class="close-user-modal" id="close-user-modal">&times;</span>
 
-    <!-- 2. TÍTULO DEL MODAL -->
-    <h2 id="user-modal-title">Crear Usuario</h2>
-    
-    <!-- 3. PASO 1: Selección de tipo de usuario -->
-    <div id="user-type-selection" class="user-step active">
-      <h3>Seleccione el tipo de usuario</h3>
-      <div class="user-type-options">
-        <button class="user-type-btn" data-type="admin">
-          <i class="fas fa-user-shield"></i> Administrador
-        </button>
-        <button class="user-type-btn" data-type="agent">
-          <i class="fas fa-user-tie"></i> Agente
-        </button>
-        <button class="user-type-btn" data-type="client">
-          <i class="fas fa-user"></i> Cliente
-        </button>
+      <!-- 2. TÍTULO DEL MODAL -->
+      <h2 id="user-modal-title">Crear Usuario</h2>
+      
+      <!-- 3. PASO 1: Selección de tipo de usuario -->
+      <div id="user-type-selection" class="user-step active">
+        <h3>Seleccione el tipo de usuario</h3>
+        <div class="user-type-options">
+          <button class="user-type-btn" data-type="admin">
+            <i class="fas fa-user-shield"></i> Administrador
+          </button>
+          <button class="user-type-btn" data-type="agent">
+            <i class="fas fa-user-tie"></i> Agente
+          </button>
+          <button class="user-type-btn" data-type="client">
+            <i class="fas fa-user"></i> Cliente
+          </button>
+        </div>
       </div>
-    </div>
-    
-    <!-- 4. PASO 2: FORMULARIO COMÚN + CAMPOS PARA “CLIENTE” -->
-    <form id="user-form" class="user-step">
-  <!-- 1) Input oculto para role -->
-  <input type="hidden" id="u-role" name="role_id" value="1">
+      
+      <!-- 4. PASO 2: FORMULARIO COMÚN + CAMPOS PARA “CLIENTE” -->
+      <form id="user-form" class="user-step">
+        <!-- 4.1) Input oculto para role -->
+        <input type="hidden" id="u-role" name="role_id" value="1">
 
-  <!-- 2) Campos comunes -->
-  <div class="form-group">
-    <label for="u-username">Usuario</label>
-    <input type="text" id="u-username" name="username" placeholder="Nombre de usuario" required>
-  </div>
-  <div class="form-group">
-    <label for="u-email">Email</label>
-    <input type="email" id="u-email" name="email" placeholder="correo@ejemplo.com" required>
-  </div>
-  <div class="form-group">
-    <label for="u-password">Contraseña</label>
-    <input type="password" id="u-password" name="password" placeholder="********" required>
-  </div>
+        <!-- 4.2) Campos comunes -->
+        <div class="form-group">
+          <label for="u-username">Usuario</label>
+          <input type="text" id="u-username" name="username" placeholder="Nombre de usuario" required>
+        </div>
+        <div class="form-group">
+          <label for="u-email">Email</label>
+          <input type="email" id="u-email" name="email" placeholder="correo@ejemplo.com" required>
+        </div>
+        <div class="form-group">
+          <label for="u-password">Contraseña</label>
+          <input type="password" id="u-password" name="password" placeholder="********" required>
+        </div>
 
-  <!-- 3) Campos específicos para Cliente -->
-  <div id="client-fields" class="hidden">
-    <!-- Teléfono -->
-    <div class="form-group">
-      <label for="u-phone">Teléfono</label>
-      <input type="tel" id="u-phone" name="phone" placeholder="+1234567890">
-    </div>
-    <!-- Dirección -->
-    <div class="form-group">
-      <label for="u-address">Dirección</label>
-      <input type="text" id="u-address" name="address" placeholder="Dirección completa">
-    </div>
-    <!-- Fecha de Nacimiento -->
-    <div class="form-group">
-      <label for="u-birthdate">Fecha de Nacimiento</label>
-      <input type="date" id="u-birthdate" name="birthdate">
-    </div>
+        <!-- 4.3) Campos específicos para Cliente (coinciden con tabla clients) -->
+        <div id="client-fields" class="hidden">
+          <!-- 4.3.1 Nombre (first_name) -->
+          <div class="form-group">
+            <label for="u-first-name">Nombre</label>
+            <input type="text" id="u-first-name" name="first_name" placeholder="Nombre" required>
+          </div>
+          <!-- 4.3.2 Apellido (last_name) -->
+          <div class="form-group">
+            <label for="u-last-name">Apellido</label>
+            <input type="text" id="u-last-name" name="last_name" placeholder="Apellido" required>
+          </div>
+          <!-- 4.3.3 Fecha de Nacimiento (dob) -->
+          <div class="form-group">
+            <label for="u-dob">Fecha de Nacimiento</label>
+            <input type="date" id="u-dob" name="dob" required>
+          </div>
+          <!-- 4.3.4 Teléfono (phone) -->
+          <div class="form-group">
+            <label for="u-phone">Teléfono</label>
+            <input type="tel" id="u-phone" name="phone" placeholder="+1234567890">
+          </div>
+          <!-- 4.3.5 Dirección (address) -->
+          <div class="form-group">
+            <label for="u-address">Dirección</label>
+            <input type="text" id="u-address" name="address" placeholder="Dirección completa">
+          </div>
+        </div>
 
-    <!-- Ciudad / Provincia en una fila -->
-    <div class="form-row">
-      <div class="form-group">
-        <label for="u-city">Ciudad</label>
-        <input type="text" id="u-city" name="city" placeholder="Ciudad">
-      </div>
-      <div class="form-group">
-        <label for="u-province">Provincia</label>
-        <input type="text" id="u-province" name="province" placeholder="Provincia">
-      </div>
-    </div>
-
-    <!-- País -->
-    <div class="form-group">
-      <label for="u-country">País</label>
-      <input type="text" id="u-country" name="country" placeholder="País">
-    </div>
-    <!-- Documento de Identidad -->
-    <div class="form-group">
-      <label for="u-document">Documento de Identidad</label>
-      <input type="text" id="u-document" name="document" placeholder="Número de documento">
-    </div>
-    <!-- Género -->
-    <div class="form-group">
-      <label for="u-gender">Género</label>
-      <select id="u-gender" name="gender">
-        <option value="">Seleccionar...</option>
-        <option value="M">Masculino</option>
-        <option value="F">Femenino</option>
-        <option value="O">Otro</option>
-      </select>
+        <!-- 4.4) Botones de acción -->
+        <div class="modal-actions">
+          <button type="button" id="back-to-selection" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Guardar
+          </button>
+        </div>
+      </form>
     </div>
   </div>
-
-  <!-- 4) Botones de acción -->
-  <div class="modal-actions">
-    <button type="button" id="back-to-selection" class="btn btn-secondary">
-      <i class="fas fa-arrow-left"></i> Volver
-    </button>
-    <button type="submit" class="btn btn-primary">
-      <i class="fas fa-save"></i> Guardar
-    </button>
-  </div>
-</form>
-</div>
-</div>
-
-  <!-- SCRIPTS -->
-  <script>
-    // Referencias al modal de Crear/Editar Usuario y a la “X” de cerrar
-    const userModal       = document.getElementById('user-modal');
-    const btnNewUser      = document.getElementById('btn-new-user');
-    const spanCloseUser   = document.getElementById('close-user-modal');
-
-    // Abrir modal al hacer clic en “Crear Usuario”
-    btnNewUser.addEventListener('click', () => {
-      userModal.classList.remove('hidden');
-    });
-
-    // Cerrar modal al hacer clic en la “X”
-    spanCloseUser.addEventListener('click', () => {
-      userModal.classList.add('hidden');
-      resetUserModal(); // Si tienes que limpiar algún paso o formulario
-    });
-
-    // Cerrar modal al hacer clic fuera del contenido (opcional)
-    userModal.addEventListener('click', (e) => {
-      if (e.target === userModal) {
-        userModal.classList.add('hidden');
-        resetUserModal();
-      }
-    });
-
-    // (Opcional) Función para volver al paso inicial y ocultar campos de cliente
-    function resetUserModal() {
-      // Remover la clase “active” del paso de selección de tipo de usuario
-      document.getElementById('user-type-selection').classList.add('active');
-      // Ocultar el formulario
-      document.getElementById('user-form').classList.remove('active');
-      // Ocultar campos específicos de cliente
-      document.getElementById('client-fields').classList.add('hidden');
-      // Limpiar valores de cada input (si lo deseas)
-      document.getElementById('user-form').reset();
-    }
-
-    // (Resto de tu lógica en admin.js para avanzar/retroceder entre pasos y enviar formulario)
-  </script>
 
   <!-- SEGUROS -->
-<div class="content-section" id="seguros-content">
-  <div class="users-header">
-    <button id="btn-new-insurance" class="btn btn-primary">
-      <i class="fas fa-plus-circle"></i> Crear Seguro
-    </button>
+  <div class="content-section" id="seguros-content">
+    <div class="users-header">
+      <button id="btn-new-insurance" class="btn btn-primary">
+        <i class="fas fa-plus-circle"></i> Crear Seguro
+      </button>
+    </div>
+    <div class="users-table-wrapper">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Cobertura</th>
+            <th>Costo</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="insurances-tbody">
+          <!-- Aquí se inyectarán los seguros -->
+        </tbody>
+      </table>
+    </div>
   </div>
-  <div class="users-table-wrapper">
-    <table class="users-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Nombre</th>
-          <th>Tipo</th>
-          <th>Cobertura</th>
-          <th>Costo</th>
-          <th>Estado</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody id="insurances-tbody">
-        <!-- Aquí se inyectarán los seguros -->
-      </tbody>
-    </table>
-  </div>
-</div>
 
-<!-- MODAL: Crear/Editar Seguro -->
-<div id="insurance-modal" class="modal hidden">
-  <div class="modal-content create-user">
-    <h2 id="insurance-modal-title">Crear Seguro</h2>
-    <form id="insurance-form">
-      <div class="form-group">
-        <label for="i-name">Nombre del Seguro</label>
-        <input type="text" id="i-name" name="name" placeholder="Ej: Seguro de Vida Premium" required>
-      </div>
-      
-      <div class="form-group">
-        <label for="i-type">Tipo de Seguro</label>
-        <select id="i-type" name="type" required>
-          <option value="">Seleccionar...</option>
-          <option value="Vida">Vida</option>
-          <option value="Salud">Salud</option>
-          <option value="Automóvil">Automóvil</option>
-          <option value="Hogar">Hogar</option>
-          <option value="Viaje">Viaje</option>
-          <option value="Empresarial">Empresarial</option>
-        </select>
-      </div>
-      
-      <div class="form-group">
-        <label for="i-coverage">Cobertura</label>
-        <textarea id="i-coverage" name="coverage" rows="3" placeholder="Monto máximo de cobertura, condiciones, exclusiones" required></textarea>
-      </div>
-      
-      <div class="form-group">
-        <label for="i-benefits">Beneficios</label>
-        <textarea id="i-benefits" name="benefits" rows="3" placeholder="Servicios incluidos, asistencia médica, indemnización" required></textarea>
-      </div>
-      
-      <div class="form-row">
+  <!-- MODAL: Crear/Editar Seguro -->
+  <div id="insurance-modal" class="modal hidden">
+    <div class="modal-content create-user">
+      <h2 id="insurance-modal-title">Crear Seguro</h2>
+      <form id="insurance-form">
         <div class="form-group">
-          <label for="i-cost">Costo</label>
-          <input type="number" id="i-cost" name="cost" step="0.01" min="0" placeholder="0.00" required>
+          <label for="i-name">Nombre del Seguro</label>
+          <input type="text" id="i-name" name="name" placeholder="Ej: Seguro de Vida Premium" required>
         </div>
+        
         <div class="form-group">
-          <label for="i-payment">Frecuencia de Pago</label>
-          <select id="i-payment" name="payment" required>
-            <option value="Mensual">Mensual</option>
-            <option value="Trimestral">Trimestral</option>
-            <option value="Anual">Anual</option>
+          <label for="i-type">Tipo de Seguro</label>
+          <select id="i-type" name="type" required>
+            <option value="">Seleccionar...</option>
+            <option value="Vida">Vida</option>
+            <option value="Salud">Salud</option>
+            <option value="Automóvil">Automóvil</option>
+            <option value="Hogar">Hogar</option>
+            <option value="Viaje">Viaje</option>
+            <option value="Empresarial">Empresarial</option>
           </select>
         </div>
-      </div>
-      
-      <div class="form-group">
-        <label for="i-status">Estado</label>
-        <select id="i-status" name="status" required>
-          <option value="1">Activo</option>
-          <option value="0">Inactivo</option>
-        </select>
-      </div>
-      
-      <div class="modal-actions">
-        <button type="button" id="cancel-insurance" class="btn btn-secondary">
-          <i class="fas fa-times"></i> Cancelar
-        </button>
-        <button type="submit" class="btn btn-primary">
-          <i class="fas fa-save"></i> Guardar
-        </button>
-      </div>
-    </form>
+        
+        <div class="form-group">
+          <label for="i-coverage">Cobertura</label>
+          <textarea id="i-coverage" name="coverage" rows="3" placeholder="Monto máximo de cobertura, condiciones, exclusiones" required></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="i-benefits">Beneficios</label>
+          <textarea id="i-benefits" name="benefits" rows="3" placeholder="Servicios incluidos, asistencia médica, indemnización" required></textarea>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="i-cost">Costo</label>
+            <input type="number" id="i-cost" name="cost" step="0.01" min="0" placeholder="0.00" required>
+          </div>
+          <div class="form-group">
+            <label for="i-payment">Frecuencia de Pago</label>
+            <select id="i-payment" name="payment" required>
+              <option value="Mensual">Mensual</option>
+              <option value="Trimestral">Trimestral</option>
+              <option value="Anual">Anual</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="i-status">Estado</label>
+          <select id="i-status" name="status" required>
+            <option value="1">Activo</option>
+            <option value="0">Inactivo</option>
+          </select>
+        </div>
+        
+        <div class="modal-actions">
+          <button type="button" id="cancel-insurance" class="btn btn-secondary">
+            <i class="fas fa-times"></i> Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Guardar
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
 
   <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>
