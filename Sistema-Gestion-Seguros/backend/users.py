@@ -91,7 +91,7 @@ def create_user():
         cur.close()
         # Si hubiera un duplicado de username/email, por ejemplo, puedes detectar el error aquí
         return jsonify({'error': str(e)}), 500
-    
+
 @app.route('/users/<int:user_id>', methods=['PUT'])
 @admin_required
 def update_user(user_id):
