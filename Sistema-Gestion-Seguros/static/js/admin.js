@@ -9,7 +9,7 @@
  *   - Gestión de Seguros (policies)
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+
   // ==========================
   //  VARIABLES GLOBALES
   // ==========================
@@ -37,19 +37,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const clientFields      = document.getElementById('client-fields');
   let editId = null;  // Guarda el ID cuando estemos en modo “Edición” de Usuario
 
-  // ==========================
-  //  MODAL SEGUROS
-  // ==========================
-  const insuranceModal    = document.getElementById('insurance-modal');
-  const insuranceForm     = document.getElementById('insurance-form');
-  const insurancesTbody   = document.getElementById('insurances-tbody');
-  let editInsuranceId     = null;
 
   // ==========================
   //  NAVEGACIÓN ENTRE SECCIONES
   // ==========================
-  function showSection(name) {
-    // Activa/desactiva botón de menú y la sección correspondiente
+  document.addEventListener('DOMContentLoaded', () => {
+  // … declaración de btns, sections, titleEl, etc. …
+
+    function showSection(name) {
     btns.forEach(b => b.classList.toggle('active', b.dataset.content === name));
     titleEl.textContent = sectNames[name] || '';
     sections.forEach(s => s.classList.toggle('active', s.id === name + '-content'));
@@ -59,7 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   btns.forEach(b => b.onclick = () => showSection(b.dataset.content));
-  showSection('roles');  // Inicia mostrando “Gestión de Roles”
+  showSection('roles'); // Si quieres que por defecto se abra Roles al cargar la página
+  // (o podrías forzar showSection('seguros') si quieres que se vea automáticamente seguros)
+});
 
   // ==========================
   //  CARGAR USUARIOS EN LA TABLA
@@ -272,158 +269,159 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  const insuranceModal    = document.getElementById('insurance-modal');
+  const insuranceForm     = document.getElementById('insurance-form');
+  const insurancesTbody   = document.getElementById('insurances-tbody');
+  let editInsuranceId     = null;
   // ==========================
   //  GESTIÓN DE SEGUROS (policies)
   // ==========================
-
   // 1) Cargar todas las pólizas
-  async function loadPolicies() {
-    insurancesTbody.innerHTML = '';
-    try {
-      const res = await fetch('/policies');
-      if (!res.ok) throw new Error(res.status);
-      const list = await res.json();
+async function loadPolicies() {
+  // Primero limpio el <tbody>
+  insurancesTbody.innerHTML = '';
+  try {
+    const res = await fetch('/policies');
+    if (!res.ok) throw new Error(res.status);
+    const list = await res.json();
 
-      list.forEach((policy) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${policy.id}</td>
-          <td>${policy.name}</td>
-          <td>${policy.type_name}</td>
-          <td title="${policy.coverage_details}">
-            ${policy.coverage_details.length > 30
-              ? policy.coverage_details.substring(0, 30) + '…'
-              : policy.coverage_details
-            }
-          </td>
-          <td>$${policy.premium_amount.toFixed(2)}</td>
-          <td>${policy.status === 'active' ? 'Activo' : 'Inactivo'}</td>
-          <td>
-            <button class="icon-btn btn-edit-insurance" data-id="${policy.id}">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="icon-btn btn-delete-insurance" data-id="${policy.id}">
-              <i class="fas fa-trash-alt"></i>
-            </button>
-          </td>`;
-        insurancesTbody.appendChild(tr);
-      });
-
-      // Botones Eliminar póliza
-      document.querySelectorAll('.btn-delete-insurance').forEach(b => {
-        b.onclick = () => showModal(
-          '¿Eliminar esta póliza?',
-          async () => {
-            await fetch(`/policies/${b.dataset.id}`, { method: 'DELETE' });
-            loadPolicies();
+    // Por cada póliza, creo un <tr> con sus 9 <td> en el mismo orden de tu <thead>
+    list.forEach((policy) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${policy.id}</td>
+        <td>${policy.name}</td>
+        <td>${policy.type_name}</td>
+        <td title="${policy.coverage_details}">
+          ${policy.coverage_details.length > 30
+            ? policy.coverage_details.substring(0, 30) + '…'
+            : policy.coverage_details
           }
-        );
-      });
+        </td>
+        <td title="${policy.benefits}">
+          ${policy.benefits.length > 30
+            ? policy.benefits.substring(0, 30) + '…'
+            : policy.benefits
+          }
+        </td>
+        <td>$${policy.premium_amount.toFixed(2)}</td>
+        <td>${policy.payment_frequency}</td>
+        <td>${policy.status === 'active' ? 'Activo' : 'Inactivo'}</td>
+        <td>
+          <button class="icon-btn btn-edit-insurance" data-id="${policy.id}">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="icon-btn btn-delete-insurance" data-id="${policy.id}">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </td>`;
+      insurancesTbody.appendChild(tr);
+    });
 
-      // Botones Editar póliza
-      document.querySelectorAll('.btn-edit-insurance').forEach(b => {
-        b.onclick = () => openInsuranceModal('Editar Seguro', b.dataset.id);
-      });
+    // 2) Adjuntar listeners de “Editar” (secciones que acaban de inyectarse)
+    document.querySelectorAll('.btn-edit-insurance').forEach(b => {
+      b.onclick = () => openInsuranceModal('Editar Seguro', b.dataset.id);
+    });
+    // 3) Adjuntar listeners de “Eliminar” (modal de confirmación genérico)
+    document.querySelectorAll('.btn-delete-insurance').forEach(b => {
+      b.onclick = () => showModal(
+        '¿Eliminar esta póliza?',
+        async () => {
+          await fetch(`/policies/${b.dataset.id}`, { method: 'DELETE' });
+          loadPolicies();
+        }
+      );
+    });
 
-    } catch (e) {
-      console.error('Error al cargar pólizas:', e);
-    }
+  } catch (error) {
+    console.error('Error loading policies:', error);
+  }
+}
+
+// 4) Abrir modal Crear / Editar póliza
+function openInsuranceModal(title, id = null) {
+  document.getElementById('insurance-modal-title').textContent = title;
+  insuranceForm.reset();
+  editInsuranceId = id;
+
+  if (id) {
+    // Modo edición: obtengo la póliza de /policies/:id
+    fetch(`/policies/${id}`)
+      .then(res => res.json())
+      .then(policy => {
+        document.getElementById('i-name').value     = policy.name;
+        document.getElementById('i-type').value     = policy.type_name;
+        document.getElementById('i-coverage').value = policy.coverage_details;
+        document.getElementById('i-benefits').value = policy.benefits;
+        document.getElementById('i-cost').value     = policy.premium_amount;
+        document.getElementById('i-payment').value  = policy.payment_frequency;
+        document.getElementById('i-status').value   = (policy.status === 'active' ? '1' : '0');
+      })
+      .catch(err => console.error('Error cargando póliza para editar:', err));
   }
 
-  // 2) Abrir modal Crear/Editar póliza
-  function openInsuranceModal(title, id = null) {
-    document.getElementById('insurance-modal-title').textContent = title;
-    insuranceForm.reset();
-    editInsuranceId = id;
+  insuranceModal.classList.remove('hidden');
+}
 
-    if (id) {
-      // Modo edición: obtener datos de /policies/:id
-      fetch(`/policies/${id}`)
-        .then(res => res.json())
-        .then(policy => {
-          document.getElementById('i-name').value     = policy.name;
-          document.getElementById('i-type').value     = policy.type_name;
-          document.getElementById('i-coverage').value = policy.coverage_details;
-          document.getElementById('i-benefits').value = policy.benefits;
-          document.getElementById('i-cost').value     = policy.premium_amount;
-          document.getElementById('i-payment').value  = policy.payment_frequency;
-          document.getElementById('i-status').value   = (policy.status === 'active' ? '1' : '0');
-        })
-        .catch(err => console.error('Error cargando póliza para editar:', err));
+// 5) “Crear Seguro” abre el modal en modo “Crear”
+document.getElementById('btn-new-insurance').onclick = () =>
+  openInsuranceModal('Crear Seguro');
+
+// 6) “Cancelar” en el modal cierra y resetea
+document.getElementById('cancel-insurance').onclick = () => {
+  insuranceModal.classList.add('hidden');
+  editInsuranceId = null;
+};
+
+// 7) Submit del formulario (Crear o Editar)
+insuranceForm.onsubmit = async e => {
+  e.preventDefault();
+
+  const name      = insuranceForm.name.value.trim();
+  const type      = insuranceForm.type.value;
+  const coverage  = insuranceForm.coverage.value.trim();
+  const benefits  = insuranceForm.benefits.value.trim();
+  const cost      = parseFloat(insuranceForm.cost.value);
+  const payment   = insuranceForm.payment.value;
+  const status    = insuranceForm.status.value === '1'; // true → 'active'
+
+  if (!name)       return alert('El nombre del seguro es obligatorio.');
+  if (!type)       return alert('Seleccione un tipo de póliza.');
+  if (!coverage)   return alert('Ingrese la cobertura de la póliza.');
+  if (!benefits)   return alert('Ingrese los beneficios de la póliza.');
+  if (isNaN(cost) || cost <= 0) return alert('Ingrese un costo válido mayor a cero.');
+
+  const data = {
+    name:              name,
+    type_name:         type,
+    coverage:          coverage,
+    benefits:          benefits,
+    premium_amount:    cost,
+    payment_frequency: payment,
+    status:            status ? 'active' : 'inactive'
+  };
+  const url    = editInsuranceId ? `/policies/${editInsuranceId}` : '/policies';
+  const method = editInsuranceId ? 'PUT' : 'POST';
+
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (res.ok) {
+      loadPolicies();
+      insuranceModal.classList.add('hidden');
+      editInsuranceId = null;
+    } else {
+      const err = await res.json();
+      alert(err.error || 'Error al guardar la póliza.');
     }
-
-    insuranceModal.classList.remove('hidden');
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error de conexión.');
   }
+};
 
-  document.getElementById('btn-new-insurance').onclick = () =>
-    openInsuranceModal('Crear Seguro');
-
-  document.getElementById('cancel-insurance').onclick = () => {
-    insuranceModal.classList.add('hidden');
-    editInsuranceId = null;
-  };
-
-  // 3) Submit formulario póliza (Crear o Editar)
-  insuranceForm.onsubmit = async e => {
-    e.preventDefault();
-
-    const name      = insuranceForm.name.value.trim();
-    const type      = insuranceForm.type.value;            // “Vida”, “Salud”, “Automóvil”…
-    const coverage  = insuranceForm.coverage.value.trim();
-    const benefits  = insuranceForm.benefits.value.trim();
-    const cost      = parseFloat(insuranceForm.cost.value);
-    const payment   = insuranceForm.payment.value;         // “Mensual” / “Trimestral” / “Anual”
-    const status    = insuranceForm.status.value === '1';  // true → activo; false → inactivo
-
-    if (!name) {
-      return alert('El nombre del seguro es obligatorio.');
-    }
-    if (!type) {
-      return alert('Seleccione un tipo de póliza.');
-    }
-    if (!coverage) {
-      return alert('Ingrese la cobertura de la póliza.');
-    }
-    if (!benefits) {
-      return alert('Ingrese los beneficios de la póliza.');
-    }
-    if (isNaN(cost) || cost <= 0) {
-      return alert('Ingrese un costo válido mayor a cero.');
-    }
-
-    const data = {
-      name:              name,
-      type_name:         type,
-      coverage:          coverage,
-      benefits:          benefits,
-      premium_amount:    cost,
-      payment_frequency: payment,
-      status:            status ? 'active' : 'inactive'
-    };
-
-    const url    = editInsuranceId ? `/policies/${editInsuranceId}` : '/policies';
-    const method = editInsuranceId ? 'PUT' : 'POST';
-
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      if (res.ok) {
-        loadPolicies();
-        insuranceModal.classList.add('hidden');
-        editInsuranceId = null;
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Error al guardar la póliza.');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error de conexión.');
-    }
-  };
-
-  // Cargar pólizas al inicio
-  loadPolicies();
-});
+// 8) Finalmente, justo después de definir todo, cargo las pólizas
+loadPolicies();

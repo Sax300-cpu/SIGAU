@@ -350,9 +350,9 @@ def list_policies():
     cur.execute("""
         SELECT
           p.id,
-          p.name          AS policy_name      
+          p.name          AS policy_name,      
           pt.id           AS type_id,
-          pt.name         As type_name
+          pt.name         As type_name,
           pt.description  AS benefits,
           p.coverage_details,
           p.premium_amount,
@@ -460,6 +460,7 @@ def get_policy(policy_id):
     cur.execute("""
         SELECT
           p.id,
+          p.name          As policy_name,      
           pt.id           AS type_id,
           pt.name         AS type_name,
           pt.description  AS benefits,
@@ -478,13 +479,14 @@ def get_policy(policy_id):
 
     policy = {
         "id":                row[0],
-        "type_id":           row[1],
-        "type_name":         row[2],
-        "benefits":          row[3] or "",
-        "coverage_details":  row[4] or "",
-        "premium_amount":    float(row[5]),
-        "payment_frequency": row[6],
-        "status":            row[7]
+        "name":              row[1],
+        "type_id":           row[2],
+        "type_name":         row[3],
+        "benefits":          row[4] or "",
+        "coverage_details":  row[5] or "",
+        "premium_amount":    float(row[6]),
+        "payment_frequency": row[7],
+        "status":            row[8]
     }
     return jsonify(policy), 200
 
