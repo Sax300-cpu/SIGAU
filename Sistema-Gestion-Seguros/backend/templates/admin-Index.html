@@ -3,22 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
-
-  <script>
-    // Evitar back/forward cache
-    window.addEventListener('pageshow', function (event) {
-      if (event.persisted) {
-        window.location.reload();
-      }
-    });
-    history.replaceState(null, null, location.href);
-    window.addEventListener('popstate', function () {
-      history.replaceState(null, null, location.href);
-    });
-  </script>
 
   <title>Admin – Gestión de Seguros</title>
 
@@ -34,11 +18,12 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-styles.css') }}" />
 
   <style>
-    /* Ocultar el modal cuando tenga la clase .hidden */
+    /* Ocultar modal cuando tenga .hidden */
     .modal.hidden {
       display: none;
     }
-    /* Pequeño estilo para la “X” de cerrar en modales de usuario */
+
+    /* Estilo para la “X” del modal de usuarios */
     .close-user-modal {
       position: absolute;
       top: 12px;
@@ -47,8 +32,9 @@
       color: #ffffff;
       cursor: pointer;
     }
+
     .modal-content.create-user {
-      position: relative; /* para que la “X” se posicione correctamente */
+      position: relative;
     }
   </style>
 </head>
@@ -62,13 +48,13 @@
       <h3>Bienvenido, Admin</h3>
     </div>
     <div class="nav-menu">
-      <button class="menu-btn active" data-content="roles">
+      <button class="menu-btn" data-content="roles">
         <i class="fas fa-user-shield"></i> Gestión de Roles
       </button>
       <button class="menu-btn" data-content="usuarios">
         <i class="fas fa-users-cog"></i> Administración de Usuarios
       </button>
-      <button class="menu-btn" data-content="seguros">
+      <button class="menu-btn active" data-content="seguros">
         <i class="fas fa-file-contract"></i> Gestión de Seguros
       </button>
     </div>
@@ -82,7 +68,7 @@
        ========================= -->
   <div class="main-content">
     <div class="header">
-      <h1 id="content-title">Gestión de Roles</h1>
+      <h1 id="content-title">Gestión de Seguros</h1>
       <div class="user-info">
         <img src="{{ url_for('static', filename='img/admin.jpg') }}" alt="Perfil pequeño" />
         <span>Administrador</span>
@@ -93,8 +79,8 @@
       <!-- =========================
            SECCIÓN: ROLES
            ========================= -->
-      <div class="content-section active" id="roles-content">
-        <!-- **Aquí iría TODO lo que necesitas mostrar en “Gestión de Roles”** -->
+      <div class="content-section" id="roles-content">
+        <!-- Aquí va tu contenido de “Gestión de Roles” -->
       </div>
 
       <!-- =========================
@@ -118,7 +104,7 @@
               </tr>
             </thead>
             <tbody id="users-tbody">
-              <!-- Se inyectan filas de usuarios vía JS -->
+              <!-- Filas inyectadas por JS -->
             </tbody>
           </table>
         </div>
@@ -127,12 +113,14 @@
       <!-- =========================
            SECCIÓN: SEGUROS
            ========================= -->
-      <div class="content-section" id="seguros-content">
+      <div class="content-section active" id="seguros-content">
+        <!-- Botón para crear póliza -->
         <div class="users-header">
           <button id="btn-new-insurance" class="btn btn-primary">
             <i class="fas fa-plus-circle"></i> Crear Seguro
           </button>
         </div>
+
         <div class="users-table-wrapper">
           <table class="users-table">
             <thead>
@@ -147,13 +135,13 @@
               </tr>
             </thead>
             <tbody id="insurances-tbody">
-              <!-- Se inyectan filas de seguros vía JS -->
+              <!-- Filas inyectadas por JS -->
             </tbody>
           </table>
         </div>
       </div>
-    </div> <!-- /#dynamic-content -->
-  </div>   <!-- /.main-content -->
+    </div>
+  </div>
 
   <!-- =========================
        MODAL: Crear/Editar Seguro
@@ -165,7 +153,13 @@
         <!-- Nombre del Seguro -->
         <div class="form-group">
           <label for="i-name">Nombre del Seguro</label>
-          <input type="text" id="i-name" name="name" placeholder="Ej: Seguro de Vida Premium" required />
+          <input
+            type="text"
+            id="i-name"
+            name="name"
+            placeholder="Ej: Seguro de Vida Premium"
+            required
+          />
         </div>
         <!-- Tipo de Seguro -->
         <div class="form-group">
@@ -202,27 +196,28 @@
             required
           ></textarea>
         </div>
-        <!-- Costo -->
-        <div class="form-group">
-          <label for="i-cost">Costo</label>
-          <input
-            type="number"
-            id="i-cost"
-            name="cost"
-            step="0.01"
-            min="0"
-            placeholder="0.00"
-            required
-          />
-        </div>
-        <!-- **Frecuencia de Pago (cambiamos name="payment_frequency" → name="payment")** -->
-        <div class="form-group">
-          <label for="i-payment">Frecuencia de Pago</label>
-          <select id="i-payment" name="payment" required>
-            <option value="Mensual">Mensual</option>
-            <option value="Trimestral">Trimestral</option>
-            <option value="Anual">Anual</option>
-          </select>
+        <!-- Fila: Costo + Frecuencia de Pago -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="i-cost">Costo</label>
+            <input
+              type="number"
+              id="i-cost"
+              name="cost"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="i-payment">Frecuencia de Pago</label>
+            <select id="i-payment" name="payment" required>
+              <option value="Mensual">Mensual</option>
+              <option value="Trimestral">Trimestral</option>
+              <option value="Anual">Anual</option>
+            </select>
+          </div>
         </div>
         <!-- Estado -->
         <div class="form-group">
@@ -232,7 +227,7 @@
             <option value="0">Inactivo</option>
           </select>
         </div>
-        <!-- Botones al pie del modal -->
+        <!-- Botones al pie -->
         <div class="modal-actions">
           <button type="button" id="cancel-insurance" class="btn btn-secondary">
             <i class="fas fa-times"></i> Cancelar
@@ -246,7 +241,7 @@
   </div>
 
   <!-- =========================
-       MODAL: Confirmación genérico
+       MODAL: Confirmación Genérico
        ========================= -->
   <div id="modal" class="modal hidden">
     <div class="modal-content">
@@ -264,17 +259,13 @@
   </div>
 
   <!-- =========================
-       MODAL: Crear / Editar Usuario
+       MODAL: Crear/Editar Usuario
        ========================= -->
   <div id="user-modal" class="modal hidden">
     <div class="modal-content create-user">
-      <!-- 1. BOTÓN “X” PARA CERRAR EL MODAL -->
       <span class="close-user-modal" id="close-user-modal">&times;</span>
-
-      <!-- 2. TÍTULO DEL MODAL -->
       <h2 id="user-modal-title">Crear Usuario</h2>
 
-      <!-- 3. PASO 1: Selección de tipo de usuario -->
       <div id="user-type-selection" class="user-step active">
         <h3>Seleccione el tipo de usuario</h3>
         <div class="user-type-options">
@@ -290,12 +281,8 @@
         </div>
       </div>
 
-      <!-- 4. PASO 2: FORMULARIO CÓMUN + CAMPOS PARA “CLIENTE” -->
       <form id="user-form" class="user-step">
-        <!-- 4.1) Input oculto para role -->
         <input type="hidden" id="u-role" name="role_id" value="1" />
-
-        <!-- 4.2) Campos comunes -->
         <div class="form-group">
           <label for="u-username">Usuario</label>
           <input
@@ -327,7 +314,6 @@
           />
         </div>
 
-        <!-- 4.3) Campos específicos para Cliente (ya SIN required) -->
         <div id="client-fields" class="hidden">
           <div class="form-group">
             <label for="u-first-name">Nombre</label>
@@ -371,7 +357,6 @@
           </div>
         </div>
 
-        <!-- 4.4) Botones de acción -->
         <div class="modal-actions">
           <button
             type="button"
@@ -388,9 +373,7 @@
     </div>
   </div>
 
-  <!-- =========================
-       Carga de admin.js
-       ========================= -->
+  <!-- Carga de admin.js -->
   <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>
 </html>

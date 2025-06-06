@@ -563,35 +563,35 @@ body {
    SECCIÓN “Gestión de Seguros”
    ========================= */
 
-/* 1) Ya no hace falta margin-left: 280px; porque #seguros-content 
-      está dentro de .main-content (que ya tiene ese margen).
-   2) Ponemos el mismo padding que .main-content para que coincida. */
+/* 1) El contenedor principal ya tiene margin-left:280px y padding:30px
+      porque .main-content lo hereda de tu CSS general. No es necesario
+      que #seguros-content tenga margin-left; solo padding para que
+      coincida con el resto de .main-content. */
 #seguros-content {
-  /* NO margin-left: 280px; */
-  padding: 30px;       /* Mismo padding interno que .main-content */
+  padding: 30px;       /* Igual que .main-content */
   box-sizing: border-box;
 }
 
-/* 3) Cabecera interna: botón “Crear Seguro” alineado a la derecha */
+/* 2) El header interno (botón Crear Seguro) ya lo haces así: */
 #seguros-content .users-header {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 8px;
 }
 
-/* 4) Contenedor para hacer scroll horizontal si la tabla crece */
+/* 3) Contenedor para scroll horizontal si la tabla no cabe */
 #seguros-content .users-table-wrapper {
   overflow-x: auto;
 }
 
-/* 5) La tabla de seguros debe ocupar el 100% del ancho disponible */
+/* 4) La tabla de seguros debe ocupar el 100% del ancho disponible */
 #seguros-content .users-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0 8px; /* separación vertical entre filas */
 }
 
-/* 6) Encabezados de la tabla (ID, Nombre, Tipo, …) exactamente igual que usuarios */
+/* 5) Encabezados de la tabla (ID, Nombre, Tipo…) */
 #seguros-content .users-table thead th {
   text-align: left;
   padding: 10px 16px;
@@ -599,53 +599,63 @@ body {
   font-size: 0.95rem;
   color: #E0E0E0;
   background-color: #3D5A80;
-  position: sticky;
+  position: sticky; /* Para que quede fijo si haces scroll vertical */
   top: 0;
+  z-index: 2;       /* Para que no quede debajo de alguna fila con hover */
 }
 
-/* 7) Filas: fondo oscuro + efecto hover como en Usuarios */
+/* 6) Filas: fondo oscuro + efecto hover */
 #seguros-content .users-table tbody tr {
   background-color: #2E2E2E;
   transition: background-color 0.2s;
 }
+
 #seguros-content .users-table tbody tr:hover {
   background-color: #3D5A80;
 }
 
-/* 8) Celdas: mismo padding y color que en Usuarios */
+/* 7) Celdas (td): padding y color de texto */
 #seguros-content .users-table td {
   padding: 12px 16px;
   color: #E0E0E0;
   vertical-align: middle;
 }
 
-/* 9) Botones “Editar / Eliminar” centrados en la última columna */
+/* 8) Botones “Editar / Eliminar” en la última columna */
 #seguros-content .users-table td:last-child {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px; /* espacio entre botones */
+  gap: 10px; /* espacio entre los iconos */
+}
+
+/* 9) Ajuste de ancho para columnas de “Cobertura” y “Costo” */
+#insurances-tbody tr td:nth-child(4),
+#insurances-tbody tr td:nth-child(5) {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* =========================
    MODAL “Crear/Editar Seguro”
    ========================= */
 
-/* 10) Hacemos que el .modal-content de seguros 
-   tenga idéntico ancho y estilo que el de usuarios */
+/* 10) Contenedor del modal de seguros (idéntico en tamaño y estilo al modal de usuario) */
 #insurance-modal .modal-content {
   background-color: #2E2E2E;
   padding: 24px 32px;
   border-radius: 8px;
-  width: 360px;      /* Mismo ancho que modal de usuario */
-  max-width: 90%;    /* Que en móvil no desborde */
+  width: 360px;
+  max-width: 90%;
   box-sizing: border-box;
-  max-height: 80vh;  /* Para scroll interno si hay muchos campos */
-  overflow-y: auto;  /* Scroll dentro del modal */
-  text-align: center;/* Para centrar el título y botones */
+  max-height: 80vh;
+  overflow-y: auto;
+  text-align: center;
 }
 
-/* 11) Título “Crear Seguro” centrado y con mismo estilo */
+/* 11) Título “Crear Seguro” centrado */
 #insurance-modal .modal-content h2 {
   margin-bottom: 20px;
   font-size: 1.5rem;
@@ -653,7 +663,7 @@ body {
   text-align: center;
 }
 
-/* 12) Cada grupo label + input / select / textarea, igual que en modal Usuario */
+/* 12) Cada grupo label + input / select / textarea */
 #insurance-form .form-group {
   display: flex;
   flex-direction: column;
@@ -689,19 +699,19 @@ body {
   box-shadow: 0 0 8px #daa520;
 }
 
-/* 13) Para “Costo” y “Frecuencia de Pago” en una misma línea */
+/* 13) Para “Costo” y “Frecuencia de Pago” en la misma línea */
 #insurance-form .form-row {
   display: flex;
   gap: 15px;
-  flex-wrap: wrap; /* Para que en pantallas muy pequeñas se apilen */
+  flex-wrap: wrap;
 }
 
 #insurance-form .form-row .form-group {
-  flex: 1;        
-  min-width: 48%; /* Ocupan 48% cada una, con 4% de separación */
+  flex: 1;
+  min-width: 48%;
 }
 
-/* 14) Botones “Cancelar” y “Guardar” centrados */
+/* 14) Botones “Cancelar” y “Guardar” en el modal */
 #insurance-modal .modal-actions {
   display: flex;
   justify-content: center;
@@ -721,6 +731,7 @@ body {
   background-color: #daa520;
   color: #2f4f4f;
 }
+
 #insurance-modal .modal-actions .btn-primary:hover {
   background-color: #c6951a;
 }
@@ -729,6 +740,7 @@ body {
   background-color: #555;
   color: #E0E0E0;
 }
+
 #insurance-modal .modal-actions .btn-secondary:hover {
   background-color: #666;
 }

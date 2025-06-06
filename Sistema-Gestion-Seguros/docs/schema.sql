@@ -111,7 +111,8 @@ DROP TABLE IF EXISTS `policies` ;
 
 CREATE TABLE IF NOT EXISTS `policies` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `client_id` INT NOT NULL,
+  `name` VARCHAR(100) NOT NULL,  
+  `client_id` INT NULL,
   `agent_id` INT NULL DEFAULT NULL,
   `type_id` INT NOT NULL,
   `coverage_details` TEXT NULL DEFAULT NULL,
