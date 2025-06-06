@@ -1,4 +1,5 @@
 import os
+import re
 from functools import wraps
 from dotenv import load_dotenv
 from flask import (
@@ -460,9 +461,13 @@ def create_policy():
     payment_freq   = data.get('payment_frequency', '').strip()
     status         = data.get('status', 'inactive').strip()
 
-    # — Validaciones mínimas —
+    # — Validaciones mínimas (backend) —
     if not name:
         return jsonify({"error": "El nombre de la póliza es obligatorio."}), 400
+
+    # Validar que el nombre solo contenga letras y espacios
+    if not re.match(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$', name):
+        return jsonify({"error": "El nombre del seguro no puede contener números ni caracteres especiales."}), 400
 
     # Normalizar raw_type_name (quitar “Seguro de ” si existe)
     if raw_type_name.startswith('Seguro de '):
@@ -474,6 +479,7 @@ def create_policy():
         return jsonify({"error": "La cobertura es obligatoria."}), 400
     if not benefits:
         return jsonify({"error": "Los beneficios son obligatorios."}), 400
+
     try:
         amt = float(premium_amount)
         if amt <= 0:
@@ -599,6 +605,14 @@ def update_policy(policy_id):
     premium_amount = data.get('premium_amount')
     payment_freq   = data.get('payment_frequency', '').strip()
     status         = data.get('status', 'inactive').strip()
+
+    # — Validaciones mínimas (backend) —
+    if not name:
+        return jsonify({"error": "El nombre de la póliza es obligatorio."}), 400
+
+    # Validar que el nombre sólo contenga letras y espacios
+    if not re.match(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$', name):
+        return jsonify({"error": "El nombre del seguro no puede contener números ni caracteres especiales."}), 400
 
     if not type_name:
         return jsonify({"error": "Debe indicar un tipo de póliza."}), 400

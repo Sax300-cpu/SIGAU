@@ -385,11 +385,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const payment   = insuranceForm.payment.value;
     const status    = insuranceForm.status.value === '1'; // true → 'active'
 
-    if (!name)       return alert('El nombre del seguro es obligatorio.');
-    if (!type)       return alert('Seleccione un tipo de póliza.');
-    if (!coverage)   return alert('Ingrese la cobertura de la póliza.');
-    if (!benefits)   return alert('Ingrese los beneficios de la póliza.');
-    if (isNaN(cost) || cost <= 0) return alert('Ingrese un costo válido mayor a cero.');
+    // -------------- Validaciones adicionales --------------
+    // 1) Nombre no puede estar vacío (o espacios) y sólo letras y espacios
+    const nameRegex = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
+    if (!name) {
+      return alert('El nombre del seguro es obligatorio.');
+    }
+    if (!nameRegex.test(name)) {
+      return alert('El nombre del seguro no puede contener números ni caracteres especiales.');
+    }
+
+    // 2) Cobertura y Beneficios no pueden ser sólo espacios
+    if (!coverage) {
+      return alert('Ingrese la cobertura de la póliza.');
+    }
+    if (!benefits) {
+      return alert('Ingrese los beneficios de la póliza.');
+    }
+
+    // 3) Costo válido
+    if (isNaN(cost) || cost <= 0) {
+      return alert('Ingrese un costo válido mayor a cero.');
+    }
+
+    // 4) Tipo de póliza
+    if (!type) {
+      return alert('Seleccione un tipo de póliza.');
+    }
+
+    // -------------------------------------------------------
 
     const data = {
       name:              name,
