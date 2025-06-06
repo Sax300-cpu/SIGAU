@@ -118,7 +118,77 @@ def client_panel():
     return render_template('client-index.html')
 
 # =========================================
-#   API de TIPOS DE PÓLIZA (policy_types)
+# API de USUARIOS (admin-only)
+# =========================================
+
+@app.route('/users', methods=['GET'])
+@admin_required
+def list_users():
+    cur = mysql.connection.cursor()
+    cur.execute(
+        "SELECT id, username, email, role_id, created_at "
+        "FROM users"
+    )
+    users = [
+        {
+            "id": r[0],
+            "username": r[1],
+            "email": r[2],
+            "role_id": r[3],
+            "created_at": r[4].isoformat()
+        }
+        for r in cur.fetchall()
+    ]
+    cur.close()
+    return jsonify(users), 200
+
+@app.route('/users', methods=['POST'])
+@admin_required
+def create_user():
+    data = request.get_json()
+    pw_hash = generate_password_hash(data['password'])
+    cur = mysql.connection.cursor()
+    cur.execute(
+        "INSERT INTO users (username,email,password_hash,role_id) "
+        "VALUES (%s,%s,%s,%s)",
+        (data['username'], data['email'], pw_hash, data['role_id'])
+    )
+    mysql.connection.commit()
+    new_id = cur.lastrowid
+    cur.close()
+    return jsonify({"id": new_id}), 201
+
+@app.route('/users/<int:user_id>', methods=['PUT'])
+@admin_required
+def update_user(user_id):
+    data = request.get_json()
+    fields, values = [], []
+    if 'email' in data:
+        fields.append("email=%s"); values.append(data['email'])
+    if 'role_id' in data:
+        fields.append("role_id=%s"); values.append(data['role_id'])
+    if 'password' in data:
+        fields.append("password_hash=%s")
+        values.append(generate_password_hash(data['password']))
+    values.append(user_id)
+    sql = f"UPDATE users SET {', '.join(fields)} WHERE id=%s"
+    cur = mysql.connection.cursor()
+    cur.execute(sql, tuple(values))
+    mysql.connection.commit()
+    cur.close()
+    return jsonify(success=True), 200
+
+@app.route('/users/<int:user_id>', methods=['DELETE'])
+@admin_required
+def delete_user(user_id):
+    cur = mysql.connection.cursor()
+    cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+    mysql.connection.commit()
+    cur.close()
+    return jsonify(success=True), 200
+
+# =========================================
+# API de TIPOS DE PÓLIZA (policy_types)
 # =========================================
 
 @app.route('/policy_types', methods=['GET'])
@@ -128,7 +198,7 @@ def list_policy_types():
     cur.execute("""
         SELECT id, name, description, cost, payment_frequency, status
         FROM policy_types
-    """)
+        """)
     resultados = cur.fetchall()
     cur.close()
 
@@ -152,7 +222,7 @@ def get_policy_type(pt_id):
         SELECT id, name, description, cost, payment_frequency, status
         FROM policy_types
         WHERE id = %s
-    """, (pt_id,))
+        """, (pt_id,))
     r = cur.fetchone()
     cur.close()
     if not r:
@@ -229,13 +299,13 @@ def update_policy_type(pt_id):
         valores.append(c)
     if 'payment_frequency' in data:
         pf = data['payment_frequency'].strip()
-        if pf not in ('Mensual', 'Trimestral', 'Anual'):
+        if pf not in ('Mensual','Trimestral','Anual'):
             return jsonify({"error": "Frecuencia de pago inválida"}), 400
         campos.append("payment_frequency = %s")
         valores.append(pf)
     if 'status' in data:
         st = data['status'].strip()
-        if st not in ('Activo', 'Inactivo'):
+        if st not in ('Activo','Inactivo'):
             return jsonify({"error": "Estado inválido"}), 400
         campos.append("status = %s")
         valores.append(st)
@@ -270,7 +340,7 @@ def delete_policy_type(pt_id):
         return jsonify({"error": str(e)}), 500
 
 # =========================================
-#   API de PÓLIZAS (policies)
+# API de PÓLIZAS (policies)
 # =========================================
 
 @app.route('/policies', methods=['GET'])
@@ -280,13 +350,13 @@ def list_policies():
     cur.execute("""
         SELECT
           p.id,
-          p.name          AS policy_name,
+          p.name          AS policy_name,      
           pt.id           AS type_id,
-          pt.name         AS type_name,
+          pt.name         As type_name,
           pt.description  AS benefits,
           p.coverage_details,
           p.premium_amount,
-          p.payment_frequency,   ### CAMBIO: ahora tomamos payment_frequency de policies
+          pt.payment_frequency,
           p.status
         FROM policies p
         JOIN policy_types pt ON p.type_id = pt.id
@@ -305,7 +375,7 @@ def list_policies():
             "benefits":          r[4] or "",
             "coverage_details":  r[5] or "",
             "premium_amount":    float(r[6]),
-            "payment_frequency": r[7],   # CAMBIO: frec. guardada en policies
+            "payment_frequency": r[7],
             "status":            r[8]
         })
     return jsonify(policies), 200
@@ -321,7 +391,7 @@ def create_policy():
     coverage       = data.get('coverage', '').strip()
     benefits       = data.get('benefits', '').strip()
     premium_amount = data.get('premium_amount')
-    payment_freq   = data.get('payment_frequency', '').strip()  ### CAMBIO: se lee del JSON
+    payment_freq   = data.get('payment_frequency', '').strip()
     status         = data.get('status', 'inactive').strip()
 
     if not name:
@@ -338,9 +408,9 @@ def create_policy():
             raise ValueError
     except:
         return jsonify({"error": "El costo debe ser número mayor a cero."}), 400
-    if payment_freq not in ('Mensual', 'Trimestral', 'Anual'):
+    if payment_freq not in ('Mensual','Trimestral','Anual'):
         return jsonify({"error": "Frecuencia de pago no válida."}), 400
-    if status not in ('active', 'inactive', 'pending', 'cancelled', 'expired'):
+    if status not in ('active','inactive','pending','cancelled','expired'):
         return jsonify({"error": "Estado no válido."}), 400
 
     # 1) Obtener type_id a partir de type_name
@@ -352,26 +422,26 @@ def create_policy():
         return jsonify({"error": f"El tipo de póliza '{type_name}' no existe"}), 400
     type_id = row[0]
 
-    # 2) Insertar en policies (ahora incluyendo payment_frequency)
+    # 2) Insertar en policies (client_id y agent_id se insertan como NULL por defecto)
     #    Usaremos fechas de ejemplo; ajústalas a tus necesidades
     start_date = '2025-01-01'
     end_date   = '2025-12-31'
+    # Si quisieras: podrías exponer estos campos en el form. 
 
     cur.execute(
         """
         INSERT INTO policies
-          (client_id, agent_id, name, type_id, coverage_details, premium_amount, payment_frequency, start_date, end_date, status)
+          (client_id, agent_id, name, type_id, coverage_details, premium_amount, start_date, end_date, status)
         VALUES
-          (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+          (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
-          None,             # client_id
-          None,             # agent_id
+          None,        # client_id
+          None,        # agent_id
           name,
           type_id,
           coverage,
           amt,
-          payment_freq,     # CAMBIO: guardamos aquí la frecuencia elegida
           start_date,
           end_date,
           status
@@ -390,13 +460,13 @@ def get_policy(policy_id):
     cur.execute("""
         SELECT
           p.id,
-          p.name          AS policy_name,
+          p.name          As policy_name,      
           pt.id           AS type_id,
           pt.name         AS type_name,
           pt.description  AS benefits,
           p.coverage_details,
           p.premium_amount,
-          p.payment_frequency,   ### CAMBIO: tomamos de policies
+          pt.payment_frequency,
           p.status
         FROM policies p
         JOIN policy_types pt ON p.type_id = pt.id
@@ -415,7 +485,7 @@ def get_policy(policy_id):
         "benefits":          row[4] or "",
         "coverage_details":  row[5] or "",
         "premium_amount":    float(row[6]),
-        "payment_frequency": row[7],    # CAMBIO
+        "payment_frequency": row[7],
         "status":            row[8]
     }
     return jsonify(policy), 200
@@ -430,7 +500,7 @@ def update_policy(policy_id):
     coverage       = data.get('coverage', '').strip()
     benefits       = data.get('benefits', '').strip()
     premium_amount = data.get('premium_amount')
-    payment_freq   = data.get('payment_frequency', '').strip()  ### CAMBIO: leer del JSON
+    payment_freq   = data.get('payment_frequency', '').strip()
     status         = data.get('status', 'inactive').strip()
 
     if not type_name:
@@ -445,9 +515,9 @@ def update_policy(policy_id):
             raise ValueError
     except:
         return jsonify({"error": "El costo debe ser número mayor a cero."}), 400
-    if payment_freq not in ('Mensual', 'Trimestral', 'Anual'):
+    if payment_freq not in ('Mensual','Trimestral','Anual'):
         return jsonify({"error": "Frecuencia de pago no válida."}), 400
-    if status not in ('active', 'inactive', 'pending', 'cancelled', 'expired'):
+    if status not in ('active','inactive','pending','cancelled','expired'):
         return jsonify({"error": "Estado no válido."}), 400
 
     # Obtener type_id
@@ -459,19 +529,18 @@ def update_policy(policy_id):
         return jsonify({"error": f"El tipo de póliza '{type_name}' no existe"}), 400
     type_id = row[0]
 
-    # Actualizar la póliza, ahora incluyendo payment_frequency
+    # Actualizar la póliza
     cur.execute(
         """
         UPDATE policies SET
-          name               = %s,
-          type_id            = %s,
-          coverage_details   = %s,
-          premium_amount     = %s,
-          payment_frequency  = %s,
-          status             = %s
+          name             = %s,
+          type_id          = %s,
+          coverage_details = %s,
+          premium_amount   = %s,
+          status           = %s
         WHERE id = %s
         """,
-        (name, type_id, coverage, amt, payment_freq, status, policy_id)
+        (name,type_id, coverage, amt, status, policy_id)
     )
     mysql.connection.commit()
     cur.close()
