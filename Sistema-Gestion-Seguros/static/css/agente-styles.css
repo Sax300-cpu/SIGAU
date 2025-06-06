@@ -1,21 +1,23 @@
-/* Estilos generales */
+/* ====================================
+   Estilos generales para todo el Agente
+   ==================================== */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
-
 body {
     background-color: #f5f5f5;
 }
-
 .container {
     display: flex;
     min-height: 100vh;
 }
 
-/* Barra lateral */
+/* ======================
+   BARRA LATERAL (ASIDE)
+   ====================== */
 .sidebar {
     width: 250px;
     background-color: #2c3e50;
@@ -24,13 +26,11 @@ body {
     display: flex;
     flex-direction: column;
 }
-
 .profile-section {
     text-align: center;
     padding: 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
-
 .profile-pic img {
     width: 100px;
     height: 100px;
@@ -38,82 +38,70 @@ body {
     object-fit: cover;
     border: 3px solid #3498db;
 }
-
 .profile-info h3 {
     margin-top: 10px;
     font-size: 1.2rem;
 }
-
 .profile-info p {
     color: #bdc3c7;
     font-size: 0.9rem;
 }
-
 .menu {
     flex: 1;
     margin-top: 20px;
 }
-
 .menu ul {
     list-style: none;
 }
-
 .menu li {
     padding: 12px 20px;
     transition: all 0.3s;
 }
-
 .menu li:hover {
     background-color: #34495e;
     cursor: pointer;
 }
-
 .menu li.active {
     background-color: #3498db;
 }
-
 .menu a {
     color: white;
     text-decoration: none;
     display: flex;
     align-items: center;
 }
-
 .menu i {
     margin-right: 10px;
     width: 20px;
     text-align: center;
 }
 
-/* Contenido principal */
+/* ===============================
+   CONTENIDO PRINCIPAL (MAIN)
+   =============================== */
 .main-content {
     flex: 1;
     padding: 20px;
 }
-
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
 }
-
 .header h1 {
     color: #2c3e50;
     font-size: 1.8rem;
 }
-
 .search-bar {
     display: flex;
 }
-
 .search-bar input {
     padding: 10px 15px;
     border: 1px solid #ddd;
     border-radius: 4px 0 0 4px;
     width: 250px;
 }
-
 .search-bar button {
     padding: 10px 15px;
     background-color: #3498db;
@@ -123,26 +111,26 @@ body {
     cursor: pointer;
 }
 
+/* ============================
+   SECCIÓN DE TABLA DE CLIENTES
+   ============================ */
 .content-section {
     background-color: white;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     padding: 20px;
 }
-
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
 }
-
 .section-header h2 {
     color: #2c3e50;
     font-size: 1.4rem;
 }
-
-.btn-add {
+.btn-green {
     padding: 10px 15px;
     background-color: #2ecc71;
     color: white;
@@ -152,135 +140,146 @@ body {
     display: flex;
     align-items: center;
 }
-
-.btn-add i {
+.btn-green i {
     margin-right: 5px;
 }
-
-/* Tabla */
 .table-container {
     overflow-x: auto;
 }
-
 table {
     width: 100%;
     border-collapse: collapse;
 }
-
 th, td {
     padding: 12px 15px;
     text-align: left;
     border-bottom: 1px solid #ddd;
 }
-
 th {
     background-color: #f8f9fa;
     color: #2c3e50;
     font-weight: 600;
 }
-
 tr:hover {
     background-color: #f5f5f5;
 }
-
-.actions {
-    display: flex;
-    gap: 5px;
-}
-
-.btn-view, .btn-edit, .btn-delete {
-    padding: 6px 10px;
+.btn-blue {
+    background-color: #007bff;
+    color: #fff;
     border: none;
+    padding: 6px 12px;
     border-radius: 4px;
     cursor: pointer;
-    display: flex;
+    font-size: 0.9rem;
+}
+.btn-blue:hover {
+    background-color: #0069d9;
+}
+
+/* ======================
+   MODAL “Contratar Seguro”
+   ====================== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex; 
+    justify-content: center;
     align-items: center;
-    font-size: 0.8rem;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
 }
-
-.btn-view {
-    background-color: #3498db;
+.modal.hidden {
+    display: none;
+}
+.modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    position: relative;
+    z-index: 1001;
+}
+.form-group {
+    margin-bottom: 12px;
+}
+.form-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.form-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+.btn-cancel {
+    background-color: #ccc;
+    color: #333;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.btn-save {
+    background-color: #28a745;
     color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.btn-cancel:hover {
+    background-color: #b3b3b3;
+}
+.btn-save:hover {
+    background-color: #218838;
 }
 
-.btn-edit {
-    background-color: #f39c12;
-    color: white;
-}
-
-.btn-delete {
-    background-color: #e74c3c;
-    color: white;
-}
-
-.btn-view i, .btn-edit i, .btn-delete i {
-    margin-right: 5px;
-}
-
-/* Responsive */
+/* =======
+   Responsive
+   ======= */
 @media (max-width: 768px) {
     .container {
         flex-direction: column;
     }
-    
     .sidebar {
         width: 100%;
         flex-direction: row;
         padding: 10px;
     }
-    
     .profile-section {
         display: none;
     }
-    
     .menu ul {
         display: flex;
         overflow-x: auto;
     }
-    
     .menu li {
         padding: 10px;
         white-space: nowrap;
     }
-    
     .header {
         flex-direction: column;
         align-items: flex-start;
     }
-    
     .search-bar {
         margin-top: 10px;
         width: 100%;
     }
-    
     .search-bar input {
         width: 100%;
     }
-
-    /* Estilos para el Modal */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-}
-
-.modal-content {
-    background-color: white;
-    margin: 15% auto;
-    padding: 20px;
-    width: 40%;
-    border-radius: 10px;
-}
-
-.close {
-    color: red;
-    float: right;
-    font-size: 28px;
-    cursor: pointer;
-}
 }

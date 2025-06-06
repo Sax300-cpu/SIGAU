@@ -6,8 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
   <meta http-equiv="Pragma"        content="no-cache">
   <meta http-equiv="Expires"       content="0">
-  
- <script>
+
+  <script>
+    // Evitar que “atrás/adelante” cargue en caché
     window.addEventListener('pageshow', function(event) {
       if (event.persisted) {
         window.location.reload();
@@ -20,15 +21,23 @@
   </script>
 
   <title>Panel de Agente – Plataforma de Seguros</title>
-  <!-- Ruta a tu CSS en static/ -->
+  <!-- Ruta al CSS del Agente -->
   <link
     rel="stylesheet"
     href="{{ url_for('static', filename='css/agente-styles.css') }}"
   >
+  <!-- FontAwesome para íconos -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    integrity="sha512-Fo3rlrZj/k7ujTTXTOmsxRrB5U5zN50q5X0M8Ay+Wtlxl+57eI4PGmgi+7olb5XRS/cvULmMTV+YZ4nF8aQ8JQ=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
 </head>
 <body>
   <div class="container">
-    <!-- Barra lateral -->
+    <!-- ======== BARRA LATERAL ======== -->
     <aside class="sidebar">
       <div class="profile-section">
         <div class="profile-pic">
@@ -44,11 +53,21 @@
       </div>
       <nav class="menu">
         <ul>
-          <li class="active"><a href="#"><i class="fas fa-home"></i> Inicio</a></li>
-          <li><a href="#"><i class="fas fa-users"></i> Gestión de Clientes</a></li>
-          <li><a href="#"><i class="fas fa-file-contract"></i> Contratación de Seguros</a></li>
-          <li><a href="#"><i class="fas fa-chart-bar"></i> Reportes</a></li>
-          <li><a href="#"><i class="fas fa-cog"></i> Configuración</a></li>
+          <li class="active">
+            <a href="#"><i class="fas fa-home"></i> Inicio</a>
+          </li>
+          <li>
+            <a href="#"><i class="fas fa-users"></i> Gestión de Clientes</a>
+          </li>
+          <li>
+            <a href="#"><i class="fas fa-file-contract"></i> Contratación de Seguros</a>
+          </li>
+          <li>
+            <a href="#"><i class="fas fa-chart-bar"></i> Reportes</a>
+          </li>
+          <li>
+            <a href="#"><i class="fas fa-cog"></i> Configuración</a>
+          </li>
           <li>
             <a href="{{ url_for('logout') }}">
               <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
@@ -57,41 +76,122 @@
         </ul>
       </nav>
     </aside>
+    <!-- ======== FIN BARRA LATERAL ======== -->
 
-    <!-- Contenido principal -->
+    <!-- ======== CONTENIDO PRINCIPAL ======== -->
     <main class="main-content">
       <header class="header">
         <h1>Panel Principal del Agente</h1>
         <div class="search-bar">
-          <input type="text" placeholder="Buscar cliente...">
-          <button><i class="fas fa-search"></i></button>
+          <input type="text" id="search-client" placeholder="Buscar cliente...">
+          <button id="btn-search"><i class="fas fa-search"></i></button>
         </div>
       </header>
 
       <section class="content-section">
         <div class="section-header">
-          <h2>Registrar Clientes</h2>
-          <button class="btn-add"><i class="fas fa-plus"></i> Nuevo Cliente</button>
+          <h2>Seleccionar Cliente para Contratar Seguro</h2>
+          <button id="btn-nuevo-contrato" class="btn-green">
+            <i class="fas fa-plus"></i> Nuevo Contrato
+          </button>
         </div>
         <div class="table-container">
-          <table>
+          <table id="tabla-clientes">
             <thead>
               <tr>
                 <th>Nombre</th>
                 <th>Correo Electrónico</th>
-                <th>Teléfono</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <!-- Aquí podrás iterar clientes o usar JS -->
+              <!-- Se inyectará dinámicamente la lista de clientes -->
             </tbody>
           </table>
         </div>
       </section>
     </main>
+    <!-- ======== FIN CONTENIDO PRINCIPAL ======== -->
   </div>
-  <!-- Carga tu JS desde static/ -->
+
+  <!-- ========== Modal de “Contratar Seguro” (oculto inicialmente) ========== -->
+  <div id="modal-contratar-agente" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <h2 id="modal-title-agente">Contratar Seguro</h2>
+      <!-- Información del cliente seleccionado -->
+      <div id="info-cliente-seleccionado" style="margin-bottom: 12px;">
+        <!-- Se rellenará: “Cliente: Nombre (email)” -->
+      </div>
+
+      <!-- Formulario de contratación -->
+      <form id="form-contratar-agente">
+        <!-- (A) Hidden: client_id real que se enviará al backend -->
+        <input type="hidden" id="input-client-id" name="client_id">
+
+        <!-- (B) Solo lectura: Nombre del cliente -->
+        <div class="form-group">
+          <label for="input-client-name">Cliente:</label>
+          <input type="text" id="input-client-name" readonly>
+        </div>
+
+        <!-- (C) Selección de Tipo de Póliza -->
+        <div class="form-group">
+          <label for="select-tipo-poliza">Tipo de Póliza:</label>
+          <select id="select-tipo-poliza" name="type_name" required>
+            <option value="">--Seleccione Tipo de Póliza--</option>
+            <option>Seguro de Salud</option>
+            <option>Seguro de Vida</option>
+            <option>Seguro de Auto</option>
+            <option>Seguro de Hogar</option>
+            <option>Seguro de Viaje</option>
+            <option>Seguro Empresarial</option>
+          </select>
+        </div>
+
+        <!-- (D) Detalles del tipo de póliza -->
+        <div id="detalles-poliza-agente" style="margin-bottom: 12px;"></div>
+
+        <!-- (E) Cobertura -->
+        <div class="form-group">
+          <label for="input-cobertura-agente">Cobertura:</label>
+          <input type="text" id="input-cobertura-agente" name="coverage" required>
+        </div>
+
+        <!-- (F) Beneficios -->
+        <div class="form-group">
+          <label for="input-beneficios-agente">Beneficios:</label>
+          <textarea id="input-beneficios-agente" name="benefits" rows="3" required></textarea>
+        </div>
+
+        <!-- (G) Monto de la Prima -->
+        <div class="form-group">
+          <label for="input-prima-agente">Monto de la Prima ($):</label>
+          <input type="number" id="input-prima-agente" name="premium_amount" step="0.01" min="1" required>
+        </div>
+
+        <!-- (H) Frecuencia de Pago -->
+        <div class="form-group">
+          <label for="select-frecuencia-agente">Frecuencia de Pago:</label>
+          <select id="select-frecuencia-agente" name="payment_frequency" required>
+            <option value="">--Seleccione Frecuencia--</option>
+            <option value="Mensual">Mensual</option>
+            <option value="Trimestral">Trimestral</option>
+            <option value="Anual">Anual</option>
+          </select>
+        </div>
+
+        <!-- (I) Botones -->
+        <div class="form-buttons">
+          <button type="button" id="btn-cancelar-agente" class="btn-cancel">Cancelar</button>
+          <button type="submit" id="btn-guardar-agente" class="btn-save">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <!-- ========== Fin Modal ========== -->
+
+  <!-- Ruta al JS del Agente -->
   <script
     src="{{ url_for('static', filename='js/agente.js') }}"
     defer

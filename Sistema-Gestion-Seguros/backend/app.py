@@ -9,7 +9,9 @@ from flask import (
 from models import init_db
 from werkzeug.security import check_password_hash, generate_password_hash
 
-# Carga variables de entorno desde .env
+# ===================================
+# Carga de configuración y BD
+# ===================================
 load_dotenv()
 
 app = Flask(
@@ -20,7 +22,9 @@ app = Flask(
 app.secret_key = os.getenv("SECRET_KEY")
 mysql = init_db(app)
 
-# ---------- Decoradores existentes ----------
+# ===================================
+# DECORADORES
+# ===================================
 
 # Evitar cache tras logout
 @app.after_request
@@ -33,29 +37,30 @@ def add_no_cache_headers(response):
     response.headers['Expires'] = '0'
     return response
 
-# Decorador: solo admins
+# Solo Admin puede acceder
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
-        if session.get('role_id') != 1:
-            flash("Acceso denegado: sólo admins.", "danger")
+        if session.get('role_id') != 1:  # 1 = Admin
+            flash("Acceso denegado: sólo administradores.", "danger")
             return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated
 
-# ---------- NUEVO decorador para usuarios logueados (Cualquiera) ----------  ### MODIFICADO
+# Cualquier usuario logueado puede acceder
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if 'user_id' not in session:
-            # Si no está logueado, redirigir al login
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated
 
-# ---------- Rutas públicas y de login/logout ----------
+# ===================================
+# RUTAS DE AUTENTICACIÓN / PÁGINAS
+# ===================================
 
 @app.route('/')
 def home():
@@ -82,8 +87,9 @@ def login():
             session.clear()
             session['user_id']   = fila[0]
             session['role_id']   = fila[2]
-            session['username']  = fila[3]    # Guardamos nombre para mostrar en el sidebar
+            session['username']  = fila[3]  # Para mostrar en sidebar
 
+            # Redirigir según rol
             if fila[2] == 1:
                 return redirect(url_for('admin_panel'))
             elif fila[2] == 2:
@@ -115,11 +121,14 @@ def logout():
     flash("Has cerrado sesión correctamente.", "info")
     return redirect(url_for('login'))
 
-# ---------- Paneles por rol ----------
+# ===================================
+# PANELES POR ROL
+# ===================================
 
 @app.route('/admin')
 @admin_required
 def admin_panel():
+    # Aquí está tu admin-index.html, que incluye la sección de Gestión de Usuarios
     return render_template('admin-index.html')
 
 @app.route('/agente')
@@ -134,13 +143,17 @@ def client_panel():
         return redirect(url_for('login'))
     return render_template('client-Index.html')
 
-# =========================================
-# API de USUARIOS (admin-only)
-# =========================================
+# ===================================
+# API DE USUARIOS (Solo Admin)
+# ===================================
 
 @app.route('/users', methods=['GET'])
 @admin_required
 def list_users():
+    """
+    Devuelve JSON con todos los usuarios (para el Admin).
+    Tu admin-index.html debe hacer fetch('/users') y mostrarlos.
+    """
     cur = mysql.connection.cursor()
     cur.execute(
         "SELECT id, username, email, role_id, created_at FROM users"
@@ -203,17 +216,44 @@ def delete_user(user_id):
     cur.close()
     return jsonify(success=True), 200
 
-# =========================================
+# ===================================
+# API de CLIENTES (para Agente)
+# ===================================
+
+@app.route('/clients', methods=['GET'])
+@login_required
+def list_clients():
+    """
+    Devuelve JSON con todos los usuarios que tengan role_id = 3 (Clientes).
+    Cualquiera que esté logueado (incluido el Agente) puede ver esta lista.
+    """
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT id, username, email 
+        FROM users 
+        WHERE role_id = 3
+        ORDER BY username ASC
+    """)
+    rows = cur.fetchall()
+    cur.close()
+
+    clientes = [
+        {
+            "id":    r[0],
+            "name":  r[1],
+            "email": r[2]
+        }
+        for r in rows
+    ]
+    return jsonify(clientes), 200
+
+# ===================================
 # API de TIPOS DE PÓLIZA (policy_types)
-# =========================================
+# ===================================
 
 @app.route('/policy_types', methods=['GET'])
-@login_required   # <<< MODIFICADO: antes estaba @admin_required
+@login_required   # Ya no es @admin_required: cualquier usuario autenticado puede consultar el catálogo
 def list_policy_types():
-    """
-    Devuelve el catálogo completo de tipos de póliza.
-    Cualquier usuario logueado (Admin, Agente o Cliente) puede verlo.
-    """
     cur = mysql.connection.cursor()
     cur.execute("""
         SELECT id, name, description, cost, payment_frequency, status
@@ -235,12 +275,8 @@ def list_policy_types():
     return jsonify(lista), 200
 
 @app.route('/policy_types/<int:pt_id>', methods=['GET'])
-@login_required   # <<< MODIFICADO: antes estaba @admin_required
+@login_required
 def get_policy_type(pt_id):
-    """
-    Devuelve un solo tipo de póliza por su ID.
-    Accesible a cualquier usuario logueado.
-    """
     cur = mysql.connection.cursor()
     cur.execute("""
         SELECT id, name, description, cost, payment_frequency, status
@@ -380,7 +416,7 @@ def list_policies():
           pt.description  AS benefits,
           p.coverage_details,
           p.premium_amount,
-          p.payment_frequency,   -- <<< CAMBIO: en lugar de pt.payment_frequency usamos la de p
+          p.payment_frequency,
           p.status
         FROM policies p
         JOIN policy_types pt ON p.type_id = pt.id
@@ -399,33 +435,41 @@ def list_policies():
             "benefits":          r[4] or "",
             "coverage_details":  r[5] or "",
             "premium_amount":    float(r[6]),
-            "payment_frequency": r[7],   # <<< CAMBIO: ya viene del campo p.payment_frequency
+            "payment_frequency": r[7],
             "status":            r[8]
         })
     return jsonify(policies), 200
 
 @app.route('/policies', methods=['POST'])
-@login_required   # <<< MODIFICADO: antes estaba @admin_required
+@login_required   # Cualquiera autenticado (Admin, Agente o Cliente) puede crear
 def create_policy():
     """
     Crea una nueva póliza. 
-    Accessible tanto para Admin (rol_id=1) como para Cliente (rol_id=3).
+    - Si role_id == 3 (Cliente): se asocia client_id = session['user_id'].
+    - Si role_id == 2 (Agente): espera client_id en el payload y asocia agent_id = session['user_id'].
+    - Si role_id == 1 (Admin): puede omitir client_id (o enviar uno explícitamente).
     """
     data = request.get_json()
 
     name           = data.get('name', '').strip()
-    type_name      = data.get('type_name', '').strip()
+    raw_type_name  = data.get('type_name', '').strip()
+    client_id_sel  = data.get('client_id')    # Solo para Agente
     coverage       = data.get('coverage', '').strip()
     benefits       = data.get('benefits', '').strip()
     premium_amount = data.get('premium_amount')
     payment_freq   = data.get('payment_frequency', '').strip()
     status         = data.get('status', 'inactive').strip()
 
-    # Validaciones
+    # — Validaciones mínimas —
     if not name:
-        return jsonify({"error": "El nombre del seguro es obligatorio."}), 400
-    if not type_name:
-        return jsonify({"error": "Debe indicar un tipo de póliza."}), 400
+        return jsonify({"error": "El nombre de la póliza es obligatorio."}), 400
+
+    # Normalizar raw_type_name (quitar “Seguro de ” si existe)
+    if raw_type_name.startswith('Seguro de '):
+        type_name = raw_type_name.replace('Seguro de ', '').strip()
+    else:
+        type_name = raw_type_name
+
     if not coverage:
         return jsonify({"error": "La cobertura es obligatoria."}), 400
     if not benefits:
@@ -435,12 +479,10 @@ def create_policy():
         if amt <= 0:
             raise ValueError
     except:
-        return jsonify({"error": "El costo debe ser número mayor a cero."}), 400
+        return jsonify({"error": "El monto de la prima debe ser número mayor a cero."}), 400
 
-    # Validar que la frecuencia sea una de las 3 permitidas:
     if payment_freq not in ('Mensual', 'Trimestral', 'Anual'):
         return jsonify({"error": "Frecuencia de pago no válida."}), 400
-
     if status not in ('active', 'inactive', 'pending', 'cancelled', 'expired'):
         return jsonify({"error": "Estado no válido."}), 400
 
@@ -450,31 +492,37 @@ def create_policy():
     row = cur.fetchone()
     if not row:
         cur.close()
-        return jsonify({"error": f"El tipo de póliza '{type_name}' no existe"}), 400
+        return jsonify({"error": f"El tipo de póliza '{raw_type_name}' no existe"}), 400
     type_id = row[0]
 
-    # 2) Insertar en policies, usando el usuario logueado como client_id (o admin_id)
-    start_date = '2025-01-01'
-    end_date   = '2025-12-31'
-    user_id    = session.get('user_id')  # <<< MODIFICADO: se asocia al user logueado
-    role_id    = session.get('role_id')
+    # 2) Determinar client_id y agent_id según el rol
+    user_id = session.get('user_id')
+    role_id = session.get('role_id')
 
-    # Si es Admin (1), podría permitir que el admin decida client_id manualmente.
-    # Pero para simplicidad, si es cliente (3) se asocia automáticamente.
-    # Si quieres que Admin cree pólizas para clientes, aquí habría que leer un campo "client_id" extra.
     client_id = None
     agent_id  = None
 
     if role_id == 3:
-        # Si es cliente, client_id = user_id
+        # Cliente → client_id = su propio user_id
         client_id = user_id
+    elif role_id == 2:
+        # Agente → debe venir client_id_sel
+        if not client_id_sel:
+            cur.close()
+            return jsonify({"error": "El Agente debe escoger un client_id."}), 400
+        client_id = client_id_sel
+        agent_id  = user_id
     elif role_id == 1:
-        # Si es admin, por defecto lo dejamos NULL (puede asignarse luego)
-        client_id = None
+        # Admin → por defecto deja ambos en NULL (o el Admin puede enviar client_id si quiere)
+        client_id = data.get('client_id')  # Opcional: si envía, lo usa
+        agent_id  = None
     else:
-        # Otros roles (Agente), podrías asignar agent_id = user_id si así quiere tu flujo
-        agent_id = user_id
+        cur.close()
+        return jsonify({"error": "Rol no válido para crear pólizas."}), 403
 
+    # 3) Insertar en la tabla policies
+    start_date = '2025-01-01'
+    end_date   = '2025-12-31'
     cur.execute(
         """
         INSERT INTO policies
@@ -490,7 +538,7 @@ def create_policy():
           coverage,
           benefits,
           amt,
-          payment_freq,     # <<< Aquí sí usamos la frecuencia que envía el frontend
+          payment_freq,
           start_date,
           end_date,
           status
@@ -515,7 +563,7 @@ def get_policy(policy_id):
           pt.description  AS benefits,
           p.coverage_details,
           p.premium_amount,
-          p.payment_frequency,   -- <<< CAMBIO: traemos la frecuencia guardada en policies
+          p.payment_frequency,
           p.status
         FROM policies p
         JOIN policy_types pt ON p.type_id = pt.id
@@ -565,14 +613,12 @@ def update_policy(policy_id):
     except:
         return jsonify({"error": "El costo debe ser número mayor a cero."}), 400
 
-    # Validar que la frecuencia sea una de las 3 permitidas:
     if payment_freq not in ('Mensual','Trimestral','Anual'):
         return jsonify({"error": "Frecuencia de pago no válida."}), 400
-
     if status not in ('active','inactive','pending','cancelled','expired'):
         return jsonify({"error": "Estado no válido."}), 400
 
-    # Obtener type_id
+    # Obtener type_id a partir de type_name
     cur = mysql.connection.cursor()
     cur.execute("SELECT id FROM policy_types WHERE name = %s", (type_name,))
     row = cur.fetchone()
@@ -590,7 +636,7 @@ def update_policy(policy_id):
           coverage_details   = %s,
           benefits           = %s,
           premium_amount     = %s,
-          payment_frequency  = %s,   -- <<< AGREGADO: para que la frecuencia sea editable
+          payment_frequency  = %s,
           status             = %s
         WHERE id = %s
         """,
@@ -609,9 +655,9 @@ def delete_policy(policy_id):
     cur.close()
     return jsonify({"success": True}), 200
 
-# =========================================
-# FIN RUTAS PÓLIZAS
-# =========================================
+# ===================================
+# FIN RUTAS
+# ===================================
 
 if __name__ == "__main__":
     app.run(debug=True)
