@@ -744,3 +744,67 @@ body {
 #insurance-modal .modal-actions .btn-secondary:hover {
   background-color: #666;
 }
+
+/* Scroll horizontal para la tabla */
+.users-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+.users-table-wrapper .users-table {
+  width: 100%;
+  min-width: 800px; /* o lo que necesites según la suma de columnas */
+}
+/* Ajuste de tamaños en pantallas pequeñas */
+@media (max-width: 768px) {
+  .users-table th, .users-table td {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+  }
+  .icon-btn i {
+    font-size: 0.9rem;
+  }
+  #detail-modal .modal-content {
+    width: 90%;
+    max-width: 400px;
+  }
+}
+@media (max-width: 480px) {
+  .users-table th, .users-table td {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.4rem;
+  }
+  .icon-btn i {
+    font-size: 0.8rem;
+  }
+  #detail-modal .modal-content {
+    width: 95%;
+    max-width: 300px;
+  }
+}
+
+/* ——————————————————————————————————————————————
+   1.1) Sidebar fijo a la izquierda con ancho 250px
+   —————————————————————————————————————————————— */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 250px;       /* <-- Ancho del sidebar */
+  height: 100vh;
+  background-color: #2c3e50;  /* O el color que uses */
+  overflow-y: auto;
+  z-index: 1000;      /* Que siempre esté por encima del contenido */
+}
+
+/* ——————————————————————————————————————————————
+   1.2) Main-content con margen izquierdo igual a 250px
+   —————————————————————————————————————————————— */
+.main-content {
+  margin-left: 250px; /* <-- Mismo ancho que el sidebar */
+  padding: 1rem 2rem; /* Ajusta padding según necesites */
+  background-color: #1e1e1e; /* El color de fondo que uses */
+  min-height: 100vh;
+  overflow: auto;
+  color: #fff;
+}
+

@@ -14,16 +14,22 @@
     referrerpolicy="no-referrer"
   />
 
-  <!-- Estilos propios -->
+  <!-- Estilos propios (asegúrate de tener este archivo en static/css/admin-styles.css) -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-styles.css') }}" />
 
   <style>
-    /* Ocultar modal cuando tenga .hidden */
+    /* ========================
+       VISIBILIDAD DE MODALES
+       ======================== */
     .modal.hidden {
       display: none;
     }
 
-    /* Estilo para la “X” del modal de usuarios */
+    /* Ajustes puntuales para diferenciar modales */
+    .modal-content.create-user {
+      position: relative;
+    }
+
     .close-user-modal {
       position: absolute;
       top: 12px;
@@ -31,10 +37,6 @@
       font-size: 24px;
       color: #ffffff;
       cursor: pointer;
-    }
-
-    .modal-content.create-user {
-      position: relative;
     }
   </style>
 </head>
@@ -122,26 +124,164 @@
         </div>
 
         <div class="users-table-wrapper">
-  <table class="users-table">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Nombre del Seguro</th>
-        <th>Tipo de Seguro</th>
-        <th>Cobertura</th>
-        <th>Beneficios</th>
-        <th>Costo</th>
-        <th>Frecuencia de Pago</th>
-        <th>Estado</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody id="insurances-tbody">
-      <!-- Filas inyectadas por JS -->
-    </tbody>
-  </table>
-</div>
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre del Seguro</th>
+                <th>Tipo de Seguro</th>
+                <th>Cobertura</th>
+                <th>Beneficios</th>
+                <th>Costo</th>
+                <th>Frecuencia de Pago</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="insurances-tbody">
+              <!-- Filas inyectadas por JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 
+  <!-- =========================
+       MODAL: Crear/Editar Usuario
+       ========================= -->
+  <div id="user-modal" class="modal hidden">
+    <div class="modal-content create-user">
+      <span class="close-user-modal" id="close-user-modal">&times;</span>
+      <h2 id="user-modal-title">Crear Usuario</h2>
+
+      <!-- 1) Selección de tipo de usuario -->
+      <div id="user-type-selection" class="user-step active">
+        <h3>Seleccione el tipo de usuario</h3>
+        <div class="user-type-options">
+          <button class="user-type-btn" data-type="admin">
+            <i class="fas fa-user-shield"></i> Administrador
+          </button>
+          <button class="user-type-btn" data-type="agent">
+            <i class="fas fa-user-tie"></i> Agente
+          </button>
+          <button class="user-type-btn" data-type="client">
+            <i class="fas fa-user"></i> Cliente
+          </button>
+        </div>
+      </div>
+
+      <!-- 2) Formulario de Usuario -->
+      <form id="user-form" class="user-step">
+        <input type="hidden" id="u-role" name="role_id" value="1" />
+        <div class="form-group">
+          <label for="u-username">Usuario</label>
+          <input
+            type="text"
+            id="u-username"
+            name="username"
+            placeholder="Nombre de usuario"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="u-email">Email</label>
+          <input
+            type="email"
+            id="u-email"
+            name="email"
+            placeholder="correo@ejemplo.com"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="u-password">Contraseña</label>
+          <input
+            type="password"
+            id="u-password"
+            name="password"
+            placeholder="********"
+            required
+          />
+        </div>
+
+        <!-- Campos adicionales para cliente -->
+        <div id="client-fields">
+          <div class="form-group">
+            <label for="u-first-name">Nombre</label>
+            <input
+              type="text"
+              id="u-first-name"
+              name="first_name"
+              placeholder="Nombre completo"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="u-last-name">Apellido</label>
+            <input
+              type="text"
+              id="u-last-name"
+              name="last_name"
+              placeholder="Apellidos"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="u-dob">Fecha de Nacimiento</label>
+            <input
+              type="date"
+              id="u-dob"
+              name="dob"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="u-phone">Teléfono</label>
+            <input
+              type="tel"
+              id="u-phone"
+              name="phone"
+              placeholder="+1234567890"
+            />
+          </div>
+          <div class="form-group">
+            <label for="u-address">Dirección</label>
+            <input
+              type="text"
+              id="u-address"
+              name="address"
+              placeholder="Dirección completa"
+            />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="back-to-selection" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================
+       MODAL: Confirmación Genérico
+       ========================= -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 id="modal-title">Confirmación</h2>
+      <p id="modal-message">¿Estás seguro?</p>
+      <div class="modal-actions">
+        <button id="modal-confirm" class="btn btn-danger">
+          <i class="fas fa-check"></i> Confirmar
+        </button>
+        <button id="modal-cancel" class="btn btn-secondary">
+          <i class="fas fa-times"></i> Cancelar
+        </button>
       </div>
     </div>
   </div>
@@ -244,139 +384,22 @@
   </div>
 
   <!-- =========================
-       MODAL: Confirmación Genérico
+       MODAL: Detalles Cobertura/Beneficios
        ========================= -->
-  <div id="modal" class="modal hidden">
+  <div id="detail-modal" class="modal hidden">
+    <div class="modal-overlay" id="detail-modal-overlay"></div>
     <div class="modal-content">
-      <h2 id="modal-title">Confirmación</h2>
-      <p id="modal-message">¿Estás seguro?</p>
-      <div class="modal-actions">
-        <button id="modal-confirm" class="btn btn-danger">
-          <i class="fas fa-check"></i> Confirmar
-        </button>
-        <button id="modal-cancel" class="btn btn-secondary">
-          <i class="fas fa-times"></i> Cancelar
-        </button>
-      </div>
+      <h2 id="detail-modal-title">Detalle</h2>
+      <p id="detail-modal-text"></p>
+      <button id="close-detail-modal" class="btn btn-primary">
+        <i class="fas fa-times"></i> Cerrar
+      </button>
     </div>
   </div>
 
   <!-- =========================
-       MODAL: Crear/Editar Usuario
+       Carga de admin.js
        ========================= -->
-  <div id="user-modal" class="modal hidden">
-    <div class="modal-content create-user">
-      <span class="close-user-modal" id="close-user-modal">&times;</span>
-      <h2 id="user-modal-title">Crear Usuario</h2>
-
-      <div id="user-type-selection" class="user-step active">
-        <h3>Seleccione el tipo de usuario</h3>
-        <div class="user-type-options">
-          <button class="user-type-btn" data-type="admin">
-            <i class="fas fa-user-shield"></i> Administrador
-          </button>
-          <button class="user-type-btn" data-type="agent">
-            <i class="fas fa-user-tie"></i> Agente
-          </button>
-          <button class="user-type-btn" data-type="client">
-            <i class="fas fa-user"></i> Cliente
-          </button>
-        </div>
-      </div>
-
-      <form id="user-form" class="user-step">
-        <input type="hidden" id="u-role" name="role_id" value="1" />
-        <div class="form-group">
-          <label for="u-username">Usuario</label>
-          <input
-            type="text"
-            id="u-username"
-            name="username"
-            placeholder="Nombre de usuario"
-            required
-          />
-        </div>
-        <div class="form-group">
-          <label for="u-email">Email</label>
-          <input
-            type="email"
-            id="u-email"
-            name="email"
-            placeholder="correo@ejemplo.com"
-            required
-          />
-        </div>
-        <div class="form-group">
-          <label for="u-password">Contraseña</label>
-          <input
-            type="password"
-            id="u-password"
-            name="password"
-            placeholder="********"
-            required
-          />
-        </div>
-
-        <div id="client-fields" class="hidden">
-          <div class="form-group">
-            <label for="u-first-name">Nombre</label>
-            <input
-              type="text"
-              id="u-first-name"
-              name="first_name"
-              placeholder="Nombre"
-            />
-          </div>
-          <div class="form-group">
-            <label for="u-last-name">Apellido</label>
-            <input
-              type="text"
-              id="u-last-name"
-              name="last_name"
-              placeholder="Apellido"
-            />
-          </div>
-          <div class="form-group">
-            <label for="u-dob">Fecha de Nacimiento</label>
-            <input type="date" id="u-dob" name="dob" />
-          </div>
-          <div class="form-group">
-            <label for="u-phone">Teléfono</label>
-            <input
-              type="tel"
-              id="u-phone"
-              name="phone"
-              placeholder="+1234567890"
-            />
-          </div>
-          <div class="form-group">
-            <label for="u-address">Dirección</label>
-            <input
-              type="text"
-              id="u-address"
-              name="address"
-              placeholder="Dirección completa"
-            />
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button
-            type="button"
-            id="back-to-selection"
-            class="btn btn-secondary"
-          >
-            <i class="fas fa-arrow-left"></i> Volver
-          </button>
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save"></i> Guardar
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Carga de admin.js -->
   <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>
 </html>
