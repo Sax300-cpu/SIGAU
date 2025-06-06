@@ -808,3 +808,119 @@ body {
   color: #fff;
 }
 
+/* =======================================
+   1) BOTÓN “Ver” para Cobertura / Beneficios
+   ======================================= */
+.btn-view {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #1e90ff;       /* color que contraste con el fondo */
+  font-size: 1.1rem;
+  padding: 0;
+}
+.btn-view i {
+  vertical-align: middle;
+}
+.btn-view:hover {
+  color: #104e8b;
+}
+
+/* =======================================
+   2) MODAL DETALLE (Cobertura / Beneficios)
+   ======================================= */
+/* Contenedor principal (oscurece fondo y centra contenido) */
+#detail-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+/* Ocultar cuando tenga .hidden */
+#detail-modal.hidden {
+  display: none;
+}
+/* Caja interna del modal */
+#detail-modal .modal-content {
+  background-color: #2E2E2E;
+  padding: 24px 32px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 450px;
+  box-sizing: border-box;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  color: #E0E0E0;
+}
+/* Título (“Cobertura” o “Beneficios”) */
+#detail-modal .modal-content h2 {
+  margin-top: 0;
+  font-size: 1.3rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #E0E0E0;
+}
+/* Botón “X” de cierre en la esquina superior derecha */
+#detail-modal .close-detail-modal {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-size: 1.4rem;
+  color: #ffffff;
+  cursor: pointer;
+}
+/* Párrafo con el contenido completo */
+#detail-modal .modal-content p {
+  white-space: pre-wrap;  /* conserva saltos de línea */
+  margin-bottom: 1.5rem;
+  line-height: 1.4;
+  color: #E0E0E0;
+}
+/* Contenedor de acciones (botón “Cerrar”) */
+#detail-modal .detail-actions {
+  text-align: right;
+}
+#detail-modal .detail-actions .btn {
+  padding: 8px 20px;
+  font-size: 0.9rem;
+  border-radius: 5px;
+}
+#detail-modal .detail-actions .btn-secondary {
+  background-color: #555;
+  color: #E0E0E0;
+}
+#detail-modal .detail-actions .btn-secondary:hover {
+  background-color: #666;
+}
+
+/* =======================================
+   3) ADAPTACIONES RESPONSIVE
+   ======================================= */
+@media (max-width: 768px) {
+  /* Asegurar que el modal detalle no sea muy ancho en tablets */
+  #detail-modal .modal-content {
+    max-width: 400px;
+  }
+}
+@media (max-width: 480px) {
+  /* En móviles, que ocupe casi todo el ancho */
+  #detail-modal .modal-content {
+    width: 95%;
+    max-width: 300px;
+    padding: 20px;
+  }
+  /* Reducir tamaño de botón “X” si es necesario */
+  #detail-modal .close-detail-modal {
+    font-size: 1.2rem;
+    top: 8px;
+    right: 12px;
+  }
+}
+
