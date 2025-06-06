@@ -19,40 +19,46 @@ document.addEventListener('DOMContentLoaded', function() {
 
     insuranceOptions.forEach(option => {
         option.addEventListener('click', async function() {
-            const tipoTexto = this.querySelector('span').textContent.trim();
-            inputTipo.value = tipoTexto;
+            const tipoTexto = this.querySelector('span').textContent.trim(); 
+inputTipo.value = tipoTexto;
 
-            // === (3) Antes de abrir el modal, cargamos datos desde /policy_types ===
-            try {
-                const resp = await fetch('/policy_types');
-                if (!resp.ok) throw new Error('Error al obtener lista de policy_types');
-                const lista = await resp.json();  // Array de objetos
+// Quitamos el prefijo "Seguro de " para que coincida con p.name
+let sinPrefijo = tipoTexto;
+if (tipoTexto.startsWith('Seguro de ')) {
+  sinPrefijo = tipoTexto.replace('Seguro de ', '').trim(); 
+  // Por ejemplo: "Seguro de Salud" → "Salud"
+}
 
-                // Buscamos el objeto que coincida con el nombre exacto o que contenga el texto
-                const policyInfo = lista.find(p =>
-                    p.name === tipoTexto || p.name.includes(tipoTexto)
-                );
-                if (!policyInfo) {
-                    detallesDiv.innerHTML = `<p style="color: red;">No se encontró info de “${tipoTexto}”.</p>`;
-                } else {
-                    detallesDiv.innerHTML = `
-                        <h3>Detalles de ${policyInfo.name}</h3>
-                        <p><strong>Descripción:</strong> ${policyInfo.description}</p>
-                        <p><strong>Costo base:</strong> $${policyInfo.cost.toFixed(2)}</p>
-                        <p><strong>Frecuencia sugerida:</strong> ${policyInfo.payment_frequency}</p>
-                        <p><strong>Estado:</strong> ${policyInfo.status}</p>
-                    `;
-                    // Como el catalogo sugiere una frecuencia por defecto, podemos preseleccionarla
-                    document.getElementById('select-frecuencia').value = policyInfo.payment_frequency;
-                }
-            } catch (err) {
-                console.error(err);
-                detallesDiv.innerHTML = `<p style="color: red;">Error al cargar detalles.</p>`;
-            }
-            // === (3) Fin de carga de /policy_types ===
+// === Carga /policy_types y filtra por sinPrefijo ===
+try {
+  const resp = await fetch('/policy_types');
+  if (!resp.ok) throw new Error('Error al obtener lista de policy_types');
+  const lista = await resp.json();
 
-            // Mostrar el modal
-            modal.classList.remove('hidden');
+  // Ahora buscamos p.name === sinPrefijo (o que contenga sinPrefijo)
+  const policyInfo = lista.find(p =>
+    p.name === sinPrefijo || p.name.includes(sinPrefijo)
+  );
+  if (!policyInfo) {
+    detallesDiv.innerHTML = `<p style="color: red;">No se encontró info de “${tipoTexto}”.</p>`;
+  } else {
+    detallesDiv.innerHTML = `
+      <h3>Detalles de ${policyInfo.name}</h3>
+      <p><strong>Descripción:</strong> ${policyInfo.description}</p>
+      <p><strong>Costo base:</strong> $${policyInfo.cost.toFixed(2)}</p>
+      <p><strong>Frecuencia sugerida:</strong> ${policyInfo.payment_frequency}</p>
+      <p><strong>Estado:</strong> ${policyInfo.status}</p>
+    `;
+    document.getElementById('select-frecuencia').value = policyInfo.payment_frequency;
+  }
+} catch (err) {
+  console.error(err);
+  detallesDiv.innerHTML = `<p style="color: red;">Error al cargar detalles.</p>`;
+}
+
+// Mostrar el modal al final
+modal.classList.remove('hidden');
+
         });
     });
 
