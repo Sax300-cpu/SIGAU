@@ -107,19 +107,21 @@ COLLATE = utf8mb4_unicode_ci;
 -- -----------------------------------------------------
 -- Table `policies`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `policies` ;
+DROP TABLE IF EXISTS `policies`;
 
 CREATE TABLE IF NOT EXISTS `policies` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(100) NOT NULL,  
+  `name` VARCHAR(100) NOT NULL,
   `client_id` INT NULL,
   `agent_id` INT NULL DEFAULT NULL,
   `type_id` INT NOT NULL,
   `coverage_details` TEXT NULL DEFAULT NULL,
+  `benefits` TEXT NULL DEFAULT NULL,            -- ← Nueva columna
   `premium_amount` DECIMAL(12,2) NOT NULL,
+  `payment_frequency` VARCHAR(20) NOT NULL DEFAULT 'Mensual',
   `start_date` DATE NOT NULL,
   `end_date` DATE NOT NULL,
-  `status` ENUM('active', 'pending', 'cancelled', 'expired') NULL DEFAULT 'pending',
+  `status` ENUM('active','pending','cancelled','expired') NULL DEFAULT 'pending',
   `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   INDEX `client_id` (`client_id` ASC) VISIBLE,
@@ -139,10 +141,11 @@ CREATE TABLE IF NOT EXISTS `policies` (
     FOREIGN KEY (`type_id`)
     REFERENCES `policy_types` (`id`)
     ON DELETE RESTRICT
-    ON UPDATE CASCADE)
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_unicode_ci;
+    ON UPDATE CASCADE
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci;
+
 
 
 -- -----------------------------------------------------
