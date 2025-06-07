@@ -176,17 +176,29 @@ def list_users():
 @admin_required
 def create_user():
     data = request.get_json()
-    pw_hash = generate_password_hash(data['password'])
-    cur = mysql.connection.cursor()
-    cur.execute(
-        "INSERT INTO users (username,email,password_hash,role_id) "
-        "VALUES (%s,%s,%s,%s)",
-        (data['username'], data['email'], pw_hash, data['role_id'])
-    )
-    mysql.connection.commit()
-    new_id = cur.lastrowid
-    cur.close()
-    return jsonify({"id": new_id}), 201
+    print("Datos recibidos en backend:", data)  # Log de datos recibidos
+    try:
+        username = data['username']
+        email = data['email']
+        password = data['password']
+        role_id = data['role_id']
+
+        pw_hash = generate_password_hash(password)
+        cur = mysql.connection.cursor()
+        cur.execute(
+            "INSERT INTO users (username,email,password_hash,role_id) VALUES (%s,%s,%s,%s)",
+            (username, email, pw_hash, role_id)
+        )
+        mysql.connection.commit()
+        new_id = cur.lastrowid
+        cur.close()
+        print("Usuario creado con ID:", new_id)
+        return jsonify({"id": new_id}), 201
+    except Exception as e:
+        print("Error al crear usuario:", str(e))  # Log del error exacto
+        return jsonify({"error": str(e)}), 500
+
+
 
 @app.route('/users/<int:user_id>', methods=['PUT'])
 @admin_required

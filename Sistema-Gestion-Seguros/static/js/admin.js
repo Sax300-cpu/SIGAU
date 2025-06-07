@@ -197,13 +197,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const username = userForm.username.value.trim();
     const email    = userForm.email.value.trim();
     const password = userForm.password.value.trim();
-    const roleId   = userForm.role_id.value;
+    const roleId   = parseInt(userForm.role_id.value, 10);
 
     if (!username || !email || (!password && !editId)) {
       return alert('Complete todos los campos obligatorios.');
     }
 
-    const data = { username, email };
+    const data = { username, email, role_id: roleId };
     if (password) data.password = password;
     data.role_id = parseInt(roleId, 10);
 
