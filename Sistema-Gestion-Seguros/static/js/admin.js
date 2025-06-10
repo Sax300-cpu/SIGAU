@@ -394,11 +394,11 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => {
           document.getElementById('i-name').value = data.name;
           document.getElementById('i-type').value = data.type_id;
-          // Dispara el change para rellenar las opciones de cobertura
+          // Disparamos el change para rellenar las coberturas
           document.getElementById('i-type').dispatchEvent(new Event('change'));
-          // Después de poblar el select, establece el valor de cobertura
-          document.getElementById('i-coverage').value = data.coverage_id;
-          // Carga exactamente el texto guardado en beneficios
+          // Fijamos la cobertura actual del seguro
+          document.getElementById('i-coverage').value = data.coverage_details;
+          // Cargamos el valor real de beneficios
           document.getElementById('i-benefits').value = data.benefits;
           document.getElementById('i-cost').value = data.premium_amount;
           document.getElementById('i-payment').value = data.payment_frequency;

@@ -528,7 +528,7 @@ def get_policy(policy_id):
           p.name          AS policy_name,
           pt.id           AS type_id,
           pt.name         AS type_name,
-          pt.description  AS benefits,
+          p.benefits      AS benefits,
           p.coverage_details,
           p.premium_amount,
           p.payment_frequency,
