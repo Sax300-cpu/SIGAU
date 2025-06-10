@@ -82,7 +82,7 @@
            SECCIÓN: ROLES
            ========================= -->
       <div class="content-section" id="roles-content">
-        <!-- Aquí va tu contenido de “Gestión de Roles” -->
+        <!-- Aquí va tu contenido de "Gestión de Roles" -->
       </div>
 
       <!-- =========================
@@ -322,13 +322,14 @@
         <!-- Cobertura -->
         <div class="form-group">
           <label for="i-coverage">Cobertura</label>
-          <textarea
+          <select
             id="i-coverage"
-            name="coverage"
-            rows="3"
-            placeholder="Monto máximo de cobertura, condiciones, exclusiones"
+            name="coverage_id"
+            class="form-select w-auto"
             required
-          ></textarea>
+          >
+            <option value="">Seleccione una cobertura</option>
+          </select>
         </div>
         <!-- Beneficios -->
         <div class="form-group">

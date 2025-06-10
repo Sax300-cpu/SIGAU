@@ -279,7 +279,7 @@ body {
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
   color: #E0E0E0;
-  position: relative;    /* ← Necesario para el botón “X” */
+  position: relative;    /* ← Necesario para el botón "X" */
   max-height: 80vh;      /* ← Evita que crezca más allá del 80% de altura */
   overflow-y: auto;      /* ← Scroll interno si es muy largo */
 }
@@ -291,7 +291,7 @@ body {
 }
 
 /* =========================
-   BOTÓN “X” PARA CERRAR EL MODAL
+   BOTÓN "X" PARA CERRAR EL MODAL
    ========================= */
 .close-user-modal {
   position: absolute;
@@ -436,7 +436,7 @@ body {
   color: #c6951a;
 }
 
-/* Ajuste al botón “Crear Usuario” */
+/* Ajuste al botón "Crear Usuario" */
 .btn-primary {
   padding: 10px 24px;
   border-radius: 6px;
@@ -502,7 +502,7 @@ body {
   border-top: 1px solid rgba(224, 224, 224, 0.2);
 }
 
-/* Fila con “Ciudad” y “Provincia” */
+/* Fila con "Ciudad" y "Provincia" */
 .form-row {
   display: flex;
   gap: 15px;
@@ -516,7 +516,7 @@ body {
 
 /* =========================
    MEDIA QUERY PARA RESPONSIVE
-   - En pantallas < 600px, apilar “Ciudad” y “Provincia”
+   - En pantallas < 600px, apilar "Ciudad" y "Provincia"
    ========================= */
 @media (max-width: 600px) {
   .form-row .form-group {
@@ -560,7 +560,7 @@ body {
 }
 
 /* =========================
-   SECCIÓN “Gestión de Seguros”
+   SECCIÓN "Gestión de Seguros"
    ========================= */
 
 /* 1) El contenedor principal ya tiene margin-left:280px y padding:30px
@@ -621,7 +621,7 @@ body {
   vertical-align: middle;
 }
 
-/* 8) Botones “Editar / Eliminar” en la última columna */
+/* 8) Botones "Editar / Eliminar" en la última columna */
 #seguros-content .users-table td:last-child {
   display: flex;
   justify-content: center;
@@ -629,7 +629,7 @@ body {
   gap: 10px; /* espacio entre los iconos */
 }
 
-/* 9) Ajuste de ancho para columnas de “Cobertura” y “Costo” */
+/* 9) Ajuste de ancho para columnas de "Cobertura" y "Costo" */
 #insurances-tbody tr td:nth-child(4),
 #insurances-tbody tr td:nth-child(5) {
   max-width: 200px;
@@ -639,7 +639,7 @@ body {
 }
 
 /* =========================
-   MODAL “Crear/Editar Seguro”
+   MODAL "Crear/Editar Seguro"
    ========================= */
 
 /* 10) Contenedor del modal de seguros (idéntico en tamaño y estilo al modal de usuario) */
@@ -655,7 +655,7 @@ body {
   text-align: center;
 }
 
-/* 11) Título “Crear Seguro” centrado */
+/* 11) Título "Crear Seguro" centrado */
 #insurance-modal .modal-content h2 {
   margin-bottom: 20px;
   font-size: 1.5rem;
@@ -699,7 +699,7 @@ body {
   box-shadow: 0 0 8px #daa520;
 }
 
-/* 13) Para “Costo” y “Frecuencia de Pago” en la misma línea */
+/* 13) Para "Costo" y "Frecuencia de Pago" en la misma línea */
 #insurance-form .form-row {
   display: flex;
   gap: 15px;
@@ -711,7 +711,7 @@ body {
   min-width: 48%;
 }
 
-/* 14) Botones “Cancelar” y “Guardar” en el modal */
+/* 14) Botones "Cancelar" y "Guardar" en el modal */
 #insurance-modal .modal-actions {
   display: flex;
   justify-content: center;
@@ -809,7 +809,7 @@ body {
 }
 
 /* =======================================
-   1) BOTÓN “Ver” para Cobertura / Beneficios
+   1) BOTÓN "Ver" para Cobertura / Beneficios
    ======================================= */
 .btn-view {
   background: transparent;
@@ -859,7 +859,7 @@ body {
   position: relative;
   color: #E0E0E0;
 }
-/* Título (“Cobertura” o “Beneficios”) */
+/* Título ("Cobertura" o "Beneficios") */
 #detail-modal .modal-content h2 {
   margin-top: 0;
   font-size: 1.3rem;
@@ -867,7 +867,7 @@ body {
   margin-bottom: 1rem;
   color: #E0E0E0;
 }
-/* Botón “X” de cierre en la esquina superior derecha */
+/* Botón "X" de cierre en la esquina superior derecha */
 #detail-modal .close-detail-modal {
   position: absolute;
   top: 12px;
@@ -883,7 +883,7 @@ body {
   line-height: 1.4;
   color: #E0E0E0;
 }
-/* Contenedor de acciones (botón “Cerrar”) */
+/* Contenedor de acciones (botón "Cerrar") */
 #detail-modal .detail-actions {
   text-align: right;
 }
@@ -916,11 +916,24 @@ body {
     max-width: 300px;
     padding: 20px;
   }
-  /* Reducir tamaño de botón “X” si es necesario */
+  /* Reducir tamaño de botón "X" si es necesario */
   #detail-modal .close-detail-modal {
     font-size: 1.2rem;
     top: 8px;
     right: 12px;
   }
+}
+
+/* Estilos para el select de cobertura */
+#i-coverage {
+  width: auto !important;
+  min-width: 200px;
+  max-width: 100%;
+  white-space: normal;
+}
+
+#i-coverage option {
+  white-space: normal;
+  line-height: 1.2;
 }
 

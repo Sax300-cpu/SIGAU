@@ -5,7 +5,7 @@
  *   - Navegación entre secciones (Roles / Usuarios / Seguros)
  *   - Carga de usuarios en la tabla
  *   - Modal de Confirmación (Eliminar)
- *   - Modal de 2 pasos “Crear / Editar Usuario”
+ *   - Modal de 2 pasos "Crear / Editar Usuario"
  *   - Gestión de Seguros (policies)
  */
 
@@ -23,6 +23,45 @@ document.addEventListener('DOMContentLoaded', () => {
     seguros:  'Gestión de Seguros'
   };
 
+  // Plantillas de cobertura por tipo de seguro
+  const coverageTemplates = {
+    'Vida': [
+      'Indemnización por fallecimiento hasta suma asegurada',
+      'Indemnización por invalidez total y permanente',
+      'Gastos funerarios',
+      'Enfermedades graves'
+    ],
+    'Salud': [
+      'Gastos médicos mayores: hospitalización, cirugías y medicamentos',
+      'Consultas médicas y especialistas',
+      'Exámenes de laboratorio y diagnóstico',
+      'Atención dental básica'
+    ],
+    'Automóvil': [
+      'Responsabilidad civil, colisión y robo total',
+      'Daños materiales a terceros',
+      'Gastos médicos a ocupantes',
+      'Asistencia vial las 24 horas'
+    ],
+    'Hogar': [
+      'Daños por incendio, robo y responsabilidad civil familiar',
+      'Desastres naturales',
+      'Daños por agua',
+      'Contenido del hogar'
+    ],
+    'Viaje': [
+      'Asistencia médica en el extranjero y pérdida de equipaje',
+      'Cancelación de viaje',
+      'Pérdida de documentos',
+      'Traslado sanitario'
+    ],
+    'Empresarial': [
+      'Daños a bienes, responsabilidad civil y lucro cesante',
+      'Interrupción de negocio',
+      'Responsabilidad civil profesional',
+      'Ciberriesgos'
+    ]
+  };
   // ==========================
   //  MODALES USUARIO
   // ==========================
@@ -58,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   btns.forEach(b => b.onclick = () => showSection(b.dataset.content));
-  showSection('roles');  // Inicia mostrando “Gestión de Roles”
+  showSection('roles');  // Inicia mostrando "Gestión de Roles"
 
   // ==========================
   //  CARGAR USUARIOS EN LA TABLA
@@ -158,10 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================
   //  EVENTOS DEL MODAL USUARIO
   // ==========================
-  // 1) “Crear Usuario” abre el modal
+  // 1) "Crear Usuario" abre el modal
   btnNewUser.onclick = () => openUserModal('Crear Usuario');
 
-  // 2) “X” cierra el modal
+  // 2) "X" cierra el modal
   spanCloseUser.onclick = () => {
     userModal.classList.add('hidden');
     editId = null;
@@ -184,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   });
 
-  // 4) “Volver” en el modal de usuario (regresa a selección de tipo)
+  // 4) "Volver" en el modal de usuario (regresa a selección de tipo)
   backToSelection.onclick = () => {
     userForm.classList.remove('active');
     userTypeSelection.classList.add('active');
@@ -303,12 +342,12 @@ document.addEventListener('DOMContentLoaded', () => {
         insurancesTbody.appendChild(tr);
       });
 
-      // 2) Listeners “Editar Seguro”
+      // 2) Listeners "Editar Seguro"
       document.querySelectorAll('.btn-edit-insurance').forEach(b => {
         b.onclick = () => openInsuranceModal('Editar Seguro', b.dataset.id);
       });
 
-      // 3) Listeners “Eliminar Seguro”
+      // 3) Listeners "Eliminar Seguro"
       document.querySelectorAll('.btn-delete-insurance').forEach(b => {
         b.onclick = () => showModal(
           '¿Eliminar esta póliza?',
@@ -319,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
         );
       });
 
-      // 4) Listeners “Mostrar Detalle” (Cobertura / Beneficios)
+      // 4) Listeners "Mostrar Detalle" (Cobertura / Beneficios)
       document.querySelectorAll('.btn-detail').forEach(btn => {
         btn.onclick = () => {
           const field = btn.dataset.field;        // "cobertura" o "beneficios"
@@ -344,6 +383,31 @@ document.addEventListener('DOMContentLoaded', () => {
     insuranceForm.reset();
     editInsuranceId = id;
 
+    // Añadir listener para precargar cobertura según tipo
+    document.getElementById('i-type').addEventListener('change', function(e) {
+      const selectedType = e.target.selectedOptions[0].text;
+      const coverageSelect = document.getElementById('i-coverage');
+      
+      // Limpiar opciones actuales
+      coverageSelect.innerHTML = '';
+      
+      // Añadir opción por defecto
+      const defaultOption = document.createElement('option');
+      defaultOption.value = '';
+      defaultOption.textContent = 'Seleccione una cobertura';
+      coverageSelect.appendChild(defaultOption);
+      
+      // Añadir opciones según el tipo seleccionado
+      if (coverageTemplates[selectedType]) {
+        coverageTemplates[selectedType].forEach(coverage => {
+          const option = document.createElement('option');
+          option.value = coverage;
+          option.textContent = coverage;
+          coverageSelect.appendChild(option);
+        });
+      }
+    });
+
     if (id) {
       // Modo edición: obtengo la póliza de /policies/:id
       fetch(`/policies/${id}`)
@@ -363,11 +427,11 @@ document.addEventListener('DOMContentLoaded', () => {
     insuranceModal.classList.remove('hidden');
   }
 
-  // 6) “Crear Seguro” abre el modal
+  // 6) "Crear Seguro" abre el modal
   document.getElementById('btn-new-insurance').onclick = () =>
     openInsuranceModal('Crear Seguro');
 
-  // 7) “Cancelar” en el modal cierra y resetea
+  // 7) "Cancelar" en el modal cierra y resetea
   document.getElementById('cancel-insurance').onclick = () => {
     insuranceModal.classList.add('hidden');
     editInsuranceId = null;
@@ -379,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const name      = insuranceForm.name.value.trim();
     const type      = insuranceForm.type.value;
-    const coverage  = insuranceForm.coverage.value.trim();
+    const coverage  = insuranceForm.coverage_id.value.trim();
     const benefits  = insuranceForm.benefits.value.trim();
     const cost      = parseFloat(insuranceForm.cost.value);
     const payment   = insuranceForm.payment.value;

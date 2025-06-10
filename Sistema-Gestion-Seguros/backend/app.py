@@ -11,7 +11,7 @@ from models import init_db
 from werkzeug.security import check_password_hash, generate_password_hash
 
 # ===================================
-# Carga de configuración y BD
+# Carga de configuración y BD 
 # ===================================
 load_dotenv()
 
