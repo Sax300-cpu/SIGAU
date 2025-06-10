@@ -391,14 +391,18 @@ document.addEventListener('DOMContentLoaded', () => {
       // Modo edición: obtengo la póliza de /policies/:id
       fetch(`/policies/${id}`)
         .then(res => res.json())
-        .then(policy => {
-          document.getElementById('i-name').value     = policy.name;
-          document.getElementById('i-type').value     = policy.type_id;
-          document.getElementById('i-coverage').value = policy.coverage_details;
-          document.getElementById('i-benefits').value = policy.benefits;
-          document.getElementById('i-cost').value     = policy.premium_amount;
-          document.getElementById('i-payment').value  = policy.payment_frequency;
-          document.getElementById('i-status').value   = (policy.status === 'active' ? '1' : '0');
+        .then(data => {
+          document.getElementById('i-name').value = data.name;
+          document.getElementById('i-type').value = data.type_id;
+          // Dispara el change para rellenar las opciones de cobertura
+          document.getElementById('i-type').dispatchEvent(new Event('change'));
+          // Después de poblar el select, establece el valor de cobertura
+          document.getElementById('i-coverage').value = data.coverage_id;
+          // Carga exactamente el texto guardado en beneficios
+          document.getElementById('i-benefits').value = data.benefits;
+          document.getElementById('i-cost').value = data.premium_amount;
+          document.getElementById('i-payment').value = data.payment_frequency;
+          document.getElementById('i-status').value = (data.status === 'active' ? '1' : '0');
         })
         .catch(err => console.error('Error cargando póliza para editar:', err));
     }
