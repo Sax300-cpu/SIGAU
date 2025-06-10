@@ -306,17 +306,14 @@
             title="Solo letras y espacios, sin números ni caracteres especiales"
           />
         </div>
-        <!-- Tipo de Seguro -->
+        <!-- Tipo de Póliza -->
         <div class="form-group">
-          <label for="i-type">Tipo de Seguro</label>
-          <select id="i-type" name="type" required>
-            <option value="">Seleccionar...</option>
-            <option value="Vida">Vida</option>
-            <option value="Salud">Salud</option>
-            <option value="Automóvil">Automóvil</option>
-            <option value="Hogar">Hogar</option>
-            <option value="Viaje">Viaje</option>
-            <option value="Empresarial">Empresarial</option>
+          <label for="i-type">Tipo de Póliza</label>
+          <select id="i-type" name="type_id" required>
+            <option value="">Seleccione un tipo</option>
+            {% for pt in policy_types %}
+            <option value="{{ pt.id }}">{{ pt.name }}</option>
+            {% endfor %}
           </select>
         </div>
         <!-- Cobertura -->

@@ -133,8 +133,35 @@ def logout():
 @app.route('/admin')
 @admin_required
 def admin_panel():
-    # Aquí está tu admin-index.html, que incluye la sección de Gestión de Usuarios
-    return render_template('admin-index.html')
+    try:
+        # Obtener los tipos de póliza para el select
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT id, name, description, cost, payment_frequency, status 
+            FROM policy_types 
+            WHERE status = 'Activo'
+            ORDER BY name
+        """)
+        policy_types = cur.fetchall()
+        cur.close()
+        
+        # Convertir los resultados a una lista de diccionarios
+        policy_types = [
+            {
+                'id': pt[0],
+                'name': pt[1],
+                'description': pt[2],
+                'cost': float(pt[3]) if pt[3] else 0,
+                'payment_frequency': pt[4],
+                'status': pt[5]
+            } 
+            for pt in policy_types
+        ]
+        
+        return render_template('admin-Index.html', policy_types=policy_types)
+    except Exception as e:
+        print("Error al cargar tipos de póliza:", str(e))
+        return render_template('admin-Index.html', policy_types=[])
 
 @app.route('/agente')
 def agente_panel():
@@ -421,156 +448,75 @@ def delete_policy_type(pt_id):
 # =========================================
 
 @app.route('/policies', methods=['GET'])
-@admin_required
-def list_policies():
-    cur = mysql.connection.cursor()
-    cur.execute("""
-        SELECT
-          p.id,
-          p.name          AS policy_name,
-          pt.id           AS type_id,
-          pt.name         AS type_name,
-          pt.description  AS benefits,
-          p.coverage_details,
-          p.premium_amount,
-          p.payment_frequency,
-          p.status
-        FROM policies p
-        JOIN policy_types pt ON p.type_id = pt.id
-        ORDER BY p.id ASC
-    """)
-    rows = cur.fetchall()
-    cur.close()
+@login_required
+def get_policies():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT p.id, p.name, pt.name as type_name, p.coverage_details, 
+                   p.benefits, p.premium_amount, p.payment_frequency, p.status
+            FROM policies p
+            JOIN policy_types pt ON p.type_id = pt.id
+            ORDER BY p.id DESC
+        """)
+        policies = cur.fetchall()
+        cur.close()
 
-    policies = []
-    for r in rows:
-        policies.append({
-            "id":                r[0],
-            "name":              r[1],
-            "type_id":           r[2],
-            "type_name":         r[3],
-            "benefits":          r[4] or "",
-            "coverage_details":  r[5] or "",
-            "premium_amount":    float(r[6]),
-            "payment_frequency": r[7],
-            "status":            r[8]
-        })
-    return jsonify(policies), 200
+        return jsonify([{
+            'id': p[0],
+            'name': p[1],
+            'type_name': p[2],
+            'coverage_details': p[3],
+            'benefits': p[4],
+            'premium_amount': float(p[5]),
+            'payment_frequency': p[6],
+            'status': p[7]
+        } for p in policies])
+
+    except Exception as e:
+        print("Error al obtener pólizas:", str(e))
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/policies', methods=['POST'])
-@login_required   # Cualquiera autenticado (Admin, Agente o Cliente) puede crear
+@admin_required
 def create_policy():
-    """
-    Crea una nueva póliza. 
-    - Si role_id == 3 (Cliente): se asocia client_id = session['user_id'].
-    - Si role_id == 2 (Agente): espera client_id en el payload y asocia agent_id = session['user_id'].
-    - Si role_id == 1 (Admin): puede omitir client_id (o enviar uno explícitamente).
-    """
-    data = request.get_json()
-
-    name           = data.get('name', '').strip()
-    raw_type_name  = data.get('type_name', '').strip()
-    client_id_sel  = data.get('client_id')    # Solo para Agente
-    coverage       = data.get('coverage', '').strip()
-    benefits       = data.get('benefits', '').strip()
-    premium_amount = data.get('premium_amount')
-    payment_freq   = data.get('payment_frequency', '').strip()
-    status         = data.get('status', 'inactive').strip()
-
-    # — Validaciones mínimas (backend) —
-    if not name:
-        return jsonify({"error": "El nombre de la póliza es obligatorio."}), 400
-
-    # Validar que el nombre solo contenga letras y espacios
-    if not re.match(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$', name):
-        return jsonify({"error": "El nombre del seguro no puede contener números ni caracteres especiales."}), 400
-
-    # Normalizar raw_type_name (quitar “Seguro de ” si existe)
-    if raw_type_name.startswith('Seguro de '):
-        type_name = raw_type_name.replace('Seguro de ', '').strip()
-    else:
-        type_name = raw_type_name
-
-    if not coverage:
-        return jsonify({"error": "La cobertura es obligatoria."}), 400
-    if not benefits:
-        return jsonify({"error": "Los beneficios son obligatorios."}), 400
-
     try:
-        amt = float(premium_amount)
-        if amt <= 0:
-            raise ValueError
-    except:
-        return jsonify({"error": "El monto de la prima debe ser número mayor a cero."}), 400
+        data = request.get_json()
+        
+        # Validar datos requeridos
+        required_fields = ['name', 'type_id', 'coverage', 'benefits', 'premium_amount', 'payment_frequency']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Campo requerido: {field}'}), 400
 
-    if payment_freq not in ('Mensual', 'Trimestral', 'Anual'):
-        return jsonify({"error": "Frecuencia de pago no válida."}), 400
-    if status not in ('active', 'inactive', 'pending', 'cancelled', 'expired'):
-        return jsonify({"error": "Estado no válido."}), 400
-
-    # 1) Obtener type_id a partir de type_name
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT id FROM policy_types WHERE name = %s", (type_name,))
-    row = cur.fetchone()
-    if not row:
+        cur = mysql.connection.cursor()
+        
+        # Insertar la póliza
+        cur.execute("""
+            INSERT INTO policies (
+                name, type_id, coverage_details, benefits,
+                premium_amount, payment_frequency, status,
+                start_date, end_date
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 YEAR))
+        """, (
+            data['name'],
+            data['type_id'],
+            data['coverage'],
+            data['benefits'],
+            data['premium_amount'],
+            data['payment_frequency'],
+            data.get('status', 'pending')
+        ))
+        
+        mysql.connection.commit()
+        new_policy_id = cur.lastrowid
         cur.close()
-        return jsonify({"error": f"El tipo de póliza '{raw_type_name}' no existe"}), 400
-    type_id = row[0]
-
-    # 2) Determinar client_id y agent_id según el rol
-    user_id = session.get('user_id')
-    role_id = session.get('role_id')
-
-    client_id = None
-    agent_id  = None
-
-    if role_id == 3:
-        # Cliente → client_id = su propio user_id
-        client_id = user_id
-    elif role_id == 2:
-        # Agente → debe venir client_id_sel
-        if not client_id_sel:
-            cur.close()
-            return jsonify({"error": "El Agente debe escoger un client_id."}), 400
-        client_id = client_id_sel
-        agent_id  = user_id
-    elif role_id == 1:
-        # Admin → por defecto deja ambos en NULL (o el Admin puede enviar client_id si quiere)
-        client_id = data.get('client_id')  # Opcional: si envía, lo usa
-        agent_id  = None
-    else:
-        cur.close()
-        return jsonify({"error": "Rol no válido para crear pólizas."}), 403
-
-    # 3) Insertar en la tabla policies
-    start_date = '2025-01-01'
-    end_date   = '2025-12-31'
-    cur.execute(
-        """
-        INSERT INTO policies
-          (client_id, agent_id, name, type_id, coverage_details, benefits, premium_amount, payment_frequency, start_date, end_date, status)
-        VALUES
-          (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """,
-        (
-          client_id,
-          agent_id,
-          name,
-          type_id,
-          coverage,
-          benefits,
-          amt,
-          payment_freq,
-          start_date,
-          end_date,
-          status
-        )
-    )
-    new_id = cur.lastrowid
-    mysql.connection.commit()
-    cur.close()
-
-    return jsonify({"id": new_id}), 201
+        
+        return jsonify({'id': new_policy_id}), 201
+        
+    except Exception as e:
+        print("Error al crear póliza:", str(e))
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/policies/<int:policy_id>', methods=['GET'])
 @admin_required
@@ -612,69 +558,47 @@ def get_policy(policy_id):
 @app.route('/policies/<int:policy_id>', methods=['PUT'])
 @admin_required
 def update_policy(policy_id):
-    data = request.get_json()
-
-    name           = data.get('name', '').strip()
-    type_name      = data.get('type_name', '').strip()
-    coverage       = data.get('coverage', '').strip()
-    benefits       = data.get('benefits', '').strip()
-    premium_amount = data.get('premium_amount')
-    payment_freq   = data.get('payment_frequency', '').strip()
-    status         = data.get('status', 'inactive').strip()
-
-    # — Validaciones mínimas (backend) —
-    if not name:
-        return jsonify({"error": "El nombre de la póliza es obligatorio."}), 400
-
-    # Validar que el nombre sólo contenga letras y espacios
-    if not re.match(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$', name):
-        return jsonify({"error": "El nombre del seguro no puede contener números ni caracteres especiales."}), 400
-
-    if not type_name:
-        return jsonify({"error": "Debe indicar un tipo de póliza."}), 400
-    if not coverage:
-        return jsonify({"error": "La cobertura es obligatoria."}), 400
-    if not benefits:
-        return jsonify({"error": "Los beneficios son obligatorios."}), 400
     try:
-        amt = float(premium_amount)
-        if amt <= 0:
-            raise ValueError
-    except:
-        return jsonify({"error": "El costo debe ser número mayor a cero."}), 400
+        data = request.get_json()
+        
+        # Validar datos requeridos
+        required_fields = ['name', 'type_id', 'coverage', 'benefits', 'premium_amount', 'payment_frequency']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Campo requerido: {field}'}), 400
 
-    if payment_freq not in ('Mensual','Trimestral','Anual'):
-        return jsonify({"error": "Frecuencia de pago no válida."}), 400
-    if status not in ('active','inactive','pending','cancelled','expired'):
-        return jsonify({"error": "Estado no válido."}), 400
-
-    # Obtener type_id a partir de type_name
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT id FROM policy_types WHERE name = %s", (type_name,))
-    row = cur.fetchone()
-    if not row:
+        cur = mysql.connection.cursor()
+        
+        # Actualizar la póliza
+        cur.execute("""
+            UPDATE policies 
+            SET name = %s,
+                type_id = %s,
+                coverage_details = %s,
+                benefits = %s,
+                premium_amount = %s,
+                payment_frequency = %s,
+                status = %s
+            WHERE id = %s
+        """, (
+            data['name'],
+            data['type_id'],
+            data['coverage'],
+            data['benefits'],
+            data['premium_amount'],
+            data['payment_frequency'],
+            data.get('status', 'pending'),
+            policy_id
+        ))
+        
+        mysql.connection.commit()
         cur.close()
-        return jsonify({"error": f"El tipo de póliza '{type_name}' no existe"}), 400
-    type_id = row[0]
-
-    # Actualizar la póliza, incluyendo payment_frequency
-    cur.execute(
-        """
-        UPDATE policies SET
-          name               = %s,
-          type_id            = %s,
-          coverage_details   = %s,
-          benefits           = %s,
-          premium_amount     = %s,
-          payment_frequency  = %s,
-          status             = %s
-        WHERE id = %s
-        """,
-        (name, type_id, coverage, benefits, amt, payment_freq, status, policy_id)
-    )
-    mysql.connection.commit()
-    cur.close()
-    return jsonify({"success": True}), 200
+        
+        return jsonify({'success': True}), 200
+        
+    except Exception as e:
+        print("Error al actualizar póliza:", str(e))
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/policies/<int:policy_id>', methods=['DELETE'])
 @admin_required
