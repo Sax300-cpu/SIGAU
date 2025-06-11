@@ -228,62 +228,103 @@ document.querySelectorAll('.user-type-btn').forEach(b => {
     };
 });
 
+// Función para validar nombres (solo letras, sin espacios ni caracteres especiales)
+function validarNombre(nombre) {
+  if (!nombre || nombre.trim() === '') {
+    return false;
+  }
+  // Regex: solo letras (incluye acentos), sin espacios ni caracteres especiales
+  const regex = /^[a-zA-Z\u00C0-\u00FF]+$/;
+  return regex.test(nombre.trim());
+}
+
 // Mejorar el manejo de envío del formulario
 userForm.onsubmit = async e => {
-    e.preventDefault();
-    const username = userForm.username.value.trim();
-    const email = userForm.email.value.trim();
-    const password = userForm.password.value.trim();
-    const roleId = parseInt(userForm.role_id.value, 10);
+  e.preventDefault();
+  const username = userForm.username.value.trim();
+  const email = userForm.email.value.trim();
+  const password = userForm.password.value.trim();
+  const roleId = parseInt(userForm.role_id.value, 10);
 
-    if (!username || !email || (!password && !editId)) {
-        return alert('Complete todos los campos obligatorios.');
+  if (!username || !email || (!password && !editId)) {
+    return alert('Complete todos los campos obligatorios.');
+  }
+
+  // Validar email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return alert('Ingrese un email válido.');
+  }
+
+  const data = { username, email, role_id: roleId };
+  if (password) data.password = password;
+
+  if (roleId === 3) {
+    const firstName = userForm.first_name.value.trim();
+    const lastName = userForm.last_name.value.trim();
+    
+    // Validar nombres
+    if (!validarNombre(firstName)) {
+      return alert('El nombre solo debe contener letras, sin espacios ni caracteres especiales.');
+    }
+    if (!validarNombre(lastName)) {
+      return alert('El apellido solo debe contener letras, sin espacios ni caracteres especiales.');
     }
 
-    // Validar email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        return alert('Ingrese un email válido.');
+    data.first_name = firstName;
+    data.last_name = lastName;
+    data.dob = userForm.dob.value;
+    data.phone = userForm.phone.value.trim();
+    data.address = userForm.address.value.trim();
+
+    if (!data.first_name || !data.last_name || !data.dob) {
+      return alert('Complete todos los campos obligatorios para clientes.');
     }
+  }
 
-    const data = { username, email, role_id: roleId };
-    if (password) data.password = password;
+  const url = editId ? `/users/${editId}` : '/users';
+  const method = editId ? 'PUT' : 'POST';
 
-    if (roleId === 3) {
-        data.first_name = userForm.first_name.value.trim();
-        data.last_name = userForm.last_name.value.trim();
-        data.dob = userForm.dob.value;
-        data.phone = userForm.phone.value.trim();
-        data.address = userForm.address.value.trim();
-
-        if (!data.first_name || !data.last_name || !data.dob) {
-            return alert('Complete todos los campos obligatorios para clientes.');
-        }
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    if (res.ok) {
+      loadUsers();
+      userModal.classList.add('hidden');
+      editId = null;
+      userForm.reset();
+    } else {
+      const err = await res.json();
+      alert(err.error || 'Error al guardar el usuario.');
     }
-
-    const url = editId ? `/users/${editId}` : '/users';
-    const method = editId ? 'PUT' : 'POST';
-
-    try {
-        const res = await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        
-        if (res.ok) {
-            loadUsers();
-            userModal.classList.add('hidden');
-            editId = null;
-        } else {
-            const err = await res.json();
-            alert(err.error || 'Error al guardar el usuario.');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Error de conexión.');
-    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error de conexión.');
+  }
 };
+
+// Agregar validación en tiempo real para los campos de nombre
+document.getElementById('u-first-name').addEventListener('input', function(e) {
+  const value = e.target.value.trim();
+  if (value && !validarNombre(value)) {
+    e.target.setCustomValidity('Solo se permiten letras, sin espacios ni caracteres especiales');
+  } else {
+    e.target.setCustomValidity('');
+  }
+});
+
+document.getElementById('u-last-name').addEventListener('input', function(e) {
+  const value = e.target.value.trim();
+  if (value && !validarNombre(value)) {
+    e.target.setCustomValidity('Solo se permiten letras, sin espacios ni caracteres especiales');
+  } else {
+    e.target.setCustomValidity('');
+  }
+});
 
   // ==========================
   //  EVENTOS DEL MODAL USUARIO
