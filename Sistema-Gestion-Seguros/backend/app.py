@@ -204,100 +204,32 @@ def list_users():
     return jsonify(users), 200
 
 @app.route('/users', methods=['POST'])
+@admin_required
 def create_user():
+    data = request.get_json()
+    print("Datos recibidos en backend:", data)  # Log de datos recibidos
     try:
-        data = request.get_json()
-        print("Datos recibidos en backend:", data)  # Debug
+        username = data['username']
+        email = data['email']
+        password = data['password']
+        role_id = data['role_id']
 
-        # Validar campos requeridos
-        required_fields = ['username', 'email', 'password', 'role_id']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'error': f'Campo requerido: {field}'}), 400
-
-        # Convertir role_id a entero
-        role_id = int(data['role_id'])
-
-        # Validar que el role_id sea válido
-        if role_id not in [1, 2, 3]:
-            return jsonify({'error': 'Rol de usuario inválido'}), 400
-
-        # Verificar si el usuario ya existe
-        cursor = mysql.connection.cursor()
-        cursor.execute('SELECT id FROM users WHERE username = %s OR email = %s', 
-                      (data['username'], data['email']))
-        if cursor.fetchone():
-            return jsonify({'error': 'El usuario o email ya existe'}), 400
-
-        # Insertar usuario
-        cursor.execute('''
-            INSERT INTO users (username, email, password, role_id)
-            VALUES (%s, %s, %s, %s)
-        ''', (
-            data['username'],
-            data['email'],
-            generate_password_hash(data['password']),
-            role_id
-        ))
-        user_id = cursor.lastrowid
-
-        # Manejar datos específicos según el rol
-        if role_id == 3:  # Cliente
-            if not all(k in data for k in ['first_name', 'last_name', 'dob']):
-                mysql.connection.rollback()
-                return jsonify({'error': 'Faltan campos requeridos para cliente'}), 400
-
-            cursor.execute('''
-                INSERT INTO clients (user_id, first_name, last_name, dob, phone, address)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            ''', (
-                user_id,
-                data['first_name'],
-                data['last_name'],
-                data['dob'],
-                data.get('phone', ''),
-                data.get('address', '')
-            ))
-        elif role_id == 2:  # Agente
-            if not all(k in data for k in ['first_name', 'last_name', 'department']):
-                mysql.connection.rollback()
-                return jsonify({'error': 'Faltan campos requeridos para agente'}), 400
-
-            cursor.execute('''
-                INSERT INTO agents (user_id, first_name, last_name, phone, department)
-                VALUES (%s, %s, %s, %s, %s)
-            ''', (
-                user_id,
-                data['first_name'],
-                data['last_name'],
-                data.get('phone', ''),
-                data['department']
-            ))
-        elif role_id == 1:  # Administrador
-            if not all(k in data for k in ['first_name', 'last_name', 'position']):
-                mysql.connection.rollback()
-                return jsonify({'error': 'Faltan campos requeridos para administrador'}), 400
-
-            cursor.execute('''
-                INSERT INTO administrators (user_id, first_name, last_name, phone, position)
-                VALUES (%s, %s, %s, %s, %s)
-            ''', (
-                user_id,
-                data['first_name'],
-                data['last_name'],
-                data.get('phone', ''),
-                data['position']
-            ))
-
+        pw_hash = generate_password_hash(password)
+        cur = mysql.connection.cursor()
+        cur.execute(
+            "INSERT INTO users (username,email,password_hash,role_id) VALUES (%s,%s,%s,%s)",
+            (username, email, pw_hash, role_id)
+        )
         mysql.connection.commit()
-        return jsonify({'message': 'Usuario creado exitosamente', 'id': user_id}), 201
-
+        new_id = cur.lastrowid
+        cur.close()
+        print("Usuario creado con ID:", new_id)
+        return jsonify({"id": new_id}), 201
     except Exception as e:
-        mysql.connection.rollback()
-        print("Error en create_user:", str(e))  # Debug
-        return jsonify({'error': str(e)}), 500
-    finally:
-        cursor.close()
+        print("Error al crear usuario:", str(e))  # Log del error exacto
+        return jsonify({"error": str(e)}), 500
+
+
 
 @app.route('/users/<int:user_id>', methods=['PUT'])
 @admin_required

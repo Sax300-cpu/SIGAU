@@ -284,6 +284,7 @@ userForm.onsubmit = async e => {
         alert('Error de conexión.');
     }
 };
+
   // ==========================
   //  EVENTOS DEL MODAL USUARIO
   // ==========================
