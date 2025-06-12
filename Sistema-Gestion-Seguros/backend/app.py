@@ -210,24 +210,61 @@ def create_user():
     data = request.get_json()
     print("Datos recibidos en backend:", data)  # Log de datos recibidos
     try:
-        username = data['username']
-        email = data['email']
-        password = data['password']
-        role_id = data['role_id']
+        # Validar campos obligatorios
+        username = data.get('username', '').strip()
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '')
+        role_id = data.get('role_id')
+        first_name = data.get('first_name', '').strip()
+        last_name = data.get('last_name', '').strip()
+
+        if not username or not email or not password or not role_id:
+            return jsonify({"error": "Faltan campos obligatorios"}), 400
+
+        # Validar nombre y apellido para todos los roles
+        if not first_name or not last_name:
+            return jsonify({"error": "Nombre y apellido son obligatorios"}), 400
 
         pw_hash = generate_password_hash(password)
         cur = mysql.connection.cursor()
-        cur.execute(
-            "INSERT INTO users (username,email,password_hash,role_id) VALUES (%s,%s,%s,%s)",
-            (username, email, pw_hash, role_id)
-        )
-        mysql.connection.commit()
-        new_id = cur.lastrowid
-        cur.close()
-        print("Usuario creado con ID:", new_id)
-        return jsonify({"id": new_id}), 201
+        
+        try:
+            # Insertar usuario
+            cur.execute(
+                "INSERT INTO users (username, email, password_hash, role_id) VALUES (%s, %s, %s, %s)",
+                (username, email, pw_hash, role_id)
+            )
+            mysql.connection.commit()
+            new_id = cur.lastrowid
+
+            # Si es cliente, insertar datos adicionales
+            if int(role_id) == 3:
+                dob = data.get('dob')
+                phone = data.get('phone', '').strip()
+                address = data.get('address', '').strip()
+
+                if not dob:
+                    mysql.connection.rollback()
+                    return jsonify({"error": "Fecha de nacimiento es obligatoria para clientes"}), 400
+
+                cur.execute(
+                    "INSERT INTO clients (user_id, first_name, last_name, dob, phone, address) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (new_id, first_name, last_name, dob, phone, address)
+                )
+                mysql.connection.commit()
+
+            cur.close()
+            print("Usuario creado con ID:", new_id)
+            return jsonify({"id": new_id}), 201
+
+        except Exception as e:
+            mysql.connection.rollback()
+            cur.close()
+            print("Error al crear usuario:", str(e))
+            return jsonify({"error": str(e)}), 500
+
     except Exception as e:
-        print("Error al crear usuario:", str(e))  # Log del error exacto
+        print("Error al procesar la solicitud:", str(e))
         return jsonify({"error": str(e)}), 500
 
 @app.route('/users/<int:user_id>', methods=['GET'])
