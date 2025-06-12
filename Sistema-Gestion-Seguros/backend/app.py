@@ -229,7 +229,36 @@ def create_user():
         print("Error al crear usuario:", str(e))  # Log del error exacto
         return jsonify({"error": str(e)}), 500
 
-
+@app.route('/users/<int:user_id>', methods=['GET'])
+@admin_required
+def get_user(user_id):
+    cur = mysql.connection.cursor()
+    # Obtener datos básicos del usuario
+    cur.execute("""
+        SELECT u.id, u.username, u.email, u.role_id, 
+               c.first_name, c.last_name, c.dob, c.phone, c.address
+        FROM users u
+        LEFT JOIN clients c ON u.id = c.user_id
+        WHERE u.id = %s
+    """, (user_id,))
+    row = cur.fetchone()
+    cur.close()
+    
+    if not row:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+        
+    user = {
+        "id": row[0],
+        "username": row[1],
+        "email": row[2],
+        "role_id": row[3],
+        "first_name": row[4],
+        "last_name": row[5],
+        "dob": row[6],
+        "phone": row[7],
+        "address": row[8]
+    }
+    return jsonify(user), 200
 
 @app.route('/users/<int:user_id>', methods=['PUT'])
 @admin_required

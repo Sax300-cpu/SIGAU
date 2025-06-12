@@ -154,33 +154,35 @@ document.addEventListener('DOMContentLoaded', () => {
   function openUserModal(title, id = null) {
     document.getElementById('user-modal-title').textContent = title;
     userForm.reset();
-    userTypeSelection.classList.add('active');
-    userForm.classList.remove('active');
-    clientFields.style.display = 'none';
     editId = id;
-    userForm.scrollTop = 0;
 
-    // Remover atributos required inicialmente
-    document.getElementById('u-first-name').removeAttribute('required');
-    document.getElementById('u-last-name').removeAttribute('required');
-    document.getElementById('u-dob').removeAttribute('required');
+    // Ocultar el botón "Volver" por defecto
+    document.getElementById('back-to-selection').style.display = 'none';
 
     if (id) {
-      // Modo edición: obtengo datos del usuario
-      fetch(`/users/${id}`)
-        .then(res => res.json())
-        .then(user => {
-          const role = user.role_id;
-          document.getElementById('u-role').value = role;
-          document.getElementById('u-username').value = user.username;
-          document.getElementById('u-email').value = user.email;
+        // Modo edición: obtengo datos del usuario
+        fetch(`/users/${id}`)
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('Error al cargar el usuario');
+                }
+                return res.json();
+            })
+            .then(user => {
+                // Mostrar directamente el formulario
+                userTypeSelection.classList.remove('active');
+                userForm.classList.add('active');
 
-          if (role === 3) {
-                    // Cliente: mostrar campos adicionales y hacerlos requeridos
-            userTypeSelection.classList.remove('active');
-            userForm.classList.add('active');
-            clientFields.style.display = 'block';
-            document.getElementById('u-first-name').value = user.first_name || '';
+                // Cargar datos básicos
+                document.getElementById('u-role').value = user.role_id;
+                document.getElementById('u-username').value = user.username;
+                document.getElementById('u-email').value = user.email;
+                document.getElementById('u-password').removeAttribute('required'); // La contraseña es opcional en edición
+
+                if (user.role_id === 3) {
+                    // Cliente: mostrar campos adicionales
+                    clientFields.style.display = 'block';
+                    document.getElementById('u-first-name').value = user.first_name || '';
                     document.getElementById('u-last-name').value = user.last_name || '';
                     document.getElementById('u-dob').value = user.dob || '';
                     document.getElementById('u-phone').value = user.phone || '';
@@ -190,13 +192,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById('u-first-name').setAttribute('required', 'true');
                     document.getElementById('u-last-name').setAttribute('required', 'true');
                     document.getElementById('u-dob').setAttribute('required', 'true');
-          } else {
-            userTypeSelection.classList.remove('active');
-            userForm.classList.add('active');
-            clientFields.style.display = 'none';
-          }
-        })
-        .catch(err => console.error('Error cargando usuario para editar:', err));
+                } else {
+                    // Admin o Agente
+                    clientFields.style.display = 'none';
+                    document.getElementById('u-first-name').value = user.first_name || '';
+                    document.getElementById('u-last-name').value = user.last_name || '';
+                }
+            })
+            .catch(err => {
+                console.error('Error cargando usuario para editar:', err);
+                showNotification('error', 'Error', 'No se pudo cargar los datos del usuario');
+            });
+    } else {
+        // Modo creación: mostrar selección de tipo
+        userTypeSelection.classList.add('active');
+        userForm.classList.remove('active');
+        clientFields.style.display = 'none';
+        document.getElementById('u-password').setAttribute('required', 'true'); // La contraseña es requerida en creación
+        document.getElementById('back-to-selection').style.display = 'inline-block'; // Mostrar botón "Volver" solo en creación
     }
     userModal.classList.remove('hidden');
 }
@@ -207,11 +220,7 @@ document.querySelectorAll('.user-type-btn').forEach(b => {
         const tipo = b.dataset.type;
         userTypeSelection.classList.remove('active');
         userForm.classList.add('active');
-
-        // Remover required de campos de cliente
-        document.getElementById('u-first-name').removeAttribute('required');
-        document.getElementById('u-last-name').removeAttribute('required');
-        document.getElementById('u-dob').removeAttribute('required');
+        document.getElementById('back-to-selection').style.display = 'inline-block';
 
         if (tipo === 'client') {
             clientFields.style.display = 'block';
@@ -321,7 +330,7 @@ function showNotification(type, title, message) {
   }, 3000);
 }
 
-// Mejorar el manejo de envío del formulario
+// 5) Envío del formulario de usuario (Crear o Editar)
 userForm.onsubmit = async e => {
   e.preventDefault();
   
@@ -464,54 +473,8 @@ userForm.onsubmit = async e => {
   backToSelection.onclick = () => {
     userForm.classList.remove('active');
     userTypeSelection.classList.add('active');
+    document.getElementById('back-to-selection').style.display = 'none';
     editId = null;
-  };
-
-  // 5) Envío del formulario de usuario (Crear o Editar)
-  userForm.onsubmit = async e => {
-    e.preventDefault();
-    const username = userForm.username.value.trim();
-    const email    = userForm.email.value.trim();
-    const password = userForm.password.value.trim();
-    const roleId   = parseInt(userForm.role_id.value, 10);
-
-    if (!username || !email || (!password && !editId)) {
-      return alert('Complete todos los campos obligatorios.');
-    }
-
-    const data = { username, email, role_id: roleId };
-    if (password) data.password = password;
-    data.role_id = parseInt(roleId, 10);
-
-    if (data.role_id === 3) {
-      data.first_name = userForm.first_name.value.trim();
-      data.last_name  = userForm.last_name.value.trim();
-      data.dob        = userForm.dob.value;
-      data.phone      = userForm.phone.value.trim();
-      data.address    = userForm.address.value.trim();
-    }
-
-    const url    = editId ? `/users/${editId}` : '/users';
-    const method = editId ? 'PUT' : 'POST';
-
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      if (res.ok) {
-        loadUsers();
-        userModal.classList.add('hidden');
-        editId = null;
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Error al guardar el usuario.');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error de conexión.');
-    }
   };
 
   // 6) Funciones genéricas de confirmación (Eliminar)
