@@ -155,8 +155,8 @@
       <span class="close-user-modal" id="close-user-modal">&times;</span>
       <h2 id="user-modal-title">Crear Usuario</h2>
 
-      <!-- 1) Selección de tipo de usuario -->
-      <div id="user-type-selection" class="user-step active">
+      <!-- 1) Selección de tipo de usuario (solo para crear) -->
+      <div id="user-type-selection" class="user-step">
         <h3>Seleccione el tipo de usuario</h3>
         <div class="user-type-options">
           <button class="user-type-btn" data-type="admin">
@@ -206,7 +206,7 @@
         </div>
 
         <!-- Campos para Admin y Agente -->
-        <div id="admin-fields" class="hidden">
+        <div id="admin-fields">
           <div class="form-group">
             <label for="u-first-name">Nombre</label>
             <input
@@ -230,7 +230,7 @@
         </div>
 
         <!-- Campos adicionales para cliente -->
-        <div id="client-fields">
+        <div id="client-fields" style="display: none;">
           <div class="form-group">
             <label for="u-full-name">Nombre Completo</label>
             <input
@@ -271,7 +271,7 @@
         </div>
 
         <div class="modal-actions">
-          <button type="button" id="back-to-selection" class="btn btn-secondary">
+          <button type="button" id="back-to-selection" class="btn btn-secondary" style="display: none;">
             <i class="fas fa-arrow-left"></i> Volver
           </button>
           <button type="submit" class="btn btn-primary">
