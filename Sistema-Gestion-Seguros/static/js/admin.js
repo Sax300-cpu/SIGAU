@@ -138,8 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         b.onclick = () => showModal(
           '¿Eliminar este usuario?',
           async () => {
-            await fetch(`/users/${b.dataset.id}`, { method: 'DELETE' });
-            loadUsers();
+            await deleteUser(b.dataset.id);
           }
         );
       });
@@ -152,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
   //  ABRIR MODAL CREAR / EDITAR USUARIO
   // ==========================
   // En la función openUserModal
-function openUserModal(title, id = null) {
+  function openUserModal(title, id = null) {
     document.getElementById('user-modal-title').textContent = title;
     userForm.reset();
     userTypeSelection.classList.add('active');
@@ -167,21 +166,21 @@ function openUserModal(title, id = null) {
     document.getElementById('u-dob').removeAttribute('required');
 
     if (id) {
-        // Modo edición: obtengo datos del usuario
-        fetch(`/users/${id}`)
-            .then(res => res.json())
-            .then(user => {
-                const role = user.role_id;
-                document.getElementById('u-role').value = role;
-                document.getElementById('u-username').value = user.username;
-                document.getElementById('u-email').value = user.email;
+      // Modo edición: obtengo datos del usuario
+      fetch(`/users/${id}`)
+        .then(res => res.json())
+        .then(user => {
+          const role = user.role_id;
+          document.getElementById('u-role').value = role;
+          document.getElementById('u-username').value = user.username;
+          document.getElementById('u-email').value = user.email;
 
-                if (role === 3) {
+          if (role === 3) {
                     // Cliente: mostrar campos adicionales y hacerlos requeridos
-                    userTypeSelection.classList.remove('active');
-                    userForm.classList.add('active');
-                    clientFields.style.display = 'block';
-                    document.getElementById('u-first-name').value = user.first_name || '';
+            userTypeSelection.classList.remove('active');
+            userForm.classList.add('active');
+            clientFields.style.display = 'block';
+            document.getElementById('u-first-name').value = user.first_name || '';
                     document.getElementById('u-last-name').value = user.last_name || '';
                     document.getElementById('u-dob').value = user.dob || '';
                     document.getElementById('u-phone').value = user.phone || '';
@@ -191,13 +190,13 @@ function openUserModal(title, id = null) {
                     document.getElementById('u-first-name').setAttribute('required', 'true');
                     document.getElementById('u-last-name').setAttribute('required', 'true');
                     document.getElementById('u-dob').setAttribute('required', 'true');
-                } else {
-                    userTypeSelection.classList.remove('active');
-                    userForm.classList.add('active');
-                    clientFields.style.display = 'none';
-                }
-            })
-            .catch(err => console.error('Error cargando usuario para editar:', err));
+          } else {
+            userTypeSelection.classList.remove('active');
+            userForm.classList.add('active');
+            clientFields.style.display = 'none';
+          }
+        })
+        .catch(err => console.error('Error cargando usuario para editar:', err));
     }
     userModal.classList.remove('hidden');
 }
@@ -238,48 +237,166 @@ function validarNombre(nombre) {
   return regex.test(nombre.trim());
 }
 
+// Función para validar el formato del usuario
+function validarUsuario(value) {
+  const regex = /^[a-zA-Z0-9_]+$/;
+  if (!value) {
+    return { valid: false, message: 'El usuario es obligatorio.' };
+  }
+  if (!regex.test(value)) {
+    return { valid: false, message: 'El usuario solo puede contener letras, números y guion bajo, sin espacios ni caracteres especiales.' };
+  }
+  return { valid: true };
+}
+
+// Función para validar nombre completo (para clientes)
+function validarNombreCompleto(value) {
+  const regex = /^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]+$/;
+  if (!value) {
+    return { valid: false, message: 'El nombre completo es obligatorio.' };
+  }
+  if (!regex.test(value)) {
+    return { valid: false, message: 'El nombre completo solo puede contener letras y espacios.' };
+  }
+  return { valid: true };
+}
+
+// Validación en tiempo real para el campo usuario
+userForm.username.addEventListener('input', function(e) {
+  const value = e.target.value.trim();
+  const validation = validarUsuario(value);
+  
+  if (!validation.valid) {
+    // Remover caracteres no permitidos
+    const cleanValue = value.replace(/[^a-zA-Z0-9_]/g, '');
+    e.target.value = cleanValue;
+  }
+  
+  e.target.setCustomValidity(validation.valid ? '' : validation.message);
+  e.target.reportValidity();
+});
+
+// Validación en tiempo real para los campos de nombre
+userForm.first_name.addEventListener('input', function(e) {
+  const value = e.target.value.trim();
+  if (value && !validarNombre(value)) {
+    e.target.setCustomValidity('Solo se permiten letras, sin espacios ni caracteres especiales');
+  } else {
+    e.target.setCustomValidity('');
+  }
+  e.target.reportValidity();
+});
+
+userForm.last_name.addEventListener('input', function(e) {
+  const value = e.target.value.trim();
+  if (value && !validarNombre(value)) {
+    e.target.setCustomValidity('Solo se permiten letras, sin espacios ni caracteres especiales');
+  } else {
+    e.target.setCustomValidity('');
+  }
+  e.target.reportValidity();
+});
+
+// Validación en tiempo real para nombre completo (Cliente)
+userForm.full_name.addEventListener('input', function(e) {
+  const value = e.target.value.trim();
+  const validation = validarNombreCompleto(value);
+  e.target.setCustomValidity(validation.valid ? '' : validation.message);
+  e.target.reportValidity();
+});
+
+// Función para mostrar notificación
+function showNotification(type, title, message) {
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.innerHTML = `
+    <h3>${title}</h3>
+    <p>${message}</p>
+  `;
+  document.body.appendChild(notification);
+  
+  // Remover la notificación después de 3 segundos
+  setTimeout(() => {
+    notification.remove();
+  }, 3000);
+}
+
 // Mejorar el manejo de envío del formulario
 userForm.onsubmit = async e => {
   e.preventDefault();
+  
+  // Validar todos los campos antes de enviar
   const username = userForm.username.value.trim();
   const email = userForm.email.value.trim();
   const password = userForm.password.value.trim();
   const roleId = parseInt(userForm.role_id.value, 10);
 
-  if (!username || !email || (!password && !editId)) {
-    return alert('Complete todos los campos obligatorios.');
+  // Validar usuario
+  const usernameValidation = validarUsuario(username);
+  if (!usernameValidation.valid) {
+    userForm.username.setCustomValidity(usernameValidation.message);
+    userForm.username.reportValidity();
+    return;
   }
 
-  // Validar email
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return alert('Ingrese un email válido.');
+  // Validar email (usando validación nativa del navegador)
+  if (!userForm.email.checkValidity()) {
+    userForm.email.reportValidity();
+    return;
+  }
+
+  // Validar password si es nuevo usuario
+  if (!editId && !password) {
+    userForm.password.setCustomValidity('La contraseña es obligatoria para nuevos usuarios');
+    userForm.password.reportValidity();
+    return;
   }
 
   const data = { username, email, role_id: roleId };
   if (password) data.password = password;
 
   if (roleId === 3) {
-    const firstName = userForm.first_name.value.trim();
-    const lastName = userForm.last_name.value.trim();
+    // Para clientes, validar nombre completo
+    const fullName = userForm.full_name.value.trim();
+    const validation = validarNombreCompleto(fullName);
+    if (!validation.valid) {
+      userForm.full_name.setCustomValidity(validation.message);
+      userForm.full_name.reportValidity();
+      return;
+    }
     
-    // Validar nombres
-    if (!validarNombre(firstName)) {
-      return alert('El nombre solo debe contener letras, sin espacios ni caracteres especiales.');
-    }
-    if (!validarNombre(lastName)) {
-      return alert('El apellido solo debe contener letras, sin espacios ni caracteres especiales.');
-    }
-
-    data.first_name = firstName;
-    data.last_name = lastName;
+    // Separar nombre completo en nombre y apellido
+    const nameParts = fullName.split(' ');
+    data.first_name = nameParts[0];
+    data.last_name = nameParts.slice(1).join(' ');
+    
     data.dob = userForm.dob.value;
     data.phone = userForm.phone.value.trim();
     data.address = userForm.address.value.trim();
 
-    if (!data.first_name || !data.last_name || !data.dob) {
-      return alert('Complete todos los campos obligatorios para clientes.');
+    if (!data.dob) {
+      userForm.dob.setCustomValidity('La fecha de nacimiento es obligatoria para clientes');
+      userForm.dob.reportValidity();
+      return;
     }
+  } else {
+    // Para admin y agente, validar nombre y apellido por separado
+    const firstName = userForm.first_name.value.trim();
+    const lastName = userForm.last_name.value.trim();
+    
+    if (!validarNombre(firstName)) {
+      userForm.first_name.setCustomValidity('Solo se permiten letras, sin espacios ni caracteres especiales');
+      userForm.first_name.reportValidity();
+      return;
+    }
+    if (!validarNombre(lastName)) {
+      userForm.last_name.setCustomValidity('Solo se permiten letras, sin espacios ni caracteres especiales');
+      userForm.last_name.reportValidity();
+      return;
+    }
+    
+    data.first_name = firstName;
+    data.last_name = lastName;
   }
 
   const url = editId ? `/users/${editId}` : '/users';
@@ -293,38 +410,26 @@ userForm.onsubmit = async e => {
     });
     
     if (res.ok) {
+      showNotification('success', 'Éxito', editId ? 'Usuario actualizado correctamente.' : 'Usuario creado correctamente.');
       loadUsers();
       userModal.classList.add('hidden');
       editId = null;
       userForm.reset();
     } else {
       const err = await res.json();
-      alert(err.error || 'Error al guardar el usuario.');
+      // Si el error es por usuario duplicado, mostrar tooltip nativo
+      if (err.error && err.error.includes('Duplicate entry') && err.error.includes('users.username')) {
+        userForm.username.setCustomValidity('Este nombre de usuario ya está en uso.');
+        userForm.username.reportValidity();
+        return;
+      }
+      showNotification('error', 'Error', err.error || 'Error al guardar el usuario.');
     }
   } catch (error) {
     console.error('Error:', error);
-    alert('Error de conexión.');
+    showNotification('error', 'Error de conexión', 'No se pudo conectar con el servidor.');
   }
 };
-
-// Agregar validación en tiempo real para los campos de nombre
-document.getElementById('u-first-name').addEventListener('input', function(e) {
-  const value = e.target.value.trim();
-  if (value && !validarNombre(value)) {
-    e.target.setCustomValidity('Solo se permiten letras, sin espacios ni caracteres especiales');
-  } else {
-    e.target.setCustomValidity('');
-  }
-});
-
-document.getElementById('u-last-name').addEventListener('input', function(e) {
-  const value = e.target.value.trim();
-  if (value && !validarNombre(value)) {
-    e.target.setCustomValidity('Solo se permiten letras, sin espacios ni caracteres especiales');
-  } else {
-    e.target.setCustomValidity('');
-  }
-});
 
   // ==========================
   //  EVENTOS DEL MODAL USUARIO
@@ -663,4 +768,37 @@ document.getElementById('u-last-name').addEventListener('input', function(e) {
 
   // 11) Finalmente, cargamos la primera vez las pólizas
   loadPolicies();
+
+  // Función para eliminar usuario
+  async function deleteUser(id) {
+    try {
+      const res = await fetch(`/users/${id}`, {
+        method: 'DELETE'
+      });
+      
+      if (res.ok) {
+        // Mostrar notificación de éxito
+        const notification = document.createElement('div');
+        notification.className = 'notification success';
+        notification.innerHTML = `
+          <h3>Éxito</h3>
+          <p>Usuario eliminado correctamente.</p>
+        `;
+        document.body.appendChild(notification);
+        
+        // Remover la notificación después de 3 segundos
+        setTimeout(() => {
+          notification.remove();
+        }, 3000);
+        
+        loadUsers();
+      } else {
+        const err = await res.json();
+        showNotification('error', 'Error', err.error || 'Error al eliminar el usuario.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showNotification('error', 'Error de conexión', 'No se pudo conectar con el servidor.');
+    }
+  }
 });

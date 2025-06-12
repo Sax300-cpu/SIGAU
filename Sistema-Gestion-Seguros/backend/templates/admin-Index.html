@@ -200,20 +200,20 @@
             type="password"
             id="u-password"
             name="password"
-            placeholder="********"
+            placeholder="Ingrese una contraseña"
             required
           />
         </div>
 
-        <!-- Campos adicionales para cliente -->
-        <div id="client-fields">
+        <!-- Campos para Admin y Agente -->
+        <div id="admin-fields" class="hidden">
           <div class="form-group">
             <label for="u-first-name">Nombre</label>
             <input
               type="text"
               id="u-first-name"
               name="first_name"
-              placeholder="Nombre completo"
+              placeholder="Nombre"
               required
             />
           </div>
@@ -223,7 +223,21 @@
               type="text"
               id="u-last-name"
               name="last_name"
-              placeholder="Apellidos"
+              placeholder="Apellido"
+              required
+            />
+          </div>
+        </div>
+
+        <!-- Campos adicionales para cliente -->
+        <div id="client-fields">
+          <div class="form-group">
+            <label for="u-full-name">Nombre Completo</label>
+            <input
+              type="text"
+              id="u-full-name"
+              name="full_name"
+              placeholder="Nombre y apellidos completos"
               required
             />
           </div>
