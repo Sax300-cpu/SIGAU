@@ -125,7 +125,7 @@
       </div>
 
       <!-- Formulario de contratación -->
-      <form id="form-contratar-agente">
+      <form id="form-contratar-agente" enctype="multipart/form-data">
         <input type="hidden" id="input-client-id" name="client_id">
         <input type="hidden" id="input-policy-id" name="policy_id">
 
@@ -137,7 +137,7 @@
 
         <div class="form-group">
             <label for="select-seguro">Seleccionar Seguro:</label>
-            <select id="select-seguro" name="policy_id" required>
+            <select id="select-seguro" required>
                 <option value="">--Seleccione un Seguro--</option>
                 <!-- Se llenará dinámicamente -->
             </select>
@@ -166,6 +166,9 @@
             <label>Beneficiarios:</label>
             <div id="beneficiarios-container">
                 <!-- Se agregarán dinámicamente los beneficiarios -->
+            </div>
+            <div style="margin: 0.5rem 0; font-size: 0.95em; color: #1971c2;">
+                Total porcentaje: <span id="total-beneficiarios-porcentaje">0</span>%
             </div>
             <button type="button" id="btn-agregar-beneficiario" class="btn-small">+ Agregar Beneficiario</button>
         </div>

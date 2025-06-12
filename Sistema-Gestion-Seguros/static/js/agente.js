@@ -1,3 +1,22 @@
+// Define primero la función de actualización
+function actualizarTotalPorcentajeBeneficiarios() {
+    const beneficiarios = document.querySelectorAll('.beneficiario-item');
+    let total = 0;
+    
+    beneficiarios.forEach(item => {
+        const input = item.querySelector('[name="beneficiario_porcentaje"]');
+        if (input) {
+            const porcentaje = parseFloat(input.value) || 0;
+            total += porcentaje;
+        }
+    });
+    
+    const totalSpan = document.getElementById('total-beneficiarios-porcentaje');
+    if (totalSpan) {
+        totalSpan.textContent = total;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // ---------- 1) Referencias al DOM ----------
   const tablaClientesBody     = document.querySelector('#tabla-clientes tbody');
@@ -18,6 +37,57 @@ document.addEventListener('DOMContentLoaded', () => {
   const detallesSeguroDiv     = document.getElementById('detalles-seguro');
   const inputPrima            = document.getElementById('input-prima');
   const selectFrecuencia      = document.getElementById('select-frecuencia');
+
+  // Configuración de beneficiarios - Versión mejorada
+  const beneficiariosContainer = document.getElementById('beneficiarios-container');
+  const btnAgregar = document.getElementById('btn-agregar-beneficiario');
+
+  if (btnAgregar && beneficiariosContainer) {
+    // Función para crear un nuevo beneficiario
+    const crearBeneficiarioHTML = () => `
+        <div class="beneficiario-item" style="margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 5px;">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nombre</label>
+                    <input type="text" name="beneficiario_nombre" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Relación</label>
+                    <select name="beneficiario_relacion" class="form-control" required>
+                        <option value="">Seleccione relación</option>
+                        <option value="Cónyuge">Cónyuge</option>
+                        <option value="Hijo/a">Hijo/a</option>
+                        <option value="Padre/Madre">Padre/Madre</option>
+                        <option value="Hermano/a">Hermano/a</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Porcentaje (%)</label>
+                    <input type="number" name="beneficiario_porcentaje" class="form-control" 
+                           min="1" max="100" required oninput="actualizarTotalPorcentajeBeneficiarios()">
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button type="button" class="btn btn-danger" 
+                            onclick="this.closest('.beneficiario-item').remove(); actualizarTotalPorcentajeBeneficiarios()">
+                        <i class="fas fa-times"></i> Eliminar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Evento para agregar beneficiario
+    btnAgregar.addEventListener('click', () => {
+        beneficiariosContainer.insertAdjacentHTML('beforeend', crearBeneficiarioHTML());
+        actualizarTotalPorcentajeBeneficiarios();
+    });
+
+    // Inicializar si hay beneficiarios precargados
+    actualizarTotalPorcentajeBeneficiarios();
+  } else {
+    console.error('No se encontraron los elementos necesarios para beneficiarios');
+  }
 
   let clientesCache = [];
 
@@ -205,7 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputPrimaMejorado = document.getElementById('input-prima');
   const selectFrecuenciaMejorado = document.getElementById('select-frecuencia');
   const beneficiariosContainerMejorado = document.getElementById('beneficiarios-container');
-  const btnAgregarBeneficiarioMejorado = document.getElementById('btn-agregar-beneficiario');
+  const btnAgregarBeneficiarioMejorado = document.querySelector('#btn-agregar-beneficiario');
   const inputDocumentosMejorado = document.getElementById('input-documentos');
   const detallesSeguroDivMejorado = document.getElementById('detalles-seguro');
 
@@ -277,78 +347,87 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Agregar beneficiario
     btnAgregarBeneficiarioMejorado.addEventListener('click', () => {
-      const beneficiarioDiv = document.createElement('div');
-      beneficiarioDiv.className = 'beneficiario-item';
-      beneficiarioDiv.innerHTML = `
-        <div class="form-row">
-          <div class="form-group">
-            <label>Nombre</label>
-            <input type="text" name="beneficiario_nombre" required>
-          </div>
-          <div class="form-group">
-            <label>Relación</label>
-            <input type="text" name="beneficiario_relacion" required>
-          </div>
-          <div class="form-group">
-            <label>Porcentaje (%)</label>
-            <input type="number" name="beneficiario_porcentaje" min="1" max="100" required>
-          </div>
-          <button type="button" class="btn-remove">×</button>
-        </div>
-      `;
-      beneficiariosContainerMejorado.appendChild(beneficiarioDiv);
-      // Eliminar beneficiario
-      beneficiarioDiv.querySelector('.btn-remove').addEventListener('click', () => {
-        beneficiarioDiv.remove();
-      });
+        const beneficiarioDiv = document.createElement('div');
+        beneficiarioDiv.className = 'beneficiario-item';
+        beneficiarioDiv.innerHTML = `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nombre</label>
+                    <input type="text" name="beneficiario_nombre" required>
+                </div>
+                <div class="form-group">
+                    <label>Relación</label>
+                    <select name="beneficiario_relacion" required>
+                        <option value="">Seleccione relación</option>
+                        <option value="Cónyuge">Cónyuge</option>
+                        <option value="Hijo/a">Hijo/a</option>
+                        <option value="Padre/Madre">Padre/Madre</option>
+                        <option value="Hermano/a">Hermano/a</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Porcentaje (%)</label>
+                    <input type="number" name="beneficiario_porcentaje" min="1" max="100" required 
+                           oninput="actualizarTotalPorcentajeBeneficiarios()">
+                </div>
+                <button type="button" class="btn-remove" onclick="this.parentElement.parentElement.remove(); actualizarTotalPorcentajeBeneficiarios()">
+                    ×
+                </button>
+            </div>
+        `;
+        beneficiariosContainerMejorado.appendChild(beneficiarioDiv);
+        actualizarTotalPorcentajeBeneficiarios();
     });
 
     // Validar formulario antes de enviar
     formContratoMejorado.addEventListener('submit', async (e) => {
       e.preventDefault();
+      
       // Validar beneficiarios
       const beneficiarios = Array.from(document.querySelectorAll('.beneficiario-item'));
       const totalPorcentaje = beneficiarios.reduce((total, item) => {
         return total + parseFloat(item.querySelector('[name="beneficiario_porcentaje"]').value || 0);
       }, 0);
-      if (beneficiarios.length > 0 && totalPorcentaje !== 100) {
-        alert('La suma de porcentajes de beneficiarios debe ser exactamente 100%');
+      
+      if (beneficiarios.length > 0 && Math.abs(totalPorcentaje - 100) > 0.01) {
+        showNotification('error', 'La suma de porcentajes debe ser exactamente 100%');
         return;
       }
-      // Crear objeto con los datos del formulario
+
+      // Crear FormData
       const formData = new FormData();
       formData.append('client_id', selectClienteMejorado.value);
       formData.append('policy_id', selectSeguroMejorado.value);
       formData.append('premium_amount', inputPrimaMejorado.value);
       formData.append('payment_frequency', selectFrecuenciaMejorado.value);
+      
       // Agregar beneficiarios
       beneficiarios.forEach((item, index) => {
         formData.append(`beneficiarios[${index}][name]`, item.querySelector('[name="beneficiario_nombre"]').value);
         formData.append(`beneficiarios[${index}][relationship]`, item.querySelector('[name="beneficiario_relacion"]').value);
         formData.append(`beneficiarios[${index}][percentage]`, item.querySelector('[name="beneficiario_porcentaje"]').value);
       });
-      // Agregar documentos
-      Array.from(inputDocumentosMejorado.files).forEach((file, index) => {
-        formData.append(`documents[${index}]`, file);
-      });
-      // Enviar datos al servidor
+
+      // Enviar al servidor
       try {
         const response = await fetch('/contracts', {
           method: 'POST',
           body: formData
         });
+        
         const result = await response.json();
         if (response.ok) {
-          alert('Contrato creado exitosamente!');
+          showNotification('success', 'Contrato creado exitosamente!');
           formContratoMejorado.reset();
           beneficiariosContainerMejorado.innerHTML = '';
-          detallesSeguroDivMejorado.innerHTML = '';
+          modal.classList.add('hidden');
         } else {
-          alert(`Error: ${result.message || 'No se pudo crear el contrato'}`);
+          showNotification('error', result.error || 'Error al crear contrato');
         }
       } catch (error) {
-        console.error('Error al enviar el formulario:', error);
-        alert('Error al conectar con el servidor');
+        console.error('Error:', error);
+        showNotification('error', 'Error de conexión con el servidor');
       }
     });
   }
@@ -378,5 +457,17 @@ document.addEventListener('DOMContentLoaded', () => {
       modal.classList.add('hidden');
       if (tableContainer) tableContainer.style.display = '';
     });
+  }
+
+  // Función para mostrar notificaciones
+  function showNotification(type, message) {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `<p>${message}</p>`;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.remove();
+    }, 5000);
   }
 });
