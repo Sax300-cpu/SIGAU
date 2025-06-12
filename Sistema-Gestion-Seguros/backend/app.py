@@ -519,41 +519,40 @@ def create_policy():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/policies/<int:policy_id>', methods=['GET'])
-@admin_required
+@login_required
 def get_policy(policy_id):
-    cur = mysql.connection.cursor()
-    cur.execute("""
-        SELECT
-          p.id,
-          p.name          AS policy_name,
-          pt.id           AS type_id,
-          pt.name         AS type_name,
-          p.benefits      AS benefits,
-          p.coverage_details,
-          p.premium_amount,
-          p.payment_frequency,
-          p.status
-        FROM policies p
-        JOIN policy_types pt ON p.type_id = pt.id
-        WHERE p.id = %s
-    """, (policy_id,))
-    row = cur.fetchone()
-    cur.close()
-    if not row:
-        return jsonify({"error": "Póliza no encontrada"}), 404
-
-    policy = {
-        "id":                row[0],
-        "name":              row[1],
-        "type_id":           row[2],
-        "type_name":         row[3],
-        "benefits":          row[4] or "",
-        "coverage_details":  row[5] or "",
-        "premium_amount":    float(row[6]),
-        "payment_frequency": row[7],
-        "status":            row[8]
-    }
-    return jsonify(policy), 200
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT 
+                p.id, p.name, pt.name as type_name, 
+                p.coverage_details, p.benefits, 
+                p.premium_amount, p.payment_frequency, p.status
+            FROM policies p
+            JOIN policy_types pt ON p.type_id = pt.id
+            WHERE p.id = %s
+        """, (policy_id,))
+        
+        policy = cur.fetchone()
+        cur.close()
+        
+        if not policy:
+            return jsonify({'error': 'Póliza no encontrada'}), 404
+            
+        return jsonify({
+            'id': policy[0],
+            'name': policy[1],
+            'type_name': policy[2],
+            'coverage_details': policy[3],
+            'benefits': policy[4],
+            'premium_amount': float(policy[5]),
+            'payment_frequency': policy[6],
+            'status': policy[7]
+        })
+        
+    except Exception as e:
+        print(f"Error al obtener póliza {policy_id}:", str(e))
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/policies/<int:policy_id>', methods=['PUT'])
 @admin_required

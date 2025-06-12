@@ -5,60 +5,51 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput           = document.getElementById('search-client');
   const btnSearch             = document.getElementById('btn-search');
 
-  // Elementos del Modal de Contratación
+  // Elementos del Modal de Contratación (NUEVOS IDs)
   const modal                 = document.getElementById('modal-contratar-agente');
-  const modalOverlay          = modal.querySelector('.modal-overlay');
-  const btnCancelarAgente     = document.getElementById('btn-cancelar-agente');
+  const modalOverlay          = modal ? modal.querySelector('.modal-overlay') : null;
+  const btnCancelar           = document.getElementById('btn-cancelar');
   const formContratoAgente    = document.getElementById('form-contratar-agente');
 
   const inputClientId         = document.getElementById('input-client-id');
   const inputClientName       = document.getElementById('input-client-name');
-  const selectTipoPoliza      = document.getElementById('select-tipo-poliza');
-  const detallesPolizaDiv     = document.getElementById('detalles-poliza-agente');
-  const inputCoberturaAgente  = document.getElementById('input-cobertura-agente');
-  const inputBeneficiosAgente = document.getElementById('input-beneficios-agente');
-  const inputPrimaAgente      = document.getElementById('input-prima-agente');
-  const selectFrecuenciaAgente= document.getElementById('select-frecuencia-agente');
+  const btnSeleccionarCliente = document.getElementById('btn-seleccionar-cliente');
+  const selectSeguro          = document.getElementById('select-seguro');
+  const detallesSeguroDiv     = document.getElementById('detalles-seguro');
+  const inputPrima            = document.getElementById('input-prima');
+  const selectFrecuencia      = document.getElementById('select-frecuencia');
 
-  let clientesCache = []; // Guarda la lista completa para búsquedas locales
+  let clientesCache = [];
 
   // ---------- 2) Cargar la lista de clientes desde el backend ----------
   async function cargarClientes() {
     try {
       const resp = await fetch('/clients');
       if (!resp.ok) throw new Error('Error al obtener lista de clientes');
-      const clientes = await resp.json(); // Array de { id, name, email }
-
-      clientesCache = clientes; // Guardamos en cache para búsquedas
-
-      // Limpiar tabla antes de inyectar
+      const clientes = await resp.json();
+      clientesCache = clientes;
       tablaClientesBody.innerHTML = '';
-
       clientes.forEach(cliente => {
         const tr = document.createElement('tr');
-
-        // Nombre
         const tdName = document.createElement('td');
         tdName.textContent = cliente.name;
-
-        // Email
         const tdEmail = document.createElement('td');
         tdEmail.textContent = cliente.email;
-
-        // Acciones: botón “Seleccionar”
         const tdAcciones = document.createElement('td');
         const btnSeleccionar = document.createElement('button');
         btnSeleccionar.textContent = 'Seleccionar';
         btnSeleccionar.classList.add('btn-blue');
+        btnSeleccionar.setAttribute('data-id', cliente.id); // IMPORTANTE
         btnSeleccionar.addEventListener('click', () => {
-          abrirModalParaCliente(cliente);
+          // Al seleccionar, rellenar los campos y mostrar el modal
+          inputClientId.value = cliente.id;
+          inputClientName.value = `${cliente.name} (${cliente.email})`;
+          if (modal) modal.classList.remove('hidden');
         });
         tdAcciones.appendChild(btnSeleccionar);
-
         tr.appendChild(tdName);
         tr.appendChild(tdEmail);
         tr.appendChild(tdAcciones);
-
         tablaClientesBody.appendChild(tr);
       });
     } catch (err) {
@@ -66,173 +57,326 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('No se pudo cargar la lista de clientes.');
     }
   }
-
-  // Llamamos a cargarClientes() apenas cargue la página
   cargarClientes();
 
-  // ---------- 3) Función para abrir modal y precargar datos del Cliente ----------
-  function abrirModalParaCliente(cliente) {
-    // 3.1) Poner en los campos ocultos y de solo lectura
-    inputClientId.value = cliente.id;
-    inputClientName.value = cliente.name + ' (' + cliente.email + ')';
-
-    // 3.2) Limpiar resto de campos del modal
-    selectTipoPoliza.value = '';
-    detallesPolizaDiv.innerHTML = '';
-    inputCoberturaAgente.value = '';
-    inputBeneficiosAgente.value = '';
-    inputPrimaAgente.value = '';
-    selectFrecuenciaAgente.value = '';
-
-    // 3.3) Mostrar modal (quitamos “hidden”)
-    modal.classList.remove('hidden');
+  // ---------- 3) Botón Nuevo Contrato ----------
+  if (btnNuevoContrato) {
+    btnNuevoContrato.addEventListener('click', async () => {
+      // Limpiar el formulario
+      inputClientId.value = '';
+      inputClientName.value = '';
+      selectSeguro.innerHTML = '<option value="">--Seleccione un Seguro--</option>';
+      detallesSeguroDiv.innerHTML = '';
+      inputPrima.value = '';
+      selectFrecuencia.value = '';
+      // Mostrar el modal
+      if (modal) modal.classList.remove('hidden');
+    });
   }
 
-  // ---------- 4) Cerrar modal si clic en overlay o “Cancelar” ----------
-  modalOverlay.addEventListener('click', () => {
-    modal.classList.add('hidden');
-  });
-  btnCancelarAgente.addEventListener('click', () => {
-    modal.classList.add('hidden');
-  });
+  // ---------- 4) Botón Seleccionar Cliente ----------
+  if (btnSeleccionarCliente) {
+    btnSeleccionarCliente.addEventListener('click', () => {
+      // Hacer scroll a la tabla de clientes
+      window.scrollTo({ top: tablaClientesBody.offsetTop, behavior: 'smooth' });
+    });
+  }
 
-  // ---------- 5) Al cambiar el “Tipo de Póliza” → cargar detalles desde /policy_types ----------
-  selectTipoPoliza.addEventListener('change', async () => {
-    const tipoSeleccionado = selectTipoPoliza.value; // Ej: "Seguro de Salud"
-    if (!tipoSeleccionado) {
-      detallesPolizaDiv.innerHTML = '';
-      return;
-    }
-
-    // Normalizar para buscar en policy_types: quitar "Seguro de " si existe
-    let sinPrefijo = tipoSeleccionado;
-    if (tipoSeleccionado.startsWith('Seguro de ')) {
-      sinPrefijo = tipoSeleccionado.replace('Seguro de ', '').trim();
-    }
-
+  // ---------- 5) Cargar seguros disponibles al enfocar el select ----------
+  async function cargarSeguros() {
     try {
-      const resp = await fetch('/policy_types');
-      if (!resp.ok) throw new Error('Error al obtener catálogo de pólizas');
-      const lista = await resp.json(); // Array de objetos { name, description, cost, payment_frequency, status }
-
-      const policyInfo = lista.find(p =>
-        p.name === sinPrefijo || p.name.includes(sinPrefijo)
-      );
-      if (!policyInfo) {
-        detallesPolizaDiv.innerHTML = `<p style="color: red;">No existe información de “${tipoSeleccionado}”.</p>`;
-      } else {
-        detallesPolizaDiv.innerHTML = `
-          <h3>Detalles de ${policyInfo.name}</h3>
-          <p><strong>Descripción:</strong> ${policyInfo.description}</p>
-          <p><strong>Costo base:</strong> $${policyInfo.cost.toFixed(2)}</p>
-          <p><strong>Frecuencia sugerida:</strong> ${policyInfo.payment_frequency}</p>
-          <p><strong>Estado:</strong> ${policyInfo.status}</p>
-        `;
-        // Preseleccionar frecuencia sugerida
-        selectFrecuenciaAgente.value = policyInfo.payment_frequency;
-      }
-    } catch (err) {
-      console.error(err);
-      detallesPolizaDiv.innerHTML = `<p style="color: red;">Error al cargar detalles.</p>`;
-    }
-  });
-
-  // ---------- 6) Al enviar el formulario, hacer POST /policies ----------
-  formContratoAgente.addEventListener('submit', async (event) => {
-    event.preventDefault();
-
-    const clientId       = inputClientId.value;                     // ID del cliente seleccionado
-    const tipoPolizaRaw  = selectTipoPoliza.value;                  // Ej: "Seguro de Salud"
-    const cobertura      = inputCoberturaAgente.value.trim();
-    const beneficios     = inputBeneficiosAgente.value.trim();
-    const prima          = inputPrimaAgente.value;
-    const frecuencia     = selectFrecuenciaAgente.value;
-
-    // Validaciones
-    if (!clientId) {
-      return alert('Debe seleccionar un cliente antes de continuar.');
-    }
-    if (!tipoPolizaRaw) {
-      return alert('Seleccione un tipo de póliza.');
-    }
-    if (!cobertura || !beneficios || !prima || !frecuencia) {
-      return alert('Complete todos los campos del formulario.');
-    }
-
-    // Construir el payload JSON para enviar al backend
-    const payload = {
-      name: tipoPolizaRaw + " - " + new Date().getTime(),
-      type_name: tipoPolizaRaw,
-      client_id: parseInt(clientId),
-      coverage: cobertura,
-      benefits: beneficios,
-      premium_amount: prima,
-      payment_frequency: frecuencia,
-      status: 'active'
-    };
-
-    try {
-      const resp = await fetch('/policies', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      const resp = await fetch('/policies');
+      if (!resp.ok) throw new Error('Error al cargar seguros');
+      
+      const seguros = await resp.json();
+      selectSeguro.innerHTML = '<option value="">--Seleccione un Seguro--</option>';
+      
+      seguros.forEach(seg => {
+        const option = document.createElement('option');
+        option.value = seg.id;
+        option.textContent = `${seg.name} (${seg.type_name}) - $${seg.premium_amount.toFixed(2)}`;
+        option.setAttribute('data-type', seg.type_name);
+        selectSeguro.appendChild(option);
       });
-      if (resp.ok) {
-        const data = await resp.json();
-        alert('Póliza creada con éxito (ID = ' + data.id + ').');
-        modal.classList.add('hidden');
-      } else if (resp.status === 400) {
-        const errJSON = await resp.json();
-        alert('Error al crear póliza: ' + (errJSON.error || JSON.stringify(errJSON)));
-      } else {
-        alert('No tienes permisos o ocurrió un problema.');
-      }
     } catch (err) {
       console.error(err);
-      alert('Error de red al intentar guardar la póliza.');
+      selectSeguro.innerHTML = '<option value="">No se pudieron cargar los seguros</option>';
     }
-  });
+  }
+  if (selectSeguro) {
+    selectSeguro.addEventListener('focus', cargarSeguros);
+  }
 
-  // ---------- 7) Botón “Nuevo Contrato” abre modal con lista de clientes (puede reutilizar lógica) ----------
-  btnNuevoContrato.addEventListener('click', () => {
-    // Opción: reusar la primera fila de la tabla o simplemente focusear input de búsqueda
-    // En este ejemplo, vamos a poner focus en el input de búsqueda
-    searchInput.focus();
-  });
+  // ---------- 6) Mostrar detalles del seguro seleccionado ----------
+  if (selectSeguro) {
+    selectSeguro.addEventListener('change', async () => {
+      const seguroId = selectSeguro.value;
+      if (!seguroId) {
+        detallesSeguroDiv.innerHTML = '';
+        return;
+      }
+      
+      try {
+        const resp = await fetch(`/policies/${seguroId}`);
+        if (!resp.ok) throw new Error('Error al obtener detalles del seguro');
+        
+        const seguro = await resp.json();
+        
+        if (!seguro) {
+          detallesSeguroDiv.innerHTML = '<p style="color:red;">No se encontraron detalles.</p>';
+        } else {
+          detallesSeguroDiv.innerHTML = `
+            <h3>${seguro.name}</h3>
+            <p><strong>Tipo:</strong> ${seguro.type_name}</p>
+            <p><strong>Cobertura:</strong> ${seguro.coverage_details || 'No especificada'}</p>
+            <p><strong>Beneficios:</strong> ${seguro.benefits || 'No especificados'}</p>
+            <p><strong>Prima Base:</strong> $${seguro.premium_amount.toFixed(2)}</p>
+            <p><strong>Frecuencia sugerida:</strong> ${seguro.payment_frequency}</p>
+          `;
+          
+          // Actualizar campos editables
+          inputPrima.value = seguro.premium_amount;
+          selectFrecuencia.value = seguro.payment_frequency;
+        }
+      } catch (err) {
+        console.error(err);
+        detallesSeguroDiv.innerHTML = '<p style="color:red;">Error al cargar detalles del seguro.</p>';
+      }
+      
+      // Asegurarse que los botones sigan visibles
+      document.querySelector('.form-buttons').style.display = 'flex';
+    });
+  }
+
+  // ---------- 7) Cerrar modal ----------
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', () => {
+      modal.classList.add('hidden');
+    });
+  }
+  if (btnCancelar) {
+    btnCancelar.addEventListener('click', () => {
+      modal.classList.add('hidden');
+    });
+  }
 
   // ---------- 8) Búsqueda local sobre los clientes cargados en cache ----------
-  btnSearch.addEventListener('click', () => {
-    const texto = searchInput.value.trim().toLowerCase();
-    if (!texto) {
-      // Si el campo está vacío, recargar toda la lista
-      cargarClientes();
-      return;
-    }
-    // Filtrar solo los que coincidan
-    const filtrados = clientesCache.filter(c => {
-      return c.name.toLowerCase().includes(texto) ||
-             c.email.toLowerCase().includes(texto);
-    });
-    // Inyectar el resultado filtrado en la tabla
-    tablaClientesBody.innerHTML = '';
-    filtrados.forEach(cliente => {
-      const tr = document.createElement('tr');
-      const tdName = document.createElement('td');
-      tdName.textContent = cliente.name;
-      const tdEmail = document.createElement('td');
-      tdEmail.textContent = cliente.email;
-      const tdAcciones = document.createElement('td');
-      const btnSeleccionar = document.createElement('button');
-      btnSeleccionar.textContent = 'Seleccionar';
-      btnSeleccionar.classList.add('btn-blue');
-      btnSeleccionar.addEventListener('click', () => {
-        abrirModalParaCliente(cliente);
+  if (btnSearch) {
+    btnSearch.addEventListener('click', () => {
+      const texto = searchInput.value.trim().toLowerCase();
+      if (!texto) {
+        cargarClientes();
+        return;
+      }
+      const filtrados = clientesCache.filter(c => {
+        return c.name.toLowerCase().includes(texto) ||
+               c.email.toLowerCase().includes(texto);
       });
-      tdAcciones.appendChild(btnSeleccionar);
-      tr.appendChild(tdName);
-      tr.appendChild(tdEmail);
-      tr.appendChild(tdAcciones);
-      tablaClientesBody.appendChild(tr);
+      tablaClientesBody.innerHTML = '';
+      filtrados.forEach(cliente => {
+        const tr = document.createElement('tr');
+        const tdName = document.createElement('td');
+        tdName.textContent = cliente.name;
+        const tdEmail = document.createElement('td');
+        tdEmail.textContent = cliente.email;
+        const tdAcciones = document.createElement('td');
+        const btnSeleccionar = document.createElement('button');
+        btnSeleccionar.textContent = 'Seleccionar';
+        btnSeleccionar.classList.add('btn-blue');
+        btnSeleccionar.setAttribute('data-id', cliente.id);
+        btnSeleccionar.addEventListener('click', () => {
+          inputClientId.value = cliente.id;
+          inputClientName.value = `${cliente.name} (${cliente.email})`;
+          if (modal) modal.classList.remove('hidden');
+        });
+        tdAcciones.appendChild(btnSeleccionar);
+        tr.appendChild(tdName);
+        tr.appendChild(tdEmail);
+        tr.appendChild(tdAcciones);
+        tablaClientesBody.appendChild(tr);
+      });
     });
-  });
+  }
+
+  // --- Lógica para el Formulario Mejorado ---
+  const formContratoMejorado = document.getElementById('form-contratar-agente');
+  const selectClienteMejorado = document.getElementById('select-cliente');
+  const selectSeguroMejorado = document.getElementById('select-seguro');
+  const inputPrimaMejorado = document.getElementById('input-prima');
+  const selectFrecuenciaMejorado = document.getElementById('select-frecuencia');
+  const beneficiariosContainerMejorado = document.getElementById('beneficiarios-container');
+  const btnAgregarBeneficiarioMejorado = document.getElementById('btn-agregar-beneficiario');
+  const inputDocumentosMejorado = document.getElementById('input-documentos');
+  const detallesSeguroDivMejorado = document.getElementById('detalles-seguro');
+
+  // Solo ejecuta la lógica si el formulario mejorado existe
+  if (formContratoMejorado && selectClienteMejorado && selectSeguroMejorado && inputPrimaMejorado && selectFrecuenciaMejorado && beneficiariosContainerMejorado && btnAgregarBeneficiarioMejorado && inputDocumentosMejorado && detallesSeguroDivMejorado) {
+
+    // Cargar clientes y seguros al iniciar
+    cargarClientesMejorado();
+    cargarSegurosMejorado();
+
+    // Función para cargar clientes
+    async function cargarClientesMejorado() {
+      try {
+        const response = await fetch('/clients');
+        const clientes = await response.json();
+        selectClienteMejorado.innerHTML = '<option value="">--Seleccione Cliente--</option>';
+        clientes.forEach(cliente => {
+          const option = document.createElement('option');
+          option.value = cliente.id;
+          option.textContent = `${cliente.name} (${cliente.email})`;
+          selectClienteMejorado.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error al cargar clientes:', error);
+      }
+    }
+
+    // Función para cargar seguros disponibles
+    async function cargarSegurosMejorado() {
+      try {
+        const response = await fetch('/policies?status=active');
+        const seguros = await response.json();
+        selectSeguroMejorado.innerHTML = '<option value="">--Seleccione un Seguro--</option>';
+        seguros.forEach(seguro => {
+          const option = document.createElement('option');
+          option.value = seguro.id;
+          option.textContent = `${seguro.name} (${seguro.type_name}) - $${seguro.premium_amount}`;
+          selectSeguroMejorado.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error al cargar seguros:', error);
+      }
+    }
+
+    // Cuando se selecciona un seguro, cargar sus detalles
+    selectSeguroMejorado.addEventListener('change', async () => {
+      const seguroId = selectSeguroMejorado.value;
+      if (!seguroId) {
+        detallesSeguroDivMejorado.innerHTML = '';
+        return;
+      }
+      try {
+        const response = await fetch(`/policies/${seguroId}`);
+        const seguro = await response.json();
+        detallesSeguroDivMejorado.innerHTML = `
+          <h4>Detalles del Seguro</h4>
+          <p><strong>Tipo:</strong> ${seguro.type_name}</p>
+          <p><strong>Cobertura:</strong> ${seguro.coverage_details || 'No especificada'}</p>
+          <p><strong>Beneficios:</strong> ${seguro.benefits || 'No especificados'}</p>
+          <p><strong>Prima Base:</strong> $${seguro.premium_amount.toFixed(2)}</p>
+        `;
+        // Establecer valores por defecto
+        inputPrimaMejorado.value = seguro.premium_amount;
+        selectFrecuenciaMejorado.value = seguro.payment_frequency;
+      } catch (error) {
+        console.error('Error al cargar detalles del seguro:', error);
+      }
+    });
+
+    // Agregar beneficiario
+    btnAgregarBeneficiarioMejorado.addEventListener('click', () => {
+      const beneficiarioDiv = document.createElement('div');
+      beneficiarioDiv.className = 'beneficiario-item';
+      beneficiarioDiv.innerHTML = `
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" name="beneficiario_nombre" required>
+          </div>
+          <div class="form-group">
+            <label>Relación</label>
+            <input type="text" name="beneficiario_relacion" required>
+          </div>
+          <div class="form-group">
+            <label>Porcentaje (%)</label>
+            <input type="number" name="beneficiario_porcentaje" min="1" max="100" required>
+          </div>
+          <button type="button" class="btn-remove">×</button>
+        </div>
+      `;
+      beneficiariosContainerMejorado.appendChild(beneficiarioDiv);
+      // Eliminar beneficiario
+      beneficiarioDiv.querySelector('.btn-remove').addEventListener('click', () => {
+        beneficiarioDiv.remove();
+      });
+    });
+
+    // Validar formulario antes de enviar
+    formContratoMejorado.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      // Validar beneficiarios
+      const beneficiarios = Array.from(document.querySelectorAll('.beneficiario-item'));
+      const totalPorcentaje = beneficiarios.reduce((total, item) => {
+        return total + parseFloat(item.querySelector('[name="beneficiario_porcentaje"]').value || 0);
+      }, 0);
+      if (beneficiarios.length > 0 && totalPorcentaje !== 100) {
+        alert('La suma de porcentajes de beneficiarios debe ser exactamente 100%');
+        return;
+      }
+      // Crear objeto con los datos del formulario
+      const formData = new FormData();
+      formData.append('client_id', selectClienteMejorado.value);
+      formData.append('policy_id', selectSeguroMejorado.value);
+      formData.append('premium_amount', inputPrimaMejorado.value);
+      formData.append('payment_frequency', selectFrecuenciaMejorado.value);
+      // Agregar beneficiarios
+      beneficiarios.forEach((item, index) => {
+        formData.append(`beneficiarios[${index}][name]`, item.querySelector('[name="beneficiario_nombre"]').value);
+        formData.append(`beneficiarios[${index}][relationship]`, item.querySelector('[name="beneficiario_relacion"]').value);
+        formData.append(`beneficiarios[${index}][percentage]`, item.querySelector('[name="beneficiario_porcentaje"]').value);
+      });
+      // Agregar documentos
+      Array.from(inputDocumentosMejorado.files).forEach((file, index) => {
+        formData.append(`documents[${index}]`, file);
+      });
+      // Enviar datos al servidor
+      try {
+        const response = await fetch('/contracts', {
+          method: 'POST',
+          body: formData
+        });
+        const result = await response.json();
+        if (response.ok) {
+          alert('Contrato creado exitosamente!');
+          formContratoMejorado.reset();
+          beneficiariosContainerMejorado.innerHTML = '';
+          detallesSeguroDivMejorado.innerHTML = '';
+        } else {
+          alert(`Error: ${result.message || 'No se pudo crear el contrato'}`);
+        }
+      } catch (error) {
+        console.error('Error al enviar el formulario:', error);
+        alert('Error al conectar con el servidor');
+      }
+    });
+  }
+
+  // --- Integración de selección de cliente con el formulario mejorado (mejor experiencia visual) ---
+  const tableContainer = document.querySelector('.table-container');
+  if (tablaClientesBody) {
+    tablaClientesBody.addEventListener('click', (e) => {
+      if (e.target && e.target.tagName === 'BUTTON' && e.target.textContent.includes('Seleccionar')) {
+        const tr = e.target.closest('tr');
+        const nombre = tr.children[0].textContent;
+        const email = tr.children[1].textContent;
+        const clientId = e.target.getAttribute('data-id');
+        if (inputClientName && inputClientId) {
+          inputClientName.value = `${nombre} (${email})`;
+          inputClientId.value = clientId;
+        }
+        if (modal) modal.classList.remove('hidden');
+        if (tableContainer) tableContainer.style.display = 'none';
+      }
+    });
+  }
+
+  // Botón Cancelar del formulario mejorado
+  if (btnCancelar && modal) {
+    btnCancelar.addEventListener('click', () => {
+      modal.classList.add('hidden');
+      if (tableContainer) tableContainer.style.display = '';
+    });
+  }
 });

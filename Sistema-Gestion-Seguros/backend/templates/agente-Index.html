@@ -8,7 +8,7 @@
   <meta http-equiv="Expires"       content="0">
 
   <script>
-    // Evitar que “atrás/adelante” cargue en caché
+    // Evitar que "atrás/adelante" cargue en caché
     window.addEventListener('pageshow', function(event) {
       if (event.persisted) {
         window.location.reload();
@@ -53,13 +53,13 @@
       </div>
       <nav class="menu">
         <ul>
-          <li class="active">
+          <li>
             <a href="#"><i class="fas fa-home"></i> Inicio</a>
           </li>
           <li>
             <a href="#"><i class="fas fa-users"></i> Gestión de Clientes</a>
           </li>
-          <li>
+          <li class="active">
             <a href="#"><i class="fas fa-file-contract"></i> Contratación de Seguros</a>
           </li>
           <li>
@@ -114,77 +114,70 @@
     <!-- ======== FIN CONTENIDO PRINCIPAL ======== -->
   </div>
 
-  <!-- ========== Modal de “Contratar Seguro” (oculto inicialmente) ========== -->
+  <!-- ========== Modal de "Contratar Seguro" (oculto inicialmente) ========== -->
   <div id="modal-contratar-agente" class="modal hidden">
     <div class="modal-overlay"></div>
     <div class="modal-content">
       <h2 id="modal-title-agente">Contratar Seguro</h2>
       <!-- Información del cliente seleccionado -->
       <div id="info-cliente-seleccionado" style="margin-bottom: 12px;">
-        <!-- Se rellenará: “Cliente: Nombre (email)” -->
+        <!-- Se rellenará: "Cliente: Nombre (email)" -->
       </div>
 
       <!-- Formulario de contratación -->
       <form id="form-contratar-agente">
-        <!-- (A) Hidden: client_id real que se enviará al backend -->
         <input type="hidden" id="input-client-id" name="client_id">
+        <input type="hidden" id="input-policy-id" name="policy_id">
 
-        <!-- (B) Solo lectura: Nombre del cliente -->
         <div class="form-group">
-          <label for="input-client-name">Cliente:</label>
-          <input type="text" id="input-client-name" readonly>
+            <label for="input-client-name">Cliente:</label>
+            <input type="text" id="input-client-name" readonly>
+            <button type="button" id="btn-seleccionar-cliente" class="btn-small">Seleccionar Cliente</button>
         </div>
 
-        <!-- (C) Selección de Tipo de Póliza -->
         <div class="form-group">
-          <label for="select-tipo-poliza">Tipo de Póliza:</label>
-          <select id="select-tipo-poliza" name="type_name" required>
-            <option value="">--Seleccione Tipo de Póliza--</option>
-            <option>Seguro de Salud</option>
-            <option>Seguro de Vida</option>
-            <option>Seguro de Auto</option>
-            <option>Seguro de Hogar</option>
-            <option>Seguro de Viaje</option>
-            <option>Seguro Empresarial</option>
-          </select>
+            <label for="select-seguro">Seleccionar Seguro:</label>
+            <select id="select-seguro" name="policy_id" required>
+                <option value="">--Seleccione un Seguro--</option>
+                <!-- Se llenará dinámicamente -->
+            </select>
         </div>
 
-        <!-- (D) Detalles del tipo de póliza -->
-        <div id="detalles-poliza-agente" style="margin-bottom: 12px;"></div>
-
-        <!-- (E) Cobertura -->
-        <div class="form-group">
-          <label for="input-cobertura-agente">Cobertura:</label>
-          <input type="text" id="input-cobertura-agente" name="coverage" required>
+        <div id="detalles-seguro" class="seguro-details">
+            <!-- Se mostrarán los detalles del seguro seleccionado -->
         </div>
 
-        <!-- (F) Beneficios -->
         <div class="form-group">
-          <label for="input-beneficios-agente">Beneficios:</label>
-          <textarea id="input-beneficios-agente" name="benefits" rows="3" required></textarea>
+            <label for="input-prima">Prima Ajustada ($):</label>
+            <input type="number" id="input-prima" name="premium_amount" step="0.01" min="1" required>
         </div>
 
-        <!-- (G) Monto de la Prima -->
         <div class="form-group">
-          <label for="input-prima-agente">Monto de la Prima ($):</label>
-          <input type="number" id="input-prima-agente" name="premium_amount" step="0.01" min="1" required>
+            <label for="select-frecuencia">Frecuencia de Pago:</label>
+            <select id="select-frecuencia" name="payment_frequency" required>
+                <option value="">--Seleccione Frecuencia--</option>
+                <option value="Mensual">Mensual</option>
+                <option value="Trimestral">Trimestral</option>
+                <option value="Anual">Anual</option>
+            </select>
         </div>
 
-        <!-- (H) Frecuencia de Pago -->
         <div class="form-group">
-          <label for="select-frecuencia-agente">Frecuencia de Pago:</label>
-          <select id="select-frecuencia-agente" name="payment_frequency" required>
-            <option value="">--Seleccione Frecuencia--</option>
-            <option value="Mensual">Mensual</option>
-            <option value="Trimestral">Trimestral</option>
-            <option value="Anual">Anual</option>
-          </select>
+            <label>Beneficiarios:</label>
+            <div id="beneficiarios-container">
+                <!-- Se agregarán dinámicamente los beneficiarios -->
+            </div>
+            <button type="button" id="btn-agregar-beneficiario" class="btn-small">+ Agregar Beneficiario</button>
         </div>
 
-        <!-- (I) Botones -->
+        <div class="form-group">
+            <label for="input-documentos">Documentos Requeridos:</label>
+            <input type="file" id="input-documentos" multiple>
+        </div>
+
         <div class="form-buttons">
-          <button type="button" id="btn-cancelar-agente" class="btn-cancel">Cancelar</button>
-          <button type="submit" id="btn-guardar-agente" class="btn-save">Guardar</button>
+            <button type="button" id="btn-cancelar" class="btn-cancel">Cancelar</button>
+            <button type="submit" id="btn-guardar" class="btn-save">Guardar Contrato</button>
         </div>
       </form>
     </div>
