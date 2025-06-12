@@ -17,6 +17,9 @@ function actualizarTotalPorcentajeBeneficiarios() {
     }
 }
 
+// Confirma que tu JS se está cargando
+console.log('agente.js cargado');
+
 document.addEventListener('DOMContentLoaded', () => {
   // ---------- 1) Referencias al DOM ----------
   const tablaClientesBody     = document.querySelector('#tabla-clientes tbody');
@@ -24,25 +27,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput           = document.getElementById('search-client');
   const btnSearch             = document.getElementById('btn-search');
 
-  // Elementos del Modal de Contratación (NUEVOS IDs)
+  // Elementos del Modal de Contratación
   const modal                 = document.getElementById('modal-contratar-agente');
   const modalOverlay          = modal ? modal.querySelector('.modal-overlay') : null;
   const btnCancelar           = document.getElementById('btn-cancelar');
-  const formContratoAgente    = document.getElementById('form-contratar-agente');
-
+  const formContratoMejorado  = document.getElementById('form-contratar-agente');
   const inputClientId         = document.getElementById('input-client-id');
   const inputClientName       = document.getElementById('input-client-name');
-  const btnSeleccionarCliente = document.getElementById('btn-seleccionar-cliente');
   const selectSeguro          = document.getElementById('select-seguro');
   const detallesSeguroDiv     = document.getElementById('detalles-seguro');
   const inputPrima            = document.getElementById('input-prima');
   const selectFrecuencia      = document.getElementById('select-frecuencia');
-
-  // Configuración de beneficiarios - Versión mejorada
   const beneficiariosContainer = document.getElementById('beneficiarios-container');
-  const btnAgregar = document.getElementById('btn-agregar-beneficiario');
+  const btnAgregarBeneficiario = document.getElementById('btn-agregar-beneficiario');
 
-  if (btnAgregar && beneficiariosContainer) {
+  if (btnAgregarBeneficiario && beneficiariosContainer) {
     // Función para crear un nuevo beneficiario
     const crearBeneficiarioHTML = () => `
         <div class="beneficiario-item" style="margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 5px;">
@@ -78,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
 
     // Evento para agregar beneficiario
-    btnAgregar.addEventListener('click', () => {
+    btnAgregarBeneficiario.addEventListener('click', () => {
         beneficiariosContainer.insertAdjacentHTML('beforeend', crearBeneficiarioHTML());
         actualizarTotalPorcentajeBeneficiarios();
     });
@@ -108,19 +107,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const tdAcciones = document.createElement('td');
         const btnSeleccionar = document.createElement('button');
         btnSeleccionar.textContent = 'Seleccionar';
-        btnSeleccionar.classList.add('btn-blue');
-        btnSeleccionar.setAttribute('data-id', cliente.id); // IMPORTANTE
-        btnSeleccionar.addEventListener('click', () => {
-          // Al seleccionar, rellenar los campos y mostrar el modal
-          inputClientId.value = cliente.id;
-          inputClientName.value = `${cliente.name} (${cliente.email})`;
-          if (modal) modal.classList.remove('hidden');
-        });
+        btnSeleccionar.classList.add('btn-blue', 'select-client-btn');
+        btnSeleccionar.setAttribute('data-client-id', cliente.id);
         tdAcciones.appendChild(btnSeleccionar);
         tr.appendChild(tdName);
         tr.appendChild(tdEmail);
         tr.appendChild(tdAcciones);
         tablaClientesBody.appendChild(tr);
+      });
+
+      // Agregar los event listeners a los botones de selección
+      document.querySelectorAll('.select-client-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const clientId = btn.getAttribute('data-client-id');
+          const clientName = btn.closest('tr').querySelector('td:first-child').textContent;
+          const clientEmail = btn.closest('tr').querySelector('td:nth-child(2)').textContent;
+          
+          document.getElementById('input-client-id').value = clientId;
+          document.getElementById('input-client-name').value = `${clientName} (${clientEmail})`;
+          if (modal) modal.classList.remove('hidden');
+        });
       });
     } catch (err) {
       console.error(err);
@@ -145,8 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ---------- 4) Botón Seleccionar Cliente ----------
-  if (btnSeleccionarCliente) {
-    btnSeleccionarCliente.addEventListener('click', () => {
+  if (btnAgregarBeneficiario) {
+    btnAgregarBeneficiario.addEventListener('click', () => {
       // Hacer scroll a la tabla de clientes
       window.scrollTo({ top: tablaClientesBody.offsetTop, behavior: 'smooth' });
     });
@@ -181,6 +187,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (selectSeguro) {
     selectSeguro.addEventListener('change', async () => {
       const seguroId = selectSeguro.value;
+      
+      // Asignar el ID del seguro al input hidden
+      document.getElementById('input-policy-id').value = seguroId;
+      
       if (!seguroId) {
         detallesSeguroDiv.innerHTML = '';
         return;
@@ -269,8 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Lógica para el Formulario Mejorado ---
-  const formContratoMejorado = document.getElementById('form-contratar-agente');
-  const selectClienteMejorado = document.getElementById('select-cliente');
+  const inputClientIdMejorado = document.getElementById('input-client-id');
   const selectSeguroMejorado = document.getElementById('select-seguro');
   const inputPrimaMejorado = document.getElementById('input-prima');
   const selectFrecuenciaMejorado = document.getElementById('select-frecuencia');
@@ -280,28 +289,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const detallesSeguroDivMejorado = document.getElementById('detalles-seguro');
 
   // Solo ejecuta la lógica si el formulario mejorado existe
-  if (formContratoMejorado && selectClienteMejorado && selectSeguroMejorado && inputPrimaMejorado && selectFrecuenciaMejorado && beneficiariosContainerMejorado && btnAgregarBeneficiarioMejorado && inputDocumentosMejorado && detallesSeguroDivMejorado) {
+  if (formContratoMejorado 
+      && inputClientIdMejorado 
+      && selectSeguro          // ya definido arriba como #select-seguro
+      && inputPrima            // #input-prima
+      && selectFrecuencia      // #select-frecuencia
+      && beneficiariosContainer // #beneficiarios-container
+      && btnAgregarBeneficiario  // #btn-agregar-beneficiario
+      && inputDocumentosMejorado  // #input-documentos
+      && detallesSeguroDiv) {  // #detalles-seguro
 
-    // Cargar clientes y seguros al iniciar
-    cargarClientesMejorado();
+    // Cargar seguros al iniciar
     cargarSegurosMejorado();
-
-    // Función para cargar clientes
-    async function cargarClientesMejorado() {
-      try {
-        const response = await fetch('/clients');
-        const clientes = await response.json();
-        selectClienteMejorado.innerHTML = '<option value="">--Seleccione Cliente--</option>';
-        clientes.forEach(cliente => {
-          const option = document.createElement('option');
-          option.value = cliente.id;
-          option.textContent = `${cliente.name} (${cliente.email})`;
-          selectClienteMejorado.appendChild(option);
-        });
-      } catch (error) {
-        console.error('Error al cargar clientes:', error);
-      }
-    }
 
     // Función para cargar seguros disponibles
     async function cargarSegurosMejorado() {
@@ -380,55 +379,87 @@ document.addEventListener('DOMContentLoaded', () => {
         actualizarTotalPorcentajeBeneficiarios();
     });
 
-    // Validar formulario antes de enviar
-    formContratoMejorado.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      // Validar beneficiarios
-      const beneficiarios = Array.from(document.querySelectorAll('.beneficiario-item'));
-      const totalPorcentaje = beneficiarios.reduce((total, item) => {
-        return total + parseFloat(item.querySelector('[name="beneficiario_porcentaje"]').value || 0);
-      }, 0);
-      
-      if (beneficiarios.length > 0 && Math.abs(totalPorcentaje - 100) > 0.01) {
-        showNotification('error', 'La suma de porcentajes debe ser exactamente 100%');
-        return;
-      }
-
-      // Crear FormData
-      const formData = new FormData();
-      formData.append('client_id', selectClienteMejorado.value);
-      formData.append('policy_id', selectSeguroMejorado.value);
-      formData.append('premium_amount', inputPrimaMejorado.value);
-      formData.append('payment_frequency', selectFrecuenciaMejorado.value);
-      
-      // Agregar beneficiarios
-      beneficiarios.forEach((item, index) => {
-        formData.append(`beneficiarios[${index}][name]`, item.querySelector('[name="beneficiario_nombre"]').value);
-        formData.append(`beneficiarios[${index}][relationship]`, item.querySelector('[name="beneficiario_relacion"]').value);
-        formData.append(`beneficiarios[${index}][percentage]`, item.querySelector('[name="beneficiario_porcentaje"]').value);
-      });
-
-      // Enviar al servidor
-      try {
-        const response = await fetch('/contracts', {
-          method: 'POST',
-          body: formData
-        });
+    // Evento submit del formulario (único manejador)
+    formContratoMejorado.addEventListener('submit', async e => {
+        e.preventDefault();
+        console.log("Iniciando envío del formulario...");
         
-        const result = await response.json();
-        if (response.ok) {
-          showNotification('success', 'Contrato creado exitosamente!');
-          formContratoMejorado.reset();
-          beneficiariosContainerMejorado.innerHTML = '';
-          modal.classList.add('hidden');
-        } else {
-          showNotification('error', result.error || 'Error al crear contrato');
+        const formData = new FormData(formContratoMejorado);
+        
+        // Agregar campos manualmente para asegurar que se incluyan
+        formData.append('client_id', inputClientIdMejorado.value);
+        formData.append('policy_id', selectSeguroMejorado.value);
+        formData.append('premium_amount', inputPrimaMejorado.value);
+        formData.append('payment_frequency', selectFrecuenciaMejorado.value);
+
+        // Mostrar datos que se enviarán (solo para depuración)
+        for (let [key, value] of formData.entries()) {
+            console.log(key, value);
         }
-      } catch (error) {
-        console.error('Error:', error);
-        showNotification('error', 'Error de conexión con el servidor');
-      }
+
+        // Validar beneficiarios
+        const beneficiarios = Array.from(document.querySelectorAll('.beneficiario-item'));
+        const totalPorcentaje = beneficiarios.reduce((total, item) => {
+            const input = item.querySelector('[name="beneficiario_porcentaje"]');
+            return total + parseFloat(input ? input.value : 0);
+        }, 0);
+        
+        if (beneficiarios.length > 0 && Math.round(totalPorcentaje) !== 100) {
+            showNotification('error', 'La suma de porcentajes debe ser exactamente 100%');
+            return;
+        }
+
+        // Agregar beneficiarios
+        beneficiarios.forEach((item, index) => {
+            formData.append(`beneficiarios[${index}][name]`, item.querySelector('[name="beneficiario_nombre"]').value);
+            formData.append(`beneficiarios[${index}][relationship]`, item.querySelector('[name="beneficiario_relacion"]').value);
+            formData.append(`beneficiarios[${index}][percentage]`, item.querySelector('[name="beneficiario_porcentaje"]').value);
+        });
+
+        // Mostrar loader
+        const submitBtn = document.getElementById('btn-guardar');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+        try {
+            console.log("Enviando datos al servidor...");
+            const response = await fetch('/contracts', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                }
+            });
+
+            console.log("Respuesta recibida:", response);
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Error del servidor:", errorData);
+                throw new Error(errorData.error || 'Error al guardar contrato');
+            }
+
+            const result = await response.json();
+            console.log("Resultado exitoso:", result);
+
+            showNotification('success', 
+                `Contrato creado exitosamente!<br>
+                 Beneficiarios: ${result.beneficiarios_count}<br>
+                 Documentos: ${result.documentos_count}`);
+            
+            // Resetear formulario
+            formContratoMejorado.reset();
+            beneficiariosContainerMejorado.innerHTML = '';
+            document.getElementById('total-beneficiarios-porcentaje').textContent = '0';
+            modal.classList.add('hidden');
+            
+        } catch (error) {
+            console.error("Error completo:", error);
+            showNotification('error', error.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Guardar Contrato';
+        }
     });
   }
 

@@ -26,6 +26,20 @@ app.config['MYSQL_HOST']     = os.getenv('DB_HOST', 'db')
 app.config['MYSQL_USER']     = os.getenv('DB_USER')
 app.config['MYSQL_PASSWORD'] = os.getenv('DB_PASSWORD')
 app.config['MYSQL_DB']       = os.getenv('DB_NAME')
+
+# Configuración para uploads
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx'}
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
+
+# Crear directorio de uploads si no existe
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Función de validación
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
 mysql = init_db(app)
 
 # ===================================
@@ -297,26 +311,22 @@ def delete_user(user_id):
 @app.route('/clients', methods=['GET'])
 @login_required
 def list_clients():
-    """
-    Devuelve JSON con todos los usuarios que tengan role_id = 3 (Clientes).
-    Cualquiera que esté logueado (incluido el Agente) puede ver esta lista.
-    """
     cur = mysql.connection.cursor()
     cur.execute("""
-        SELECT id, username, email 
-        FROM users 
-        WHERE role_id = 3
-        ORDER BY username ASC
+        SELECT
+          c.id        AS id,       -- este es clients.id
+          u.username AS username,
+          u.email    AS email
+        FROM clients c
+        JOIN users   u ON u.id = c.user_id
+        WHERE u.role_id = 3
+        ORDER BY u.username ASC
     """)
     rows = cur.fetchall()
     cur.close()
 
     clientes = [
-        {
-            "id":    r[0],
-            "name":  r[1],
-            "email": r[2]
-        }
+        {"id": r[0], "name": r[1], "email": r[2]}
         for r in rows
     ]
     return jsonify(clientes), 200
@@ -696,6 +706,7 @@ def create_contract():
         if 'documents' in request.files:
             for file in request.files.getlist('documents'):
                 if file.filename != '':
+                    # Guardar el archivo (en producción usar AWS S3 o similar)
                     filename = secure_filename(file.filename)
                     filepath = os.path.join('uploads', filename)
                     os.makedirs('uploads', exist_ok=True)
@@ -713,13 +724,57 @@ def create_contract():
         return jsonify({
             'success': True,
             'contract_id': contract_id,
-            'message': 'Contrato creado exitosamente'
+            'message': 'Contrato creado exitosamente',
+            'beneficiarios_count': len(beneficiarios),
+            'documentos_count': len(request.files.getlist('documents')) if 'documents' in request.files else 0
         }), 201
 
     except Exception as e:
         mysql.connection.rollback()
         print("Error al crear contrato:", str(e))
         return jsonify({'error': str(e)}), 500
+
+@app.route('/contracts/<int:contract_id>')
+@login_required
+def get_contract(contract_id):
+    cur = mysql.connection.cursor()
+    
+    # Obtener contrato
+    cur.execute("SELECT * FROM client_policies WHERE id = %s", (contract_id,))
+    contract = cur.fetchone()
+    
+    if not contract:
+        return jsonify({'error': 'Contrato no encontrado'}), 404
+    
+    # Obtener beneficiarios
+    cur.execute("SELECT name, relationship, percentage FROM beneficiaries WHERE contract_id = %s", (contract_id,))
+    beneficiaries = cur.fetchall()
+    
+    # Obtener documentos
+    cur.execute("SELECT doc_type, file_path FROM documents WHERE contract_id = %s", (contract_id,))
+    documents = cur.fetchall()
+    
+    cur.close()
+    
+    return jsonify({
+        'contract': {
+            'id': contract[0],
+            'client_id': contract[1],
+            'policy_id': contract[2],
+            'premium_amount': float(contract[4]),
+            'payment_frequency': contract[5],
+            'status': contract[8]
+        },
+        'beneficiaries': [{
+            'name': b[0],
+            'relationship': b[1],
+            'percentage': float(b[2])
+        } for b in beneficiaries],
+        'documents': [{
+            'type': d[0],
+            'path': d[1]
+        } for d in documents]
+    })
 
 # ===================================
 # FIN RUTAS

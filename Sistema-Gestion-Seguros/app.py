@@ -3,6 +3,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from flask_mysqldb import MySQL
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from flask_wtf.csrf import CSRFProtect
 import os
 
 app = Flask(__name__)
@@ -19,6 +20,9 @@ mysql = MySQL(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+# Configuración de CSRF
+csrf = CSRFProtect(app)
 
 @app.route('/policies', methods=['GET'])
 @login_required
@@ -70,68 +74,79 @@ def get_policies():
 @login_required
 def create_contract():
     try:
-        # Verificar que el usuario es agente
+        # Verificar que es agente
         if session.get('role_id') != 2:
             return jsonify({'error': 'Solo los agentes pueden crear contratos'}), 403
 
-        # Obtener datos básicos del formulario
-        client_id = request.form.get('client_id')
-        policy_id = request.form.get('policy_id')
-        premium_amount = request.form.get('premium_amount')
-        payment_frequency = request.form.get('payment_frequency')
+        # Obtener datos básicos
+        data = {
+            'client_id': request.form.get('client_id'),
+            'policy_id': request.form.get('policy_id'),
+            'premium_amount': request.form.get('premium_amount'),
+            'payment_frequency': request.form.get('payment_frequency'),
+            'agent_id': session['user_id']
+        }
 
-        if not all([client_id, policy_id, premium_amount, payment_frequency]):
-            return jsonify({'error': 'Faltan campos requeridos'}), 400
+        # Validar datos básicos
+        if not all(data.values()):
+            missing = [k for k, v in data.items() if not v]
+            return jsonify({'error': f'Faltan campos requeridos: {missing}'}), 400
 
-        # Obtener beneficiarios
+        # Procesar beneficiarios
         beneficiarios = []
         i = 0
-        while f'beneficiarios[{i}][name]' in request.form:
+        while True:
+            name_key = f'beneficiarios[{i}][name]'
+            if name_key not in request.form:
+                break
             beneficiarios.append({
-                'name': request.form[f'beneficiarios[{i}][name]'],
+                'name': request.form[name_key],
                 'relationship': request.form[f'beneficiarios[{i}][relationship]'],
-                'percentage': request.form[f'beneficiarios[{i}][percentage]']
+                'percentage': float(request.form[f'beneficiarios[{i}][percentage]'])
             })
             i += 1
 
-        # Verificar porcentaje de beneficiarios
+        # Verificar porcentajes si hay beneficiarios
         if beneficiarios:
-            total = sum(float(b['percentage']) for b in beneficiarios)
-            if abs(total - 100) > 0.01:  # Permitir pequeño margen por redondeo
+            total = sum(b['percentage'] for b in beneficiarios)
+            if abs(total - 100) > 0.01:
                 return jsonify({'error': 'La suma de porcentajes debe ser 100%'}), 400
 
+        # Iniciar transacción
         cur = mysql.connection.cursor()
-
-        # 1. Crear el contrato (póliza asignada a cliente)
+        
+        # 1. Crear contrato
         cur.execute("""
             INSERT INTO client_policies 
-            (client_id, policy_id, agent_id, premium_amount, payment_frequency, start_date, end_date, status)
-            VALUES (%s, %s, %s, %s, %s, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 YEAR), 'active')
-        """, (client_id, policy_id, session['user_id'], premium_amount, payment_frequency))
+            (client_id, policy_id, agent_id, premium_amount, 
+             payment_frequency, start_date, end_date, status)
+            VALUES (%s, %s, %s, %s, %s, CURDATE(), 
+                    DATE_ADD(CURDATE(), INTERVAL 1 YEAR), 'active')
+        """, (data['client_id'], data['policy_id'], data['agent_id'],
+              data['premium_amount'], data['payment_frequency']))
         
         contract_id = cur.lastrowid
 
         # 2. Agregar beneficiarios
-        for beneficiario in beneficiarios:
+        for ben in beneficiarios:
             cur.execute("""
                 INSERT INTO beneficiaries
-                (policy_id, name, relationship, percentage)
+                (contract_id, name, relationship, percentage)
                 VALUES (%s, %s, %s, %s)
-            """, (contract_id, beneficiario['name'], beneficiario['relationship'], beneficiario['percentage']))
+            """, (contract_id, ben['name'], ben['relationship'], ben['percentage']))
 
         # 3. Guardar documentos
         if 'documents' in request.files:
             for file in request.files.getlist('documents'):
                 if file.filename != '':
-                    # Guardar el archivo (en producción usar AWS S3 o similar)
                     filename = secure_filename(file.filename)
-                    filepath = os.path.join('uploads', filename)
-                    os.makedirs('uploads', exist_ok=True)
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
                     file.save(filepath)
 
                     cur.execute("""
                         INSERT INTO documents
-                        (policy_id, doc_type, file_path)
+                        (contract_id, doc_type, file_path)
                         VALUES (%s, %s, %s)
                     """, (contract_id, 'contract_doc', filepath))
 
@@ -142,9 +157,9 @@ def create_contract():
             'success': True,
             'contract_id': contract_id,
             'message': 'Contrato creado exitosamente'
-        }), 201
+        })
 
     except Exception as e:
         mysql.connection.rollback()
-        print("Error al crear contrato:", str(e))
+        print(f"Error en create_contract: {str(e)}")
         return jsonify({'error': str(e)}), 500 
