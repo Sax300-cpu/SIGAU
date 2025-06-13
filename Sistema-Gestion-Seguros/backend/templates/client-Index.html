@@ -100,25 +100,30 @@
           <span><strong>Alerta:</strong> El contrato de su seguro «Vida» vencerá pronto</span>
         </div>
 
+        <!-- Listado de contratos activos del cliente -->
         <div class="insurance-cards">
-          <div class="insurance-card">
-            <h3>Seguro de Vida</h3>
-            <div class="status active">Activo</div>
-            <div class="details">
-              <p><strong>N.º de póliza:</strong> 12345</p>
-              <p><strong>Pago mensual:</strong> $50</p>
-            </div>
-            <button class="btn-details">Ver detalles</button>
-          </div>
-          <div class="insurance-card">
-            <h3>Seguro de Salud</h3>
-            <div class="status active">Activo</div>
-            <div class="details">
-              <p><strong>N.º de póliza:</strong> 67890</p>
-              <p><strong>Pago mensual:</strong> $100</p>
-            </div>
-            <button class="btn-details">Ver detalles</button>
-          </div>
+          {% if contracts %}
+            {% for c in contracts %}
+              <div class="insurance-card">
+                <h3>{{ c.name }}</h3>
+                <div class="status {{ 'active' if c.status=='active' else '' }}">
+                  {{ c.status }}
+                </div>
+                <div class="details">
+                  <p><strong>N.º de contrato:</strong> {{ c.id }}</p>
+                  <p><strong>Pago {{ c.freq|lower }}:</strong> ${{ c.amount }}</p>
+                </div>
+                <button 
+                  class="btn-completar-docs" 
+                  data-contract-id="{{ c.id }}"
+                >
+                  Completar documentos
+                </button>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p>No tienes contratos pendientes por completar.</p>
+          {% endif %}
         </div>
 
         <div class="hire-section">

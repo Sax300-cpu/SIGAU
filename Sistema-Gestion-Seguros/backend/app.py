@@ -195,7 +195,34 @@ def agente_panel():
 def client_panel():
     if 'user_id' not in session or session.get('role_id') != 3:
         return redirect(url_for('login'))
-    return render_template('client-Index.html')
+    # 1. Obtengo el client_id relacionado a este user_id
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT id FROM clients WHERE user_id = %s", (session['user_id'],))
+    row = cur.fetchone()
+    client_id = row[0] if row else None
+
+    # 2. Traigo sus contratos activos
+    contracts = []
+    if client_id:
+        cur.execute("""
+            SELECT cp.id, p.name, cp.premium_amount, cp.payment_frequency, cp.status
+            FROM client_policies cp
+            JOIN policies p ON cp.policy_id = p.id
+            WHERE cp.client_id = %s AND cp.status = 'active'
+            ORDER BY cp.created_at DESC
+        """, (client_id,))
+        contracts = [
+            {
+              'id':    r[0],
+              'name':  r[1],
+              'amount': float(r[2]),
+              'freq':  r[3],
+              'status': r[4]
+            } for r in cur.fetchall()
+        ]
+    cur.close()
+
+    return render_template('client-Index.html', contracts=contracts)
 
 # ===================================
 # API DE USUARIOS (Solo Admin)
