@@ -129,86 +129,9 @@
             <p>No tienes contratos pendientes por completar.</p>
           {% endif %}
         </div>
-
-        <div class="hire-section">
-          <h2>Contratar Seguro</h2>
-          <div class="insurance-options">
-            <div class="insurance-option">
-              <i class="fas fa-heartbeat"></i><span>Seguro de Salud</span>
-            </div>
-            <div class="insurance-option">
-              <i class="fas fa-user"></i><span>Seguro de Vida</span>
-            </div>
-            <div class="insurance-option">
-              <i class="fas fa-car"></i><span>Seguro de Auto</span>
-            </div>
-            <div class="insurance-option">
-              <i class="fas fa-house-user"></i><span>Seguro de Hogar</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
-
-  <!-- ================================
-       Bloque Nuevo: Modal “Contratar Seguro”
-       ================================ -->  ### MODIFICADO
-  <div id="modal-contratar" class="modal hidden">
-    <div class="modal-overlay"></div>
-    <div class="modal-content">
-      <h2 id="modal-title">Contratar Seguro</h2>
-
-      <!-- Aquí inyectaremos los detalles de policy_types -->
-      <div id="detalles-policy" style="margin-bottom: 12px;"></div>  ### MODIFICADO
-
-      <form id="form-contratar-seguro">
-        <!-- Tipo de póliza (se autocompleta) -->
-        <div class="form-group">
-          <label for="input-tipo">Tipo de Póliza:</label>
-          <input type="text" id="input-tipo" name="tipo" readonly />
-        </div>
-
-        <!-- Cobertura -->
-        <div class="form-group">
-          <label for="input-cobertura">Cobertura:</label>
-          <input type="text" id="input-cobertura" name="cobertura" required />
-        </div>
-
-        <!-- Beneficios -->
-        <div class="form-group">
-          <label for="input-beneficios">Beneficios:</label>
-          <textarea id="input-beneficios" name="beneficios" rows="3" required></textarea>
-        </div>
-
-        <!-- Monto de la prima -->
-        <div class="form-group">
-          <label for="input-prima">Monto de la Prima ($):</label>
-          <input type="number" id="input-prima" name="prima" step="0.01" min="1" required />
-        </div>
-
-        <!-- Frecuencia de pago -->
-        <div class="form-group">
-          <label for="select-frecuencia">Frecuencia de Pago:</label>
-          <select id="select-frecuencia" name="frecuencia" required>
-            <option value="">--Seleccione--</option>
-            <option value="Mensual">Mensual</option>
-            <option value="Trimestral">Trimestral</option>
-            <option value="Anual">Anual</option>
-          </select>
-        </div>
-
-        <!-- Botones -->
-        <div class="form-buttons">
-          <button type="button" id="btn-cancelar">Cancelar</button>
-          <button type="submit" id="btn-guardar">Guardar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-  <!-- ================================
-       Fin Bloque Nuevo: Modal “Contratar Seguro”
-       ================================ -->
 
   <!-- ============================= -->
   <!-- Modal “Completar documentos” -->
