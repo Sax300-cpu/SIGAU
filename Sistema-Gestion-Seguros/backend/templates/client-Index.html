@@ -117,8 +117,11 @@
                 <button 
                   class="btn-completar-docs" 
                   data-contract-id="{{ c.id }}"
+                  style="background:#1976d2; color:#fff; border:none; border-radius:6px; padding:8px 20px; font-size:1rem; font-weight:500; box-shadow:0 2px 8px rgba(25,118,210,0.08); transition:background 0.2s, box-shadow 0.2s; cursor:pointer; margin-top:10px; letter-spacing:0.5px;"
+                  onmouseover="this.style.background='#1251a3'" 
+                  onmouseout="this.style.background='#1976d2'"
                 >
-                  Completar documentos
+                  <i class="fas fa-file-upload" style="margin-right:7px;"></i>Completar documentos
                 </button>
               </div>
             {% endfor %}
