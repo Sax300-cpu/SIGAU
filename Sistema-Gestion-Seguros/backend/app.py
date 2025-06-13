@@ -5,11 +5,12 @@ from dotenv import load_dotenv
 from flask import (
     Flask, render_template, request,
     redirect, url_for, flash, session,
-    jsonify
+    jsonify, send_from_directory
 )
 from models import init_db
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
+import time
 
 # ===================================
 # Carga de configuración y BD 
@@ -876,6 +877,37 @@ def get_contract(contract_id):
             'path': d[1]
         } for d in documents]
     })
+
+@app.route('/contracts/<int:contract_id>/upload_docs', methods=['POST'])
+@login_required
+def upload_docs(contract_id):
+    cur = mysql.connection.cursor()
+    # Carpeta
+    folder = os.path.join(app.config['UPLOAD_FOLDER'], str(contract_id))
+    os.makedirs(folder, exist_ok=True)
+    # Archivos
+    for f in request.files.getlist('documents'):
+        if f.filename:
+            fname = secure_filename(f.filename)
+            f.save(os.path.join(folder, fname))
+            cur.execute("INSERT INTO documents (contract_id, file_path) VALUES (%s,%s)",
+                        (contract_id, fname))
+    # Firma
+    sig = request.files.get('signature')
+    if sig:
+        fname = f"firma_{int(time.time())}.png"
+        sig.save(os.path.join(folder, fname))
+        cur.execute("INSERT INTO documents (contract_id, file_path) VALUES (%s,%s)",
+                    (contract_id, fname))
+    mysql.connection.commit()
+    cur.close()
+    return ('', 204)
+
+@app.route('/contracts/<int:contract_id>/docs/<filename>')
+@login_required
+def serve_doc(contract_id, filename):
+    folder = os.path.join(app.config['UPLOAD_FOLDER'], str(contract_id))
+    return send_from_directory(folder, filename)
 
 # ===================================
 # FIN RUTAS

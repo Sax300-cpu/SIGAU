@@ -21,6 +21,7 @@
 
   <!-- CSS y JS de cliente -->
   <link  rel="stylesheet" href="{{ url_for('static', filename='css/cliente-styles.css') }}">
+  <script src="{{ url_for('static', filename='js/signature_pad.umd.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/cliente.js') }}" defer></script>
 
   <title>Panel de Cliente – Seguros</title>
@@ -205,6 +206,45 @@
   <!-- ================================
        Fin Bloque Nuevo: Modal “Contratar Seguro”
        ================================ -->
+
+  <!-- ============================= -->
+  <!-- Modal “Completar documentos” -->
+  <!-- ============================= -->
+  <div id="modal-completar" class="modal hidden">
+    <div class="modal-overlay" style="background:rgba(30,42,60,0.18);"></div>
+    <div class="modal-content" style="max-width: 420px; border-radius: 14px; box-shadow: 0 8px 32px rgba(30,42,60,0.18); padding: 32px 28px 22px 28px; position: relative; background: #fff; border: 1.5px solid #e3e8f0;">
+      <button id="btn-close-modal" type="button" aria-label="Cerrar" style="position:absolute;top:16px;right:18px;font-size:1.5rem;background:none;border:none;cursor:pointer;color:#1976d2;">&times;</button>
+      <h2 style="margin-top:0; margin-bottom:18px; font-size:1.45rem; font-weight:700; color:#1e2a3c; letter-spacing:-1px;">Completar Documentos</h2>
+      <div id="detalle-contrato" class="form-group" style="margin-bottom:18px; font-size:1rem; color:#1e2a3c;">
+        <p><strong>Cliente:</strong> <span id="detalle-cliente"></span></p>
+        <p><strong>Seguro:</strong> <span id="detalle-seguro"></span></p>
+        <p><strong>Prima:</strong> <span id="detalle-prima"></span></p>
+        <p><strong>Frecuencia:</strong> <span id="detalle-frecuencia"></span></p>
+        <p><strong>Estado:</strong> <span id="detalle-estado"></span></p>
+        <p><strong>Documentos subidos:</strong> <span id="detalle-documentos"></span></p>
+      </div>
+      <form id="form-completar" enctype="multipart/form-data" autocomplete="off">
+        <input type="hidden" id="input-contract-id" name="contract_id">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="input-docs" style="font-weight:500; color:#1e2a3c;">Subir documentos:</label>
+          <input type="file" id="input-docs" name="documents" multiple style="display:block;margin-top:6px; color:#1e2a3c;">
+        </div>
+        <div class="form-group" style="margin-bottom:18px;">
+          <label style="font-weight:500; color:#1e2a3c;">Firma electrónica:</label>
+          <div style="background:#f5f8fa; border:1px solid #e3e8f0; border-radius:6px; padding:10px 8px 8px 8px; margin-top:6px;">
+            <canvas id="signature-pad" width="300" height="120" style="display:block; margin:auto; background:#fff; border-radius:4px; border:1.5px solid #e3e8f0;"></canvas>
+            <button type="button" id="btn-clear-sign" style="margin:10px auto 0 auto; display:block; background:#e3e8f0; color:#1976d2; border:1px solid #1976d2; border-radius:4px; padding:4px 16px; font-size:0.97rem; cursor:pointer;">Borrar firma</button>
+          </div>
+        </div>
+        <div class="form-buttons" style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" id="btn-cancelar" style="background:#e3e8f0; color:#1e2a3c; border:1px solid #b0b8c1; border-radius:4px; padding:7px 18px; font-size:1rem; cursor:pointer;">Cancelar</button>
+          <button type="submit" id="btn-guardar" style="background:#1976d2; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer; transition:background 0.2s;">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <!-- ============================= -->
+  <!-- Fin Modal “Completar documentos” -->
 
 </body>
 </html>

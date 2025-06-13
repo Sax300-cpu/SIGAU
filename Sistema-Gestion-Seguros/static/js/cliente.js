@@ -143,4 +143,77 @@ modal.classList.remove('hidden');
             alert(`Mostrando detalles de: ${card.querySelector('h3').textContent}`);
         });
     });
+
+    // === (MODAL COMPLETAR DOCUMENTOS) ===
+    // --- MODAL COMPLETAR DOCUMENTOS ---
+    const modalCompletar = document.getElementById('modal-completar');
+    if (modalCompletar) {
+        const overlay = modalCompletar.querySelector('.modal-overlay');
+        const btnClose = document.getElementById('btn-close-modal');
+        const inputCid = document.getElementById('input-contract-id');
+        const formDocs = document.getElementById('form-completar');
+        const signaturePadCanvas = document.getElementById('signature-pad');
+        let signature = null;
+        // Esperar a que SignaturePad esté disponible (por el defer)
+        function initSignaturePad() {
+          if (window.SignaturePad && signaturePadCanvas) {
+            signature = new SignaturePad(signaturePadCanvas);
+          } else {
+            setTimeout(initSignaturePad, 100);
+          }
+        }
+        initSignaturePad();
+        // Abrir modal al click en cualquier “Completar documentos”
+        document.querySelectorAll('.btn-completar-docs').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.dataset.contractId;
+            const res = await fetch(`/contracts/${id}`);
+            const data = await res.json();
+            document.getElementById('detalle-cliente').textContent = data.client_name ?? '-';
+            document.getElementById('detalle-seguro').textContent = data.policy_name ?? '-';
+            document.getElementById('detalle-prima').textContent = (data.premium_amount !== undefined && data.premium_amount !== null) ? `$${data.premium_amount}` : '-';
+            document.getElementById('detalle-frecuencia').textContent = data.payment_frequency ?? '-';
+            document.getElementById('detalle-estado').textContent = data.status ?? '-';
+            document.getElementById('detalle-documentos').innerHTML = (data.documents && data.documents.length)
+              ? data.documents.map(d=>`<a href="${d.url||'#'}" target="_blank">${d.filename||d.path||''}</a>`).join(', ')
+              : '<span style="color:#888">Ninguno</span>';
+            inputCid.value = id;
+            if (signature) signature.clear();
+            modalCompletar.classList.remove('hidden');
+          });
+        });
+        // Cerrar modal
+        [overlay, btnClose].forEach(el => el && el.addEventListener('click', () => {
+          modalCompletar.classList.add('hidden');
+        }));
+        // Borrar firma
+        const btnClearSign = document.getElementById('btn-clear-sign');
+        if (btnClearSign) {
+          btnClearSign.addEventListener('click', function() {
+            if (signature) signature.clear();
+          });
+        }
+        // Enviar documentos + firma
+        if (formDocs) {
+          formDocs.addEventListener('submit', async e => {
+            e.preventDefault();
+            const fd = new FormData(formDocs);
+            if (signature && !signature.isEmpty()) {
+              const blob = await new Promise(res => signature.toBlob(res, 'image/png'));
+              fd.append('signature', blob, 'firma.png');
+            }
+            const resp = await fetch('/contracts/' + inputCid.value + '/upload_docs', {
+              method: 'POST',
+              body: fd
+            });
+            if (resp.ok) {
+              alert('Documentos guardados 🎉');
+              modalCompletar.classList.add('hidden');
+              location.reload();
+            } else {
+              alert('Error guardando documentos');
+            }
+          });
+        }
+      }
 });
