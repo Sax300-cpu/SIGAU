@@ -725,6 +725,14 @@ def create_contract():
             })
             i += 1
 
+        # --- DEBUG ANTES DE INSERTAR BENEFICIARIOS ---
+        print("--- REQUEST.FORM ---")
+        print(request.form.to_dict(flat=False))
+        print("--- REQUEST.FILES ---")
+        print(request.files)
+        # pausa aquí antes de procesar beneficiarios
+        # ...
+
         # Verificar porcentaje de beneficiarios
         if beneficiarios:
             total = sum(b['percentage'] for b in beneficiarios)
@@ -742,6 +750,29 @@ def create_contract():
         
         contract_id = cur.lastrowid
         mysql.connection.commit()  # Commit tras crear el contrato y obtener el ID
+
+        # === INSERTAR BENEFICIARIOS ===
+        import re
+        from collections import defaultdict
+        ben_data = defaultdict(dict)
+        for key, vals in request.form.to_dict(flat=False).items():
+            m = re.match(r'beneficiarios\[(\d+)\]\[(\w+)\]', key)
+            if m:
+                idx, field = m.groups()
+                ben_data[idx][field] = vals[0]
+        for idx, ben in ben_data.items():
+            cur.execute("""
+                INSERT INTO beneficiaries
+                  (contract_id, name, relationship, percentage)
+                VALUES (%s, %s, %s, %s)
+            """, (
+                contract_id,
+                ben.get('name'),
+                ben.get('relationship'),
+                float(ben.get('percentage'))
+            ))
+        mysql.connection.commit()
+        # === FIN INSERTAR BENEFICIARIOS ===
 
         # 1) Creamos carpeta específica para este contrato
         contract_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(contract_id))
