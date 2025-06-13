@@ -101,6 +101,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Inicializar si hay beneficiarios precargados
     actualizarTotalPorcentajeBeneficiarios();
+
+    // Manejo de eliminación de beneficiarios (delegado)
+    beneficiariosContainer.addEventListener('click', e => {
+      if (e.target.classList.contains('btn-remove')) {
+        e.target.closest('.beneficiario-item').remove();
+        actualizarTotalPorcentajeBeneficiarios();
+      }
+    });
   } else {
     console.error('No se encontraron los elementos necesarios para beneficiarios');
   }
@@ -496,6 +504,8 @@ document.addEventListener('DOMContentLoaded', () => {
             beneficiariosContainerMejorado.innerHTML = '';
             document.getElementById('total-beneficiarios-porcentaje').textContent = '0';
             modal.classList.add('hidden');
+            // Restaurar la lista de clientes
+            if (tableContainer) tableContainer.style.display = '';
 
         } catch (err) {
             console.error('Error:', err);
