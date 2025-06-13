@@ -828,42 +828,63 @@ def create_contract():
 @login_required
 def get_contract(contract_id):
     cur = mysql.connection.cursor()
-    
-    # Obtener contrato
-    cur.execute("SELECT * FROM client_policies WHERE id = %s", (contract_id,))
-    contract = cur.fetchone()
-    
-    if not contract:
+    # 1) Traer datos principales con JOIN
+    cur.execute("""
+        SELECT 
+            c.first_name, c.last_name,
+            p.name AS policy_name,
+            cp.premium_amount,
+            cp.payment_frequency,
+            cp.status
+        FROM client_policies cp
+        JOIN clients c ON cp.client_id = c.id
+        JOIN policies p ON cp.policy_id = p.id
+        WHERE cp.id = %s
+    """, (contract_id,))
+    row = cur.fetchone()
+    if not row:
+        cur.close()
         return jsonify({'error': 'Contrato no encontrado'}), 404
-    
-    # Obtener beneficiarios
-    cur.execute("SELECT name, relationship, percentage FROM beneficiaries WHERE contract_id = %s", (contract_id,))
-    beneficiaries = cur.fetchall()
-    
-    # Obtener documentos
-    cur.execute("SELECT doc_type, file_path FROM documents WHERE contract_id = %s", (contract_id,))
-    documents = cur.fetchall()
-    
+
+    client_name     = f"{row[0]} {row[1]}"
+    policy_name     = row[2]
+    premium_amount  = float(row[3])
+    payment_frequency = row[4]
+    status          = row[5]
+
+    # 2) Beneficiarios
+    cur.execute("""
+        SELECT name, relationship, percentage 
+        FROM beneficiaries 
+        WHERE contract_id = %s
+    """, (contract_id,))
+    beneficiaries = [
+        {'name': b[0], 'relationship': b[1], 'percentage': float(b[2])}
+        for b in cur.fetchall()
+    ]
+
+    # 3) Documentos
+    cur.execute("""
+        SELECT file_path 
+        FROM documents 
+        WHERE contract_id = %s
+    """, (contract_id,))
+    documents = [
+        {'filename': d[0], 
+         'url': url_for('serve_doc', contract_id=contract_id, filename=d[0])}
+        for d in cur.fetchall()
+    ]
+
     cur.close()
-    
+    # 4) Responder con los campos directos que tu JS espera
     return jsonify({
-        'contract': {
-            'id': contract[0],
-            'client_id': contract[1],
-            'policy_id': contract[2],
-            'premium_amount': float(contract[4]),
-            'payment_frequency': contract[5],
-            'status': contract[8]
-        },
-        'beneficiaries': [{
-            'name': b[0],
-            'relationship': b[1],
-            'percentage': float(b[2])
-        } for b in beneficiaries],
-        'documents': [{
-            'type': d[0],
-            'path': d[1]
-        } for d in documents]
+        'client_name': client_name,
+        'policy_name': policy_name,
+        'premium_amount': premium_amount,
+        'payment_frequency': payment_frequency,
+        'status': status,
+        'beneficiaries': beneficiaries,
+        'documents': documents
     })
 
 @app.route('/contracts/<int:contract_id>/upload_docs', methods=['POST'])

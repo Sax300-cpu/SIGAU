@@ -152,6 +152,8 @@ modal.classList.remove('hidden');
         const btnClose = document.getElementById('btn-close-modal');
         const inputCid = document.getElementById('input-contract-id');
         const formDocs = document.getElementById('form-completar');
+        const btnCancelarCompletar = modalCompletar.querySelector('#btn-cancelar');
+        const btnGuardarCompletar = modalCompletar.querySelector('#btn-guardar');
         const signaturePadCanvas = document.getElementById('signature-pad');
         let signature = null;
         // Esperar a que SignaturePad esté disponible (por el defer)
@@ -182,7 +184,13 @@ modal.classList.remove('hidden');
             modalCompletar.classList.remove('hidden');
           });
         });
-        // Cerrar modal
+        // Cerrar modal con botón cancelar
+        if (btnCancelarCompletar) {
+          btnCancelarCompletar.addEventListener('click', () => {
+            modalCompletar.classList.add('hidden');
+          });
+        }
+        // Cerrar modal con la X o el overlay
         [overlay, btnClose].forEach(el => el && el.addEventListener('click', () => {
           modalCompletar.classList.add('hidden');
         }));
