@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
       'Exámenes de laboratorio y diagnóstico',
       'Atención dental básica'
     ],
-    'Automóvil': [
+    'Automovil': [
       'Responsabilidad civil, colisión y robo total',
       'Daños materiales a terceros',
       'Gastos médicos a ocupantes',
@@ -93,7 +93,16 @@ document.addEventListener('DOMContentLoaded', () => {
     sections.forEach(s => s.classList.toggle('active', s.id === name + '-content'));
 
     if (name === 'usuarios') loadUsers();
-    if (name === 'seguros') loadPolicies();
+    if (name === 'seguros') {
+      loadPolicies();
+      // Reasignar evento click al botón Crear Seguro
+      const btnNewInsurance = document.getElementById('btn-new-insurance');
+      if (btnNewInsurance) {
+        btnNewInsurance.onclick = () => {
+          openInsuranceModal('Crear Seguro');
+        };
+      }
+    }
   }
 
   btns.forEach(b => b.onclick = () => showSection(b.dataset.content));
@@ -455,10 +464,10 @@ function showModal(message, onConfirm) {
 }
 
 // ==========================
-//  GESTIÓN DE SEGUROS (policies)
-// ==========================
-// 1) Cargar todas las pólizas
-async function loadPolicies() {
+  //  GESTIÓN DE SEGUROS (policies)
+  // ==========================
+  // 1) Cargar todas las pólizas
+  async function loadPolicies() {
     insurancesTbody.innerHTML = '';
     try {
       const res = await fetch('/policies');
@@ -544,28 +553,27 @@ async function loadPolicies() {
     insuranceForm.reset();
     editInsuranceId = id;
 
-    // Limpiar el select de cobertura
-    const coverageSelect = document.getElementById('i-coverage');
-    coverageSelect.innerHTML = '<option value="">Seleccione una cobertura</option>';
-
     if (id) {
-      // Modo edición: obtengo la póliza de /policies/:id
-      fetch(`/policies/${id}`)
-        .then(res => res.json())
-        .then(data => {
-          document.getElementById('i-name').value = data.name;
-          document.getElementById('i-type').value = data.type_id;
-          // Disparamos el change para rellenar las coberturas
-          document.getElementById('i-type').dispatchEvent(new Event('change'));
-          // Fijamos la cobertura actual del seguro
-          document.getElementById('i-coverage').value = data.coverage_details;
-          // Cargamos el valor real de beneficios
-          document.getElementById('i-benefits').value = data.benefits;
-          document.getElementById('i-cost').value = data.premium_amount;
-          document.getElementById('i-payment').value = data.payment_frequency;
-          document.getElementById('i-status').value = (data.status === 'active' ? '1' : '0');
-        })
-        .catch(err => console.error('Error cargando póliza para editar:', err));
+        // Modo edición: obtengo la póliza de /policies/:id
+        fetch(`/policies/${id}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('i-name').value = data.name;
+                document.getElementById('i-type').value = data.type_id;
+                
+                // Esperar un breve momento para asegurar que el DOM esté listo
+                setTimeout(() => {
+                    // Disparamos el change para rellenar las coberturas
+                    const event = new Event('change');
+                    document.getElementById('i-type').dispatchEvent(event);
+                    
+                    // Fijamos la cobertura actual del seguro
+                    document.getElementById('i-coverage').value = data.coverage_details;
+                }, 100);
+                
+                // Resto del código...
+            })
+            .catch(err => console.error('Error cargando póliza para editar:', err));
     }
 
     insuranceModal.classList.remove('hidden');
@@ -586,13 +594,11 @@ async function loadPolicies() {
   const typeSelect = document.getElementById('i-type');
   const benefitsTextarea = document.getElementById('i-benefits');
 
-  // Listener para actualizar coberturas cuando cambia el tipo de póliza
+// Listener para actualizar coberturas cuando cambia el tipo de póliza
   typeSelect.addEventListener('change', function() {
-    const selectedType = this.options[this.selectedIndex].text;
-    const coverageSelect = document.getElementById('i-coverage');
-    // Limpiar opciones actuales
-    coverageSelect.innerHTML = '<option value="">Seleccione una cobertura</option>';
-    // Añadir opciones según el tipo seleccionado
+    const selectedOption = this.options[this.selectedIndex];
+    const selectedType = selectedOption.text;
+    // Eliminar solo el llenado, no limpiar el select
     if (coverageTemplates[selectedType]) {
       coverageTemplates[selectedType].forEach(coverage => {
         const option = document.createElement('option');
@@ -606,6 +612,7 @@ async function loadPolicies() {
   // 9) Submit del formulario (Crear o Editar)
   insuranceForm.onsubmit = async e => {
     e.preventDefault();
+
     const name      = insuranceForm.name.value.trim();
     const type_id   = parseInt(document.getElementById('i-type').value);
     const coverage  = insuranceForm.coverage_id.value.trim();
@@ -613,6 +620,7 @@ async function loadPolicies() {
     const cost      = parseFloat(insuranceForm.cost.value);
     const payment   = insuranceForm.payment.value;
     const status    = insuranceForm.status.value === '1'; // true → 'active'
+
     // -------------- Validaciones adicionales --------------
     // 1) Nombre no puede estar vacío (o espacios) y sólo letras y espacios
     const nameRegex = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
@@ -622,6 +630,7 @@ async function loadPolicies() {
     if (!nameRegex.test(name)) {
       return alert('El nombre del seguro no puede contener números ni caracteres especiales.');
     }
+
     // 2) Cobertura y Beneficios no pueden ser sólo espacios
     if (!coverage) {
       return alert('Ingrese la cobertura de la póliza.');
@@ -629,15 +638,19 @@ async function loadPolicies() {
     if (!benefits) {
       return alert('Ingrese los beneficios de la póliza.');
     }
+
     // 3) Costo válido
     if (isNaN(cost) || cost <= 0) {
       return alert('Ingrese un costo válido mayor a cero.');
     }
+
     // 4) Tipo de póliza
     if (!type_id) {
       return alert('Seleccione un tipo de póliza.');
     }
+
     // -------------------------------------------------------
+
     const data = {
       name:              name,
       type_id:           type_id,
@@ -647,9 +660,11 @@ async function loadPolicies() {
       payment_frequency: payment,
       status:            status ? 'active' : 'inactive'
     };
+
     try {
       const url = editInsuranceId ? `/policies/${editInsuranceId}` : '/policies';
       const method = editInsuranceId ? 'PUT' : 'POST';
+      
       const response = await fetch(url, {
         method: method,
         headers: {
@@ -657,10 +672,12 @@ async function loadPolicies() {
         },
         body: JSON.stringify(data)
       });
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Error al guardar la póliza');
       }
+
       // Cerrar modal y recargar tabla
       document.getElementById('insurance-modal').classList.add('hidden');
       loadPolicies();
