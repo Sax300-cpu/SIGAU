@@ -207,7 +207,17 @@ modal.classList.remove('hidden');
             e.preventDefault();
             const fd = new FormData(formDocs);
             if (signature && !signature.isEmpty()) {
-              const blob = await new Promise(res => signature.toBlob(res, 'image/png'));
+              // Convertir la firma a dataURL y luego a Blob
+              const dataURL = signature.toDataURL('image/png');
+              function dataURLtoBlob(dataurl) {
+                var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+                  bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+                while(n--){
+                  u8arr[n] = bstr.charCodeAt(n);
+                }
+                return new Blob([u8arr], {type:mime});
+              }
+              const blob = dataURLtoBlob(dataURL);
               fd.append('signature', blob, 'firma.png');
             }
             const resp = await fetch('/contracts/' + inputCid.value + '/upload_docs', {
