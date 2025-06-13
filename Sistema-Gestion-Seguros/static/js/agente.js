@@ -224,9 +224,14 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const resp = await fetch(`/policies/${seguroId}`);
         if (!resp.ok) throw new Error('Error al obtener detalles del seguro');
-        
-        const seguro = await resp.json();
-        
+        let seguro;
+        try {
+            seguro = await resp.json();
+        } catch (jsonErr) {
+            detallesSeguroDiv.innerHTML = '<p style="color:red;">Error al procesar la respuesta del servidor. Intente de nuevo o contacte al administrador.</p>';
+            console.error('Respuesta no es JSON válida:', jsonErr);
+            return;
+        }
         if (!seguro) {
           detallesSeguroDiv.innerHTML = '<p style="color:red;">No se encontraron detalles.</p>';
         } else {

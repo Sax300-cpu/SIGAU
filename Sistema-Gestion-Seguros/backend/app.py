@@ -625,7 +625,7 @@ def create_policy():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/policies/<int:policy_id>', methods=['GET'])
-@admin_required
+@login_required
 def get_policy(policy_id):
     cur = mysql.connection.cursor()
     cur.execute("""
