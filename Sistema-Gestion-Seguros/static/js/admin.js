@@ -480,7 +480,7 @@ async function loadPolicies() {
           <button
             class="btn-detail"
             data-field="cobertura"
-            data-text="${policy.coverage_details.replace(/"/g, '&quot;')}"
+            data-text="${policy.coverage_details.replace(/\"/g, '&quot;')}"
           >
             <i class="fas fa-info-circle"></i>
           </button>
@@ -489,7 +489,7 @@ async function loadPolicies() {
           <button
             class="btn-detail"
             data-field="beneficios"
-            data-text="${policy.benefits ? policy.benefits.replace(/"/g, '&quot;') : ''}"
+            data-text="${policy.benefits ? policy.benefits.replace(/\"/g, '&quot;') : ''}"
           >
             <i class="fas fa-info-circle"></i>
           </button>
@@ -507,6 +507,9 @@ async function loadPolicies() {
         </td>`;
       insurancesTbody.appendChild(tr);
     });
+
+    // Depuración: mostrar en consola la lista de pólizas cargadas
+    console.log('Pólizas cargadas:', list);
 
     // 2) Listeners "Editar Seguro"
     document.querySelectorAll('.btn-edit-insurance').forEach(b => {

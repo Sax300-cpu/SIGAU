@@ -4,16 +4,35 @@ function actualizarTotalPorcentajeBeneficiarios() {
     let total = 0;
     
     beneficiarios.forEach(item => {
-        const input = item.querySelector('[name="beneficiario_porcentaje"]');
-        if (input) {
-            const porcentaje = parseFloat(input.value) || 0;
-            total += porcentaje;
+        const input = item.querySelector('input[name^="beneficiarios"][name$="[percentage]"]');
+        if (input && input.value) {
+            total += parseFloat(input.value) || 0;
         }
     });
-    
+
+    // Actualizar el span con el total
     const totalSpan = document.getElementById('total-beneficiarios-porcentaje');
     if (totalSpan) {
-        totalSpan.textContent = total;
+        totalSpan.textContent = Math.round(total);
+        
+        // Cambiar color según si suma 100% o no
+        if (Math.round(total) === 100) {
+            totalSpan.style.color = 'green';
+        } else {
+            totalSpan.style.color = 'red';
+        }
+    }
+
+    // Validar y mostrar mensaje si es necesario
+    const submitBtn = document.getElementById('btn-guardar');
+    if (submitBtn) {
+        if (beneficiarios.length > 0 && Math.round(total) !== 100) {
+            submitBtn.disabled = true;
+            submitBtn.title = 'La suma de porcentajes debe ser exactamente 100%';
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.title = '';
+        }
     }
 }
 
@@ -42,17 +61,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAgregarBeneficiario = document.getElementById('btn-agregar-beneficiario');
 
   if (btnAgregarBeneficiario && beneficiariosContainer) {
-    // Función para crear un nuevo beneficiario
-    const crearBeneficiarioHTML = () => `
-        <div class="beneficiario-item" style="margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 5px;">
+    // Función para crear HTML de beneficiario
+    const crearBeneficiarioHTML = (index) => `
+        <div class="beneficiario-item">
             <div class="form-row">
                 <div class="form-group">
                     <label>Nombre</label>
-                    <input type="text" name="beneficiario_nombre" class="form-control" required>
+                    <input type="text" name="beneficiarios[${index}][name]" required>
                 </div>
                 <div class="form-group">
                     <label>Relación</label>
-                    <select name="beneficiario_relacion" class="form-control" required>
+                    <select name="beneficiarios[${index}][relationship]" required>
                         <option value="">Seleccione relación</option>
                         <option value="Cónyuge">Cónyuge</option>
                         <option value="Hijo/a">Hijo/a</option>
@@ -63,22 +82,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="form-group">
                     <label>Porcentaje (%)</label>
-                    <input type="number" name="beneficiario_porcentaje" class="form-control" 
+                    <input type="number" name="beneficiarios[${index}][percentage]" 
                            min="1" max="100" required oninput="actualizarTotalPorcentajeBeneficiarios()">
                 </div>
-                <div class="form-group" style="display: flex; align-items: flex-end;">
-                    <button type="button" class="btn btn-danger" 
-                            onclick="this.closest('.beneficiario-item').remove(); actualizarTotalPorcentajeBeneficiarios()">
-                        <i class="fas fa-times"></i> Eliminar
-                    </button>
-                </div>
+                <button type="button" onclick="this.closest('.beneficiario-item').remove(); actualizarTotalPorcentajeBeneficiarios()">
+                    ×
+                </button>
             </div>
         </div>
     `;
 
     // Evento para agregar beneficiario
     btnAgregarBeneficiario.addEventListener('click', () => {
-        beneficiariosContainer.insertAdjacentHTML('beforeend', crearBeneficiarioHTML());
+        const index = document.querySelectorAll('.beneficiario-item').length;
+        beneficiariosContainer.insertAdjacentHTML('beforeend', crearBeneficiarioHTML(index));
         actualizarTotalPorcentajeBeneficiarios();
     });
 
@@ -382,57 +399,84 @@ document.addEventListener('DOMContentLoaded', () => {
     // Evento submit del formulario (único manejador)
     formContratoMejorado.addEventListener('submit', async e => {
         e.preventDefault();
-        console.log("Iniciando envío del formulario...");
-        
-        const formData = new FormData(formContratoMejorado);
-        
-        // Agregar campos manualmente para asegurar que se incluyan
-        formData.append('client_id', inputClientIdMejorado.value);
-        formData.append('policy_id', selectSeguroMejorado.value);
-        formData.append('premium_amount', inputPrimaMejorado.value);
-        formData.append('payment_frequency', selectFrecuenciaMejorado.value);
 
-        // Mostrar datos que se enviarán (solo para depuración)
-        for (let [key, value] of formData.entries()) {
-            console.log(key, value);
-        }
+        // Crear objeto con los datos básicos
+        const contractData = {
+            client_id: inputClientIdMejorado.value,
+            policy_id: selectSeguroMejorado.value,
+            premium_amount: inputPrimaMejorado.value,
+            payment_frequency: selectFrecuenciaMejorado.value
+        };
+
+        // Depuración: Mostrar los datos básicos
+        console.log('Datos básicos del contrato:', contractData);
+
+        // Crear FormData y agregar los campos básicos
+        const formData = new FormData();
+        Object.entries(contractData).forEach(([key, value]) => {
+            formData.append(key, value);
+        });
+
+        // Agregar beneficiarios
+        const beneficiarios = [];
+        document.querySelectorAll('.beneficiario-item').forEach((item, index) => {
+            beneficiarios.push({
+                name: item.querySelector('[name^="beneficiarios["]').value,
+                relationship: item.querySelector('[name$="[relationship]"]').value,
+                percentage: item.querySelector('[name$="[percentage]"]').value
+            });
+        });
 
         // Validar beneficiarios
-        const beneficiarios = Array.from(document.querySelectorAll('.beneficiario-item'));
-        const totalPorcentaje = beneficiarios.reduce((total, item) => {
-            const input = item.querySelector('[name="beneficiario_porcentaje"]');
-            return total + parseFloat(input ? input.value : 0);
-        }, 0);
-        
-        if (beneficiarios.length > 0 && Math.round(totalPorcentaje) !== 100) {
+        if (beneficiarios.length === 0) {
+            showNotification('error', 'Debe agregar al menos un beneficiario');
+            return;
+        }
+
+        // Validar porcentaje de beneficiarios (suma = 100%)
+        const totalPercentage = beneficiarios.reduce((sum, b) => sum + parseFloat(b.percentage), 0);
+        if (Math.abs(totalPercentage - 100) > 0.01) {
             showNotification('error', 'La suma de porcentajes debe ser exactamente 100%');
             return;
         }
 
-        // Agregar beneficiarios
-        beneficiarios.forEach((item, index) => {
-            formData.append(`beneficiarios[${index}][name]`, item.querySelector('[name="beneficiario_nombre"]').value);
-            formData.append(`beneficiarios[${index}][relationship]`, item.querySelector('[name="beneficiario_relacion"]').value);
-            formData.append(`beneficiarios[${index}][percentage]`, item.querySelector('[name="beneficiario_porcentaje"]').value);
+        // Agregar beneficiarios al FormData
+        beneficiarios.forEach((b, i) => {
+            formData.append(`beneficiarios[${i}][name]`, b.name);
+            formData.append(`beneficiarios[${i}][relationship]`, b.relationship);
+            formData.append(`beneficiarios[${i}][percentage]`, b.percentage);
         });
 
-        // Mostrar loader
-        const submitBtn = document.getElementById('btn-guardar');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+        // Agregar archivos si existen
+        const documentosInput = document.getElementById('input-documentos');
+        if (documentosInput && documentosInput.files.length > 0) {
+            for (let i = 0; i < documentosInput.files.length; i++) {
+                formData.append('documents', documentosInput.files[i]);
+            }
+        }
 
+        // Verificar que los campos requeridos están presentes
+        const requiredFields = ['client_id', 'policy_id', 'premium_amount', 'payment_frequency'];
+        for (const field of requiredFields) {
+            if (!formData.get(field)) {
+                showNotification('error', `El campo ${field} es requerido`);
+                throw new Error(`Campo requerido faltante: ${field}`);
+            }
+        }
+
+        // Depuración: Mostrar todos los datos del FormData
+        for (let [key, value] of formData.entries()) {
+            console.log(key, value);
+        }
+
+        // Enviar los datos
         try {
-            console.log("Enviando datos al servidor...");
             const response = await fetch('/contracts', {
                 method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
-                }
+                body: formData
             });
-
             console.log("Respuesta recibida:", response);
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error("Error del servidor:", errorData);
@@ -452,13 +496,10 @@ document.addEventListener('DOMContentLoaded', () => {
             beneficiariosContainerMejorado.innerHTML = '';
             document.getElementById('total-beneficiarios-porcentaje').textContent = '0';
             modal.classList.add('hidden');
-            
-        } catch (error) {
-            console.error("Error completo:", error);
-            showNotification('error', error.message);
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Guardar Contrato';
+
+        } catch (err) {
+            console.error('Error:', err);
+            showNotification('error', err.message);
         }
     });
   }
@@ -471,10 +512,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const tr = e.target.closest('tr');
         const nombre = tr.children[0].textContent;
         const email = tr.children[1].textContent;
-        const clientId = e.target.getAttribute('data-id');
+        const clientId = e.target.getAttribute('data-id') || e.target.getAttribute('data-client-id');
         if (inputClientName && inputClientId) {
           inputClientName.value = `${nombre} (${email})`;
           inputClientId.value = clientId;
+        }
+        // --- Para el formulario mejorado ---
+        if (inputClientIdMejorado) {
+          inputClientIdMejorado.value = clientId;
         }
         if (modal) modal.classList.remove('hidden');
         if (tableContainer) tableContainer.style.display = 'none';

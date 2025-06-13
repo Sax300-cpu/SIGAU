@@ -688,6 +688,10 @@ def delete_policy(policy_id):
 @app.route('/contracts', methods=['POST'])
 @login_required
 def create_contract():
+    # para ver exactamente qué campos y archivos estás recibiendo:
+    print("DEBUG form keys:", request.form.to_dict(flat=False))
+    print("DEBUG files:", request.files)
+    
     try:
         # Verificar que el usuario es agente
         if session.get('role_id') != 2:
@@ -755,6 +759,7 @@ def create_contract():
                         VALUES (%s, %s, %s)
                     """, (contract_id, 'contract_doc', filepath))
 
+        # Hacer commit una sola vez después de todos los INSERT
         mysql.connection.commit()
         cur.close()
 
