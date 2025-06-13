@@ -179,21 +179,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (user.role_id === 3) {
                     // Cliente: mostrar campos adicionales
                     clientFields.style.display = 'block';
-                    document.getElementById('u-first-name').value = user.first_name || '';
-                    document.getElementById('u-last-name').value = user.last_name || '';
+                    const fullNameField = document.getElementById('u-full-name');
+                    if (fullNameField) {
+                      const nombreCompleto = [user.first_name, user.last_name].filter(Boolean).join(' ');
+                      fullNameField.value = nombreCompleto;
+                    }
                     document.getElementById('u-dob').value = user.dob || '';
                     document.getElementById('u-phone').value = user.phone || '';
                     document.getElementById('u-address').value = user.address || '';
-                    
-                    // Agregar required solo para clientes
-                    document.getElementById('u-first-name').setAttribute('required', 'true');
-                    document.getElementById('u-last-name').setAttribute('required', 'true');
+                    if (fullNameField) fullNameField.setAttribute('required', 'true');
                     document.getElementById('u-dob').setAttribute('required', 'true');
                 } else {
                     // Admin o Agente
                     clientFields.style.display = 'none';
-                    document.getElementById('u-first-name').value = user.first_name || '';
-                    document.getElementById('u-last-name').value = user.last_name || '';
+                    const fullNameField = document.getElementById('u-full-name');
+                    if (fullNameField) fullNameField.removeAttribute('required');
+                    document.getElementById('u-dob').removeAttribute('required');
                 }
             })
             .catch(err => {
@@ -232,12 +233,19 @@ document.querySelectorAll('.user-type-btn').forEach(b => {
     userTypeSelection.classList.remove('active');
     userForm.classList.add('active');
 
+    // Manejo seguro de campos de cliente
+    const fullNameField = document.getElementById('u-full-name');
+    const dobField = document.getElementById('u-dob');
     if (tipo === 'client') {
       clientFields.style.display = 'block';
       document.getElementById('u-role').value = 3;
+      if (fullNameField) fullNameField.setAttribute('required', 'true');
+      if (dobField) dobField.setAttribute('required', 'true');
     } else {
       clientFields.style.display = 'none';
       document.getElementById('u-role').value = tipo === 'admin' ? 1 : 2;
+      if (fullNameField) fullNameField.removeAttribute('required');
+      if (dobField) dobField.removeAttribute('required');
     }
   };
 });
@@ -253,8 +261,6 @@ document.getElementById('back-to-selection').onclick = () => {
 // 5) Envío del formulario de usuario (Crear o Editar)
 userForm.onsubmit = async e => {
   e.preventDefault();
-  
-  // Validar todos los campos antes de enviar
   const username = userForm.username.value.trim();
   const email = userForm.email.value.trim();
   const password = userForm.password.value.trim();
@@ -281,42 +287,31 @@ userForm.onsubmit = async e => {
     return;
   }
 
-  const data = { 
-    username, 
-    email, 
-    role_id: roleId,
-    first_name: '',
-    last_name: ''
-  };
-  
+  // Solo validar/enviar campos de cliente si es cliente
+  let data = { username, email, role_id: roleId };
   if (password) data.password = password;
-
   if (roleId === 3) {
-    // Para clientes, validar nombre completo
     const fullName = userForm.full_name.value.trim();
-    const validation = validarNombreCompleto(fullName);
-    if (!validation.valid) {
-      userForm.full_name.setCustomValidity(validation.message);
+    const dob = userForm.dob.value;
+    if (!fullName) {
+      userForm.full_name.setCustomValidity('El nombre completo es obligatorio para clientes');
       userForm.full_name.reportValidity();
       return;
     }
-    
-    // Separar nombre completo en nombre y apellido
-    const nameParts = fullName.split(' ');
-    data.first_name = nameParts[0] || '';
-    data.last_name = nameParts.slice(1).join(' ') || '';
-    
-    data.dob = userForm.dob.value;
-    data.phone = userForm.phone.value.trim();
-    data.address = userForm.address.value.trim();
-
-    if (!data.dob) {
+    if (!dob) {
       userForm.dob.setCustomValidity('La fecha de nacimiento es obligatoria para clientes');
       userForm.dob.reportValidity();
       return;
     }
+    // Separar nombre completo en nombre y apellido
+    const nameParts = fullName.split(' ');
+    data.first_name = nameParts[0] || '';
+    data.last_name = nameParts.slice(1).join(' ') || '';
+    data.dob = dob;
+    data.phone = userForm.phone.value.trim();
+    data.address = userForm.address.value.trim();
   }
-
+  
   const url = editId ? `/users/${editId}` : '/users';
   const method = editId ? 'PUT' : 'POST';
 

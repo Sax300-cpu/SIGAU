@@ -235,9 +235,9 @@ def create_user():
         if not username or not email or not password or not role_id:
             return jsonify({"error": "Faltan campos obligatorios"}), 400
 
-        # Validar nombre y apellido para todos los roles
-        if not first_name or not last_name:
-            return jsonify({"error": "Nombre y apellido son obligatorios"}), 400
+        # Solo exigir nombre y apellido para clientes
+        if int(role_id) == 3 and (not first_name or not last_name):
+            return jsonify({"error": "Nombre y apellido son obligatorios para clientes"}), 400
 
         pw_hash = generate_password_hash(password)
         cur = mysql.connection.cursor()
