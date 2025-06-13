@@ -104,11 +104,36 @@ document.addEventListener('DOMContentLoaded', function() {
             if (resp.ok) {
               alert('Documentos guardados 🎉');
               modalCompletar.classList.add('hidden');
-              location.reload();
+              // Cambiar el estado visual del botón a 'Activo'
+              const btnStatus = document.querySelector('.status-toggle-btn[data-contract-id="' + inputCid.value + '"]');
+              if (btnStatus) {
+                btnStatus.textContent = 'Activo';
+                btnStatus.classList.add('active');
+                btnStatus.classList.remove('pending');
+                btnStatus.setAttribute('data-status', 'active');
+              }
+              // location.reload(); // Quitar recarga para mantener el estado visual
             } else {
               alert('Error guardando documentos');
             }
           });
         }
       }
+    
+    // === (8) Botón de cambio de estado (Activo/Pendiente) ===
+    document.querySelectorAll('.status-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const current = btn.getAttribute('data-status');
+            // Cambia visualmente el estado (no afecta backend)
+            if (current === 'active') {
+                btn.textContent = 'Pendiente';
+                btn.classList.remove('active');
+                btn.setAttribute('data-status', 'pending');
+            } else {
+                btn.textContent = 'Activo';
+                btn.classList.add('active');
+                btn.setAttribute('data-status', 'active');
+            }
+        });
+    });
 });

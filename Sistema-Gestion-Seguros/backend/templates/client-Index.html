@@ -102,9 +102,12 @@
             {% for c in contracts %}
               <div class="insurance-card">
                 <h3>{{ c.name }}</h3>
-                <div class="status {{ 'active' if c.status=='active' else '' }}">
-                  {{ c.status }}
-                </div>
+                <button class="status-toggle-btn status pending"
+                        data-contract-id="{{ c.id }}"
+                        data-status="pending"
+                        style="border:none;outline:none;cursor:pointer;min-width:70px;">
+                  Pendiente
+                </button>
                 <div class="details">
                   <p><strong>N.º de contrato:</strong> {{ c.id }}</p>
                   <p><strong>Pago {{ c.freq|lower }}:</strong> ${{ c.amount }}</p>
