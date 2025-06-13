@@ -463,7 +463,7 @@ function showModal(message, onConfirm) {
   btnCancel.onclick = () => modalConfirm.classList.add('hidden');
 }
 
-// ==========================
+  // ==========================
   //  GESTIÓN DE SEGUROS (policies)
   // ==========================
   // 1) Cargar todas las pólizas
@@ -553,27 +553,28 @@ function showModal(message, onConfirm) {
     insuranceForm.reset();
     editInsuranceId = id;
 
+    // Limpiar el select de cobertura
+    const coverageSelect = document.getElementById('i-coverage');
+    coverageSelect.innerHTML = '<option value="">Seleccione una cobertura</option>';
+
     if (id) {
-        // Modo edición: obtengo la póliza de /policies/:id
-        fetch(`/policies/${id}`)
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('i-name').value = data.name;
-                document.getElementById('i-type').value = data.type_id;
-                
-                // Esperar un breve momento para asegurar que el DOM esté listo
-                setTimeout(() => {
-                    // Disparamos el change para rellenar las coberturas
-                    const event = new Event('change');
-                    document.getElementById('i-type').dispatchEvent(event);
-                    
-                    // Fijamos la cobertura actual del seguro
-                    document.getElementById('i-coverage').value = data.coverage_details;
-                }, 100);
-                
-                // Resto del código...
-            })
-            .catch(err => console.error('Error cargando póliza para editar:', err));
+      // Modo edición: obtengo la póliza de /policies/:id
+      fetch(`/policies/${id}`)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('i-name').value = data.name;
+          document.getElementById('i-type').value = data.type_id;
+          // Disparamos el change para rellenar las coberturas
+          document.getElementById('i-type').dispatchEvent(new Event('change'));
+          // Fijamos la cobertura actual del seguro
+          document.getElementById('i-coverage').value = data.coverage_details;
+          // Cargamos el valor real de beneficios
+          document.getElementById('i-benefits').value = data.benefits;
+          document.getElementById('i-cost').value = data.premium_amount;
+          document.getElementById('i-payment').value = data.payment_frequency;
+          document.getElementById('i-status').value = (data.status === 'active' ? '1' : '0');
+        })
+        .catch(err => console.error('Error cargando póliza para editar:', err));
     }
 
     insuranceModal.classList.remove('hidden');
@@ -594,11 +595,15 @@ function showModal(message, onConfirm) {
   const typeSelect = document.getElementById('i-type');
   const benefitsTextarea = document.getElementById('i-benefits');
 
-// Listener para actualizar coberturas cuando cambia el tipo de póliza
+  // Listener para actualizar coberturas cuando cambia el tipo de póliza
   typeSelect.addEventListener('change', function() {
-    const selectedOption = this.options[this.selectedIndex];
-    const selectedType = selectedOption.text;
-    // Eliminar solo el llenado, no limpiar el select
+    const selectedType = this.options[this.selectedIndex].text;
+    const coverageSelect = document.getElementById('i-coverage');
+    
+    // Limpiar opciones actuales
+    coverageSelect.innerHTML = '<option value="">Seleccione una cobertura</option>';
+    
+    // Añadir opciones según el tipo seleccionado
     if (coverageTemplates[selectedType]) {
       coverageTemplates[selectedType].forEach(coverage => {
         const option = document.createElement('option');

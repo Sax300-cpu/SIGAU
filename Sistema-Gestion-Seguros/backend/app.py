@@ -28,6 +28,7 @@ app.config['MYSQL_USER']     = os.getenv('DB_USER')
 app.config['MYSQL_PASSWORD'] = os.getenv('DB_PASSWORD')
 app.config['MYSQL_DB']       = os.getenv('DB_NAME')
 
+
 # Carpeta raíz de tu proyecto
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -594,12 +595,15 @@ def get_policies():
 def create_policy():
     try:
         data = request.get_json()
+        
         # Validar datos requeridos
         required_fields = ['name', 'type_id', 'coverage', 'benefits', 'premium_amount', 'payment_frequency']
         for field in required_fields:
             if field not in data:
                 return jsonify({'error': f'Campo requerido: {field}'}), 400
+
         cur = mysql.connection.cursor()
+        
         # Insertar la póliza
         cur.execute("""
             INSERT INTO policies (
@@ -616,10 +620,13 @@ def create_policy():
             data['payment_frequency'],
             data.get('status', 'pending')
         ))
+        
         mysql.connection.commit()
         new_policy_id = cur.lastrowid
         cur.close()
+        
         return jsonify({'id': new_policy_id}), 201
+        
     except Exception as e:
         print("Error al crear póliza:", str(e))
         return jsonify({'error': str(e)}), 500
@@ -647,6 +654,7 @@ def get_policy(policy_id):
     cur.close()
     if not row:
         return jsonify({"error": "Póliza no encontrada"}), 404
+
     policy = {
         "id":                row[0],
         "name":              row[1],
@@ -665,12 +673,15 @@ def get_policy(policy_id):
 def update_policy(policy_id):
     try:
         data = request.get_json()
+        
         # Validar datos requeridos
         required_fields = ['name', 'type_id', 'coverage', 'benefits', 'premium_amount', 'payment_frequency']
         for field in required_fields:
             if field not in data:
                 return jsonify({'error': f'Campo requerido: {field}'}), 400
+
         cur = mysql.connection.cursor()
+        
         # Actualizar la póliza
         cur.execute("""
             UPDATE policies 
@@ -692,9 +703,12 @@ def update_policy(policy_id):
             data.get('status', 'pending'),
             policy_id
         ))
+        
         mysql.connection.commit()
         cur.close()
+        
         return jsonify({'success': True}), 200
+        
     except Exception as e:
         print("Error al actualizar póliza:", str(e))
         return jsonify({'error': str(e)}), 500
