@@ -27,8 +27,15 @@ app.config['MYSQL_USER']     = os.getenv('DB_USER')
 app.config['MYSQL_PASSWORD'] = os.getenv('DB_PASSWORD')
 app.config['MYSQL_DB']       = os.getenv('DB_NAME')
 
+# Carpeta raíz de tu proyecto
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Directorio donde guardaremos subcarpetas por contrato
+UPLOAD_ROOT = os.path.join(BASE_DIR, 'uploads', 'contracts')
+os.makedirs(UPLOAD_ROOT, exist_ok=True)
+
 # Configuración para uploads
-app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_ROOT
 app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx'}
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
 
@@ -734,32 +741,26 @@ def create_contract():
         """, (client_id, policy_id, session['user_id'], premium_amount, payment_frequency))
         
         contract_id = cur.lastrowid
+        mysql.connection.commit()  # Commit tras crear el contrato y obtener el ID
 
-        # 2. Agregar beneficiarios
-        for beneficiario in beneficiarios:
-            cur.execute("""
-                INSERT INTO beneficiaries
-                (contract_id, name, relationship, percentage)
-                VALUES (%s, %s, %s, %s)
-            """, (contract_id, beneficiario['name'], beneficiario['relationship'], beneficiario['percentage']))
+        # 1) Creamos carpeta específica para este contrato
+        contract_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(contract_id))
+        os.makedirs(contract_folder, exist_ok=True)
 
-        # 3. Guardar documentos
-        if 'documents' in request.files:
-            for file in request.files.getlist('documents'):
-                if file.filename != '':
-                    # Guardar el archivo (en producción usar AWS S3 o similar)
-                    filename = secure_filename(file.filename)
-                    filepath = os.path.join('uploads', filename)
-                    os.makedirs('uploads', exist_ok=True)
-                    file.save(filepath)
+        # 2) Recorremos los archivos subidos en el campo 'documents'
+        for f in request.files.getlist('documents'):
+            if f.filename:
+                filename = secure_filename(f.filename)
+                save_path = os.path.join(contract_folder, filename)
+                f.save(save_path)
 
-                    cur.execute("""
-                        INSERT INTO documents
-                        (contract_id, doc_type, file_path)
-                        VALUES (%s, %s, %s)
-                    """, (contract_id, 'contract_doc', filepath))
+                # 3) Registramos en la tabla documents
+                cur.execute("""
+                    INSERT INTO documents (contract_id, file_path)
+                    VALUES (%s, %s)
+                """, (contract_id, filename))
 
-        # Hacer commit una sola vez después de todos los INSERT
+        # 4) Commit final con los inserts de documentos
         mysql.connection.commit()
         cur.close()
 
