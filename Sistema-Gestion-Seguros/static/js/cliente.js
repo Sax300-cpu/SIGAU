@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('Tienes 3 notificaciones nuevas');
     });
 
-    // === (7) “Ver detalles” de pólizas existentes ===
+    // === (7) "Ver detalles" de pólizas existentes ===
     document.querySelectorAll('.btn-details').forEach(btn => {
         btn.addEventListener('click', function() {
             const card = this.closest('.insurance-card');
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }
         initSignaturePad();
-        // Abrir modal al click en cualquier “Completar documentos”
+        // Abrir modal al click en cualquier "Completar documentos"
         document.querySelectorAll('.btn-completar-docs').forEach(btn => {
           btn.addEventListener('click', async () => {
             const id = btn.dataset.contractId;
@@ -82,6 +82,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (formDocs) {
           formDocs.addEventListener('submit', async e => {
             e.preventDefault();
+
+            // CONFIRMACIÓN ANTES DE ENVIAR
+            const seguro = window.confirm("¿Está seguro que quiere enviar el documento? Una vez enviado no podrá modificarlo.");
+            if (!seguro) {
+              return; // Si cancela, no se envía nada
+            }
+
             const fd = new FormData(formDocs);
             if (signature && !signature.isEmpty()) {
               // Convertir la firma a dataURL y luego a Blob
