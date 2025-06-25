@@ -42,9 +42,53 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }
         initSignaturePad();
+
+        // --- CONTROL DE BLOQUEO SI YA EXISTE DOCUMENTO FIRMADO ---
+        // Función para bloquear el botón si ya existe documento firmado
+        async function controlarBotonCompletarDocs() {
+          const btnsCompletar = document.querySelectorAll('.btn-completar-docs');
+          for (const btn of btnsCompletar) {
+            const id = btn.dataset.contractId;
+            // Consultar los documentos del contrato
+            const res = await fetch(`/contracts/${id}`);
+            const data = await res.json();
+            const existeFirmado = (data.documents || []).some(doc => doc.filename === 'documento_firmado.pdf');
+            if (existeFirmado) {
+              btn.textContent = 'Pendiente de confirmación';
+              btn.classList.add('disabled');
+              btn.disabled = true;
+              btn.style.cursor = 'not-allowed';
+              btn.title = 'Ya enviaste tus documentos, espera confirmación del agente.';
+            } else {
+              btn.textContent = 'Completar documentos';
+              btn.classList.remove('disabled');
+              btn.disabled = false;
+              btn.style.cursor = '';
+              btn.title = '';
+            }
+          }
+        }
+        // Llamar al cargar la página
+        controlarBotonCompletarDocs();
+
         // Abrir modal al click en cualquier "Completar documentos"
         document.querySelectorAll('.btn-completar-docs').forEach(btn => {
           btn.addEventListener('click', async () => {
+            // Si el botón está deshabilitado, no hacer nada
+            if (btn.disabled || btn.classList.contains('disabled')) {
+              // Opcional: mostrar un modal o notificación
+              const modalNotificacion = document.getElementById('modal-notificacion');
+              const notificacionTitulo = document.getElementById('notificacion-titulo');
+              const notificacionMensaje = document.getElementById('notificacion-mensaje');
+              const btnCerrarNotificacion = document.getElementById('btn-cerrar-notificacion');
+              notificacionTitulo.textContent = 'Pendiente de confirmación';
+              notificacionMensaje.textContent = 'Ya enviaste tus documentos, espera confirmación del agente.';
+              modalNotificacion.classList.remove('hidden');
+              btnCerrarNotificacion.onclick = function() {
+                modalNotificacion.classList.add('hidden');
+              };
+              return;
+            }
             const id = btn.dataset.contractId;
             const res = await fetch(`/contracts/${id}`);
             const data = await res.json();
