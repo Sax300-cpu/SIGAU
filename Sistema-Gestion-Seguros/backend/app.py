@@ -11,6 +11,12 @@ from models import init_db
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 import time
+import io
+from PyPDF2 import PdfReader, PdfWriter
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.utils import ImageReader
+from PIL import Image
 
 # ===================================
 # Carga de configuración y BD 
@@ -32,7 +38,7 @@ app.config['MYSQL_DB']       = os.getenv('DB_NAME')
 # Carpeta raíz de tu proyecto
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Directorio donde guardaremos subcarpetas por contrato
+# Directorio donde guardaremos subcarpetas por contratosw
 UPLOAD_ROOT = os.path.join(BASE_DIR, 'uploads', 'contracts')
 os.makedirs(UPLOAD_ROOT, exist_ok=True)
 
@@ -901,6 +907,41 @@ def get_contract(contract_id):
         'documents': documents
     })
 
+def add_signature_to_pdf(pdf_path, signature_path, output_path):
+    reader = PdfReader(pdf_path)
+    writer = PdfWriter()
+
+    for page in reader.pages:
+        writer.add_page(page)
+
+    # --- Convertir la firma a fondo blanco ---
+    with Image.open(signature_path) as im:
+        if im.mode in ('RGBA', 'LA'):
+            bg = Image.new("RGB", im.size, (255, 255, 255))
+            bg.paste(im, mask=im.split()[3])  # 3 es el canal alpha
+            temp_signature_path = signature_path + "_whitebg.png"
+            bg.save(temp_signature_path, "PNG")
+            signature_to_use = temp_signature_path
+        else:
+            signature_to_use = signature_path
+
+    packet = io.BytesIO()
+    can = canvas.Canvas(packet, pagesize=letter)
+    can.drawString(100, 100, "Firma del cliente:")
+    can.drawImage(ImageReader(signature_to_use), 200, 80, width=150, height=50)
+    can.save()
+    packet.seek(0)
+
+    signature_pdf = PdfReader(packet)
+    writer.add_page(signature_pdf.pages[0])
+
+    with open(output_path, 'wb') as f:
+        writer.write(f)
+
+    # Opcional: borrar el archivo temporal
+    if 'temp_signature_path' in locals():
+        os.remove(temp_signature_path)
+
 @app.route('/contracts/<int:contract_id>/upload_docs', methods=['POST'])
 @login_required
 def upload_docs(contract_id):
@@ -908,20 +949,41 @@ def upload_docs(contract_id):
     # Carpeta
     folder = os.path.join(app.config['UPLOAD_FOLDER'], str(contract_id))
     os.makedirs(folder, exist_ok=True)
+
+    # Variables para saber si hay PDF y firma
+    pdf_path = None
+    signature_path = None
+
     # Archivos
     for f in request.files.getlist('documents'):
         if f.filename:
             fname = secure_filename(f.filename)
-            f.save(os.path.join(folder, fname))
+            save_path = os.path.join(folder, fname)
+            f.save(save_path)
             cur.execute("INSERT INTO documents (contract_id, file_path) VALUES (%s,%s)",
                         (contract_id, fname))
+            # Si es PDF, lo guardamos para unir la firma
+            if fname.lower().endswith('.pdf'):
+                pdf_path = save_path
+
     # Firma
     sig = request.files.get('signature')
     if sig:
         fname = f"firma_{int(time.time())}.png"
-        sig.save(os.path.join(folder, fname))
+        sig_path = os.path.join(folder, fname)
+        sig.save(sig_path)
         cur.execute("INSERT INTO documents (contract_id, file_path) VALUES (%s,%s)",
                     (contract_id, fname))
+        signature_path = sig_path
+
+    # Si hay PDF y firma, unirlos
+    if pdf_path and signature_path:
+        output_path = os.path.join(folder, 'documento_firmado.pdf')
+        add_signature_to_pdf(pdf_path, signature_path, output_path)
+        # Registrar el PDF firmado en la base de datos
+        cur.execute("INSERT INTO documents (contract_id, file_path) VALUES (%s,%s)",
+                    (contract_id, 'documento_firmado.pdf'))
+
     mysql.connection.commit()
     cur.close()
     return ('', 204)
