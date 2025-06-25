@@ -80,50 +80,74 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         // Enviar documentos + firma
         if (formDocs) {
+          let submitPending = null; // Para guardar el evento submit pendiente
+
           formDocs.addEventListener('submit', async e => {
             e.preventDefault();
 
-            // CONFIRMACIÓN ANTES DE ENVIAR
-            const seguro = window.confirm("¿Está seguro que quiere enviar el documento? Una vez enviado no podrá modificarlo.");
-            if (!seguro) {
-              return; // Si cancela, no se envía nada
-            }
-
-            const fd = new FormData(formDocs);
-            if (signature && !signature.isEmpty()) {
-              // Convertir la firma a dataURL y luego a Blob
-              const dataURL = signature.toDataURL('image/png');
-              function dataURLtoBlob(dataurl) {
-                var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
-                  bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
-                while(n--){
-                  u8arr[n] = bstr.charCodeAt(n);
+            // Mostrar modal de confirmación
+            submitPending = async () => {
+              const fd = new FormData(formDocs);
+              if (signature && !signature.isEmpty()) {
+                // Convertir la firma a dataURL y luego a Blob
+                const dataURL = signature.toDataURL('image/png');
+                function dataURLtoBlob(dataurl) {
+                  var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+                    bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+                  while(n--){
+                    u8arr[n] = bstr.charCodeAt(n);
+                  }
+                  return new Blob([u8arr], {type:mime});
                 }
-                return new Blob([u8arr], {type:mime});
+                const blob = dataURLtoBlob(dataURL);
+                fd.append('signature', blob, 'firma.png');
               }
-              const blob = dataURLtoBlob(dataURL);
-              fd.append('signature', blob, 'firma.png');
-            }
-            const resp = await fetch('/contracts/' + inputCid.value + '/upload_docs', {
-              method: 'POST',
-              body: fd
-            });
-            if (resp.ok) {
-              alert('Documentos guardados 🎉');
-              modalCompletar.classList.add('hidden');
-              // Cambiar el estado visual del botón a 'Activo'
-              const btnStatus = document.querySelector('.status-toggle-btn[data-contract-id="' + inputCid.value + '"]');
-              if (btnStatus) {
-                btnStatus.textContent = 'Activo';
-                btnStatus.classList.add('active');
-                btnStatus.classList.remove('pending');
-                btnStatus.setAttribute('data-status', 'active');
+              const resp = await fetch('/contracts/' + inputCid.value + '/upload_docs', {
+                method: 'POST',
+                body: fd
+              });
+              if (resp.ok) {
+                // Mostrar modal de notificación elegante
+                const modalNotificacion = document.getElementById('modal-notificacion');
+                const notificacionTitulo = document.getElementById('notificacion-titulo');
+                const notificacionMensaje = document.getElementById('notificacion-mensaje');
+                const btnCerrarNotificacion = document.getElementById('btn-cerrar-notificacion');
+                notificacionTitulo.textContent = '¡Éxito!';
+                notificacionMensaje.textContent = 'Documentos guardados 🎉';
+                modalNotificacion.classList.remove('hidden');
+                btnCerrarNotificacion.onclick = function() {
+                  modalNotificacion.classList.add('hidden');
+                };
+                modalCompletar.classList.add('hidden');
+                // Cambiar el estado visual del botón a 'Activo'
+                const btnStatus = document.querySelector('.status-toggle-btn[data-contract-id="' + inputCid.value + '"]');
+                if (btnStatus) {
+                  btnStatus.textContent = 'Activo';
+                  btnStatus.classList.add('active');
+                  btnStatus.classList.remove('pending');
+                  btnStatus.setAttribute('data-status', 'active');
+                }
+                // location.reload(); // Quitar recarga para mantener el estado visual
+              } else {
+                alert('Error guardando documentos');
               }
-              // location.reload(); // Quitar recarga para mantener el estado visual
-            } else {
-              alert('Error guardando documentos');
-            }
+            };
+
+            document.getElementById('modal-confirmacion-envio').classList.remove('hidden');
           });
+
+          // Botones del modal
+          document.getElementById('btn-cancelar-envio').onclick = function() {
+            document.getElementById('modal-confirmacion-envio').classList.add('hidden');
+            submitPending = null;
+          };
+          document.getElementById('btn-confirmar-envio').onclick = async function() {
+            document.getElementById('modal-confirmacion-envio').classList.add('hidden');
+            if (submitPending) {
+              await submitPending();
+              submitPending = null;
+            }
+          };
         }
       }
     

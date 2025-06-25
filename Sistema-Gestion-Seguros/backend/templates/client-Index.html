@@ -132,7 +132,7 @@
   </div>
 
   <!-- ============================= -->
-  <!-- Modal “Completar documentos” -->
+  <!-- Modal "Completar documentos" -->
   <!-- ============================= -->
   <div id="modal-completar" class="modal hidden">
     <div class="modal-overlay" style="background:rgba(30,42,60,0.18);"></div>
@@ -168,7 +168,26 @@
     </div>
   </div>
   <!-- ============================= -->
-  <!-- Fin Modal “Completar documentos” -->
+  <!-- Fin Modal "Completar documentos" -->
+
+  <div id="modal-confirmacion-envio" class="modal hidden">
+    <div class="modal-content">
+      <h3>Confirmar envío</h3>
+      <p>¿Está seguro que quiere enviar el documento? Una vez enviado no podrá modificarlo.</p>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:18px;">
+        <button id="btn-cancelar-envio" style="background:#e3e8f0; color:#1e2a3c; border:1px solid #b0b8c1; border-radius:4px; padding:7px 18px; font-size:1rem; cursor:pointer;">Cancelar</button>
+        <button id="btn-confirmar-envio" style="background:#1976d2; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-notificacion" class="modal hidden">
+    <div class="modal-content" style="text-align:center;">
+      <h3 id="notificacion-titulo">¡Éxito!</h3>
+      <p id="notificacion-mensaje">Documentos guardados 🎉</p>
+      <button id="btn-cerrar-notificacion" style="margin-top:18px; background:#1976d2; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Cerrar</button>
+    </div>
+  </div>
 
 </body>
 </html>
