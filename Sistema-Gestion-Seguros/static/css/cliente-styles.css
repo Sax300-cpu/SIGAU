@@ -19,7 +19,7 @@ body {
 
 /* Barra lateral */
 .sidebar {
-    width: 250px;
+    width: 220px;
     background-color: #2c3e50;
     color: white;
     display: flex;
@@ -170,6 +170,7 @@ header {
     font-size: 0.7rem;
 }
 
+/* Contenido */
 .content {
     padding: 20px;
     flex-grow: 1;
@@ -199,6 +200,7 @@ header {
     margin-bottom: 30px;
 }
 
+/* Estilos para las etiquetas de estado de documentos */
 .insurance-card {
     background-color: white;
     border-radius: 8px;
@@ -208,6 +210,53 @@ header {
     box-sizing: border-box;
     margin-bottom: 20px;
     max-width: calc(33.333% - 20px);
+    position: relative;
+}
+
+/* Etiqueta de estado de documentos */
+.insurance-card .document-status-label {
+    position: absolute;
+    top: 10px;
+    left: calc(50% + 20px);
+    transform: translateX(-50%);
+    background: #1976d2;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    box-shadow: 0 1px 4px rgba(25, 118, 210, 0.10);
+    z-index: 2;
+    min-width: 100px;
+    text-align: center;
+    white-space: nowrap;
+    margin-top: 0;
+}
+
+/* Responsive para las etiquetas */
+@media (max-width: 768px) {
+    .insurance-card .document-status-label {
+        font-size: 0.65rem;
+        min-width: 85px;
+        padding: 3px 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .insurance-card .document-status-label {
+        font-size: 0.6rem;
+        min-width: 75px;
+        padding: 2px 4px;
+    }
+    
+    .content, #mis-polizas-section {
+        padding: 5px 5px;
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
 }
 
 .insurance-card h3 {
@@ -306,7 +355,15 @@ header {
 
 @media (max-width: 768px) {
     .sidebar {
-        width: 70px;
+        width: 40px;
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+    
+    .content, #mis-polizas-section {
+        padding: 10px 10px;
     }
     
     .logo span, nav ul li a span, .user-info {
@@ -413,4 +470,152 @@ header {
 #btn-guardar {
   background: #2a8cf7;
   color: white;
+}
+
+/* Estilos para el botón de estado */
+.status-toggle-btn {
+    border: none;
+    outline: none;
+    cursor: pointer;
+    min-width: 80px;
+    background: #fff3cd;
+    color: #b28704;
+    border-radius: 4px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    font-size: 0.89rem;
+    box-shadow: 0 1px 4px rgba(178, 135, 4, 0.08);
+    letter-spacing: 0.5px;
+    padding: 6px 12px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.status-toggle-btn:hover {
+    background: #ffeaa7;
+    box-shadow: 0 2px 6px rgba(178, 135, 4, 0.15);
+}
+
+.status-toggle-btn.active {
+    background: #d4edda;
+    color: #155724;
+    box-shadow: 0 1px 4px rgba(21, 87, 36, 0.08);
+}
+
+.status-toggle-btn.active:hover {
+    background: #c3e6cb;
+    box-shadow: 0 2px 6px rgba(21, 87, 36, 0.15);
+}
+
+.status-toggle-btn i {
+    margin-right: 4px;
+    color: inherit;
+    font-size: 0.95em;
+}
+
+/* Estilos para el botón de completar documentos */
+.btn-completar-docs {
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 14px;
+    font-size: 0.93rem;
+    font-weight: 500;
+    box-shadow: 0 1px 4px rgba(25, 118, 210, 0.08);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    margin-top: 6px;
+    letter-spacing: 0.5px;
+    text-align: center;
+    min-width: 140px;
+}
+
+.btn-completar-docs:hover {
+    background: #1251a3;
+    box-shadow: 0 2px 6px rgba(25, 118, 210, 0.15);
+}
+
+.btn-completar-docs:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.btn-completar-docs i {
+    margin-right: 5px;
+}
+
+/* Responsive para los botones */
+@media (max-width: 768px) {
+    .status-toggle-btn {
+        font-size: 0.8rem;
+        min-width: 70px;
+        padding: 4px 8px;
+    }
+    
+    .btn-completar-docs {
+        font-size: 0.85rem;
+        min-width: 120px;
+        padding: 5px 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .status-toggle-btn {
+        font-size: 0.75rem;
+        min-width: 60px;
+        padding: 3px 6px;
+    }
+    
+    .btn-completar-docs {
+        font-size: 0.8rem;
+        min-width: 100px;
+        padding: 4px 8px;
+    }
+    
+    .btn-completar-docs i {
+        margin-right: 3px;
+    }
+}
+
+/* Sección específica de pólizas */
+#mis-polizas-section {
+    padding: 0;
+}
+
+#mis-polizas-section .insurance-cards {
+    margin-top: 32px;
+    padding-left: 0;
+    margin-left: 32px;
+}
+
+/* Estilos específicos para las tarjetas de seguro en la sección de pólizas */
+#mis-polizas-section .insurance-card {
+    box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+    border: 1px solid #1976d2;
+    background: #f7faff;
+    margin-bottom: 18px;
+    position: relative;
+    border-radius: 9px;
+    padding-bottom: 8px;
+    padding: 20px;
+}
+
+#mis-polizas-section .insurance-card h3 {
+    margin-top: 16px;
+    font-size: 1.02rem;
+    color: #1e2a3c;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+#mis-polizas-section .insurance-card .details {
+    font-size: 0.91rem;
+    color: #1e2a3c;
+    margin-bottom: 4px;
+}
+
+#mis-polizas-section .insurance-card .details p {
+    margin: 2px 0 0 0;
 }
