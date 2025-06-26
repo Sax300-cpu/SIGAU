@@ -243,6 +243,96 @@ DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_unicode_ci;
 
 
+-- -----------------------------------------------------
+-- Table `refunds`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `refunds`;
+
+CREATE TABLE IF NOT EXISTS `refunds` (
+  `id` CHAR(36) PRIMARY KEY DEFAULT (UUID()), -- Usamos UUID en lugar de AUTO_INCREMENT
+  `policy_id` INT NOT NULL,
+  `client_id` INT NOT NULL,
+  `agent_id` INT NOT NULL,
+  `request_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `processed_date` DATETIME NULL,
+  `amount` DECIMAL(12,2) NOT NULL,
+  `reason` ENUM('cancelation', 'overpayment', 'adjustment', 'other') NOT NULL,
+  `reason_description` VARCHAR(255) NULL,
+  `status` ENUM('pending', 'approved', 'rejected', 'processed') NOT NULL DEFAULT 'pending',
+  `payment_method` ENUM('bank_transfer', 'credit_card', 'check', 'cash') NULL,
+  `account_details` VARCHAR(255) NULL COMMENT 'Información de cuenta para transferencia',
+  `transaction_reference` VARCHAR(100) NULL COMMENT 'Referencia de transacción bancaria',
+  `notes` TEXT NULL,
+  `created_by` INT NOT NULL COMMENT 'Usuario que creó la solicitud',
+  `processed_by` INT NULL COMMENT 'Usuario que procesó la solicitud',
+  
+  -- Índices para mejorar el rendimiento en búsquedas comunes
+  INDEX `idx_refund_policy` (`policy_id`),
+  INDEX `idx_refund_client` (`client_id`),
+  INDEX `idx_refund_status` (`status`),
+  INDEX `idx_refund_dates` (`request_date`, `processed_date`),
+  
+  -- Relaciones con otras tablas
+  CONSTRAINT `fk_refund_policy`
+    FOREIGN KEY (`policy_id`)
+    REFERENCES `policies` (`id`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+    
+  CONSTRAINT `fk_refund_client`
+    FOREIGN KEY (`client_id`)
+    REFERENCES `clients` (`id`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+    
+  CONSTRAINT `fk_refund_agent`
+    FOREIGN KEY (`agent_id`)
+    REFERENCES `users` (`id`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+    
+  CONSTRAINT `fk_refund_created_by`
+    FOREIGN KEY (`created_by`)
+    REFERENCES `users` (`id`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+    
+  CONSTRAINT `fk_refund_processed_by`
+    FOREIGN KEY (`processed_by`)
+    REFERENCES `users` (`id`)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE
+) ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_unicode_ci;
+
+SELECT 
+  r.id AS refund_id,
+  p.id AS policy_id,
+  p.name AS policy_name,
+  CONCAT(c.first_name, ' ', c.last_name) AS client_name,
+  u.email AS client_email,
+  r.amount,
+  r.request_date,
+  r.status,
+  pt.name AS policy_type,
+  DATEDIFF(CURRENT_DATE, p.start_date) AS days_active
+FROM 
+  refunds r
+JOIN 
+  policies p ON r.policy_id = p.id
+JOIN 
+  clients c ON r.client_id = c.id
+JOIN
+  users u ON c.user_id = u.id
+JOIN
+  policy_types pt ON p.type_id = pt.id
+WHERE 
+  r.status = 'pending'
+  AND p.status = 'active'
+ORDER BY 
+  r.request_date DESC;
+
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
