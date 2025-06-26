@@ -131,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tdEmail.textContent = cliente.email;
         // --- Columna Estado con dropdown ---
         const tdEstado = document.createElement('td');
+        tdEstado.style.textAlign = 'center';
         const selectEstado = document.createElement('select');
         selectEstado.className = 'estado-dropdown custom-estado';
         selectEstado.setAttribute('data-contract-id', cliente.id);
@@ -162,19 +163,34 @@ document.addEventListener('DOMContentLoaded', () => {
         selectEstado.addEventListener('change', function() {
           actualizarColorEstado(this);
         });
-        // Quitar flechita del select con clase custom-estado (CSS en el HTML)
         tdEstado.appendChild(selectEstado);
         // --- Fin columna Estado ---
+        // --- Columna Acciones con dropdown tipo select ---
         const tdAcciones = document.createElement('td');
-        tdAcciones.innerHTML = `
-          <div class="dropdown">
-            <button class="btn-dropdown">Elegir... ▼</button>
-            <div class="dropdown-content">
-              <a href="#" class="accion-contratar" data-id="${cliente.id}" data-name="${cliente.name}" data-email="${cliente.email}">Contratar Seguro</a>
-              <a href="#" class="accion-editar" data-id="${cliente.id}">Editar Cliente</a>
-            </div>
-          </div>
+        tdAcciones.style.textAlign = 'center';
+        const accionesSelect = document.createElement('select');
+        accionesSelect.className = 'acciones-dropdown';
+        accionesSelect.innerHTML = `
+          <option value="">Elegir...</option>
+          <option value="contratar">Contratar Seguro</option>
+          <option value="editar">Editar Cliente</option>
         `;
+        accionesSelect.addEventListener('change', function() {
+          if (this.value === 'contratar') {
+            mostrarModalConfirmacion('¿Desea iniciar una contratación de seguro?', () => {
+              document.getElementById('input-client-id').value = cliente.id;
+              document.getElementById('input-client-name').value = `${cliente.name} (${cliente.email})`;
+              if (modal) modal.classList.remove('hidden');
+            });
+          } else if (this.value === 'editar') {
+            mostrarModalConfirmacion('¿Desea editar los datos del Cliente?', () => {
+              alert('Funcionalidad de edición por implementar.');
+            });
+          }
+          this.value = '';
+        });
+        tdAcciones.appendChild(accionesSelect);
+        // --- Fin columna Acciones ---
         tr.appendChild(tdName);
         tr.appendChild(tdEmail);
         tr.appendChild(tdEstado);
@@ -406,6 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tdEmail.textContent = cliente.email;
         // --- Columna Estado con dropdown ---
         const tdEstado = document.createElement('td');
+        tdEstado.style.textAlign = 'center';
         const selectEstado = document.createElement('select');
         selectEstado.className = 'estado-dropdown custom-estado';
         selectEstado.setAttribute('data-contract-id', cliente.id);
@@ -437,19 +454,34 @@ document.addEventListener('DOMContentLoaded', () => {
         selectEstado.addEventListener('change', function() {
           actualizarColorEstado(this);
         });
-        // Quitar flechita del select con clase custom-estado (CSS en el HTML)
         tdEstado.appendChild(selectEstado);
         // --- Fin columna Estado ---
+        // --- Columna Acciones con dropdown tipo select ---
         const tdAcciones = document.createElement('td');
-        tdAcciones.innerHTML = `
-          <div class="dropdown">
-            <button class="btn-dropdown">Elegir... ▼</button>
-            <div class="dropdown-content">
-              <a href="#" class="accion-contratar" data-id="${cliente.id}" data-name="${cliente.name}" data-email="${cliente.email}">Contratar Seguro</a>
-              <a href="#" class="accion-editar" data-id="${cliente.id}">Editar Cliente</a>
-            </div>
-          </div>
+        tdAcciones.style.textAlign = 'center';
+        const accionesSelect = document.createElement('select');
+        accionesSelect.className = 'acciones-dropdown';
+        accionesSelect.innerHTML = `
+          <option value="">Elegir...</option>
+          <option value="contratar">Contratar Seguro</option>
+          <option value="editar">Editar Cliente</option>
         `;
+        accionesSelect.addEventListener('change', function() {
+          if (this.value === 'contratar') {
+            mostrarModalConfirmacion('¿Desea iniciar una contratación de seguro?', () => {
+              document.getElementById('input-client-id').value = cliente.id;
+              document.getElementById('input-client-name').value = `${cliente.name} (${cliente.email})`;
+              if (modal) modal.classList.remove('hidden');
+            });
+          } else if (this.value === 'editar') {
+            mostrarModalConfirmacion('¿Desea editar los datos del Cliente?', () => {
+              alert('Funcionalidad de edición por implementar.');
+            });
+          }
+          this.value = '';
+        });
+        tdAcciones.appendChild(accionesSelect);
+        // --- Fin columna Acciones ---
         tr.appendChild(tdName);
         tr.appendChild(tdEmail);
         tr.appendChild(tdEstado);

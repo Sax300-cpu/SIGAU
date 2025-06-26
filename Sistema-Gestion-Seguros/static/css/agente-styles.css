@@ -460,3 +460,69 @@ input:checked + .slider:before {
     background: #eee;
     color: #888;
 }
+
+/* Estilo elegante para el select de acciones */
+.acciones-dropdown {
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #b0b8c1;
+    font-size: 1em;
+    background: #f5f8fa;
+    color: #1e2a3c;
+    min-width: 130px;
+    margin-right: 6px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+.acciones-dropdown:focus {
+    border-color: #1976d2;
+    outline: none;
+    box-shadow: 0 0 0 2px #90caf9;
+}
+.acciones-dropdown option[value=""] {
+    color: #888;
+}
+
+/* Centrar encabezados y celdas de la tabla de clientes */
+#tabla-clientes th,
+#tabla-clientes td {
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* Select Estado más pequeño y sin flechita */
+.estado-dropdown.custom-estado {
+    min-width: unset;
+    width: auto;
+    padding: 2px 12px;
+    font-size: 0.98em;
+    border-radius: 8px;
+    border: 1.5px solid #e57373;
+    background: #fdeaea;
+    color: #c0392b;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: none !important;
+    box-shadow: none;
+    margin: 0 auto;
+    display: inline-block;
+}
+
+/* Quitar flechita en todos los navegadores */
+.estado-dropdown.custom-estado::-ms-expand {
+    display: none;
+}
+.estado-dropdown.custom-estado::-webkit-inner-spin-button,
+.estado-dropdown.custom-estado::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.estado-dropdown.custom-estado option {
+    color: #c0392b;
+}
+
+/* Ajustar ancho de la columna Acciones para simetría */
+#tabla-clientes th:last-child, #tabla-clientes td:last-child {
+    width: 140px;
+}
