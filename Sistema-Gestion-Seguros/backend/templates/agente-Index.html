@@ -36,38 +36,38 @@ referrerpolicy="no-referrer"
 />
 </head>
 <body>
-<div class="container">
-<!-- ======== BARRA LATERAL ======== -->
-<aside class="sidebar">
-<div class="profile-section">
-<div class="profile-pic">
-<img
-src="{{ url_for('static', filename='img/agente.jpg') }}"
-alt="Foto de perfil del agente"
->
-</div>
-<div class="profile-info">
-<h3>{{ session.get('username', 'Agente') }}</h3>
-<p>Agente de Seguros</p>
-</div>
-</div>
-<nav class="menu">
-<ul>
-<li class="active">
-<a href="#"><i class="fas fa-users"></i> Inicio</a>
-</li>
-<li>
-<a href="#"><i class="fas fa-chart-bar"></i> Reportes</a>
-</li>
-<li>
-<a href="{{ url_for('logout') }}">
-<i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-</a>
-</li>
-</ul>
-</nav>
-</aside>
-<!-- ======== FIN BARRA LATERAL ======== -->
+  <div class="container">
+    <!-- ======== BARRA LATERAL ======== -->
+    <aside class="sidebar">
+      <div class="profile-section">
+        <div class="profile-pic">
+          <img
+            src="{{ url_for('static', filename='img/agente.jpg') }}"
+            alt="Foto de perfil del agente"
+          >
+        </div>
+        <div class="profile-info">
+          <h3>{{ session.get('username', 'Agente') }}</h3>
+          <p>Agente de Seguros</p>
+        </div>
+      </div>
+      <nav class="menu">
+        <ul>
+          <li class="active">
+            <a href="#"><i class="fas fa-users"></i> Inicio</a>
+          </li>
+          <li>
+            <a href="#"><i class="fas fa-chart-bar"></i> Reportes</a>
+          </li>
+          <li>
+            <a href="{{ url_for('logout') }}">
+              <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+    <!-- ======== FIN BARRA LATERAL ======== -->
 
 <!-- ======== CONTENIDO PRINCIPAL ======== -->
 <main class="main-content">

@@ -151,10 +151,27 @@
         </div>
       </div>
       <div class="content" id="reembolso-section" style="display:none;">
-        <div style="text-align:center; margin-top:40px;">
-          <div style="font-size:2rem; color:#111; font-weight:700;">No ha solicitado reembolsos</div>
-          <div style="font-size:1rem; color:#111; margin-top:18px;">Cuando realice pagos cubiertos por su póliza, podrá solicitar reembolsos aquí.</div>
-        </div>
+        {% if contracts and contracts|length > 0 %}
+          <div style="display: flex; flex-direction: column; gap: 24px; margin-top: 40px;">
+            {% for c in contracts %}
+              <div style="position: relative; border: 1.5px solid #e3e8f0; border-radius: 10px; padding: 22px 24px 18px 24px; background: #f9fbfd; box-shadow: 0 2px 8px rgba(30,42,60,0.06);">
+                <button style="position: absolute; top: 18px; right: 18px; background: #1976d2; color: #fff; border: none; border-radius: 4px; padding: 7px 18px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background 0.2s;">
+                  Solicitar Reembolso
+                </button>
+                <div style="font-size: 1.2rem; font-weight: 600; color: #1e2a3c; margin-bottom: 6px;">{{ c.name }}</div>
+                <div style="font-size: 1rem; color: #444; margin-bottom: 2px;"><strong>N.º de contrato:</strong> {{ c.id }}</div>
+                <div style="font-size: 1rem; color: #444; margin-bottom: 2px;"><strong>Prima:</strong> ${{ c.amount }}</div>
+                <div style="font-size: 1rem; color: #444; margin-bottom: 2px;"><strong>Frecuencia:</strong> {{ c.freq }}</div>
+                <div style="font-size: 1rem; color: #444;"><strong>Estado:</strong> {{ c.status|capitalize }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div style="text-align:center; margin-top:40px;">
+            <div style="font-size:2rem; color:#111; font-weight:700;">No ha solicitado reembolsos</div>
+            <div style="font-size:1rem; color:#111; margin-top:18px;">Cuando realice pagos cubiertos por su póliza, podrá solicitar reembolsos aquí.</div>
+          </div>
+        {% endif %}
       </div>
       <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -238,6 +255,25 @@
               if (mainTitle) mainTitle.textContent = 'Reembolso';
             });
           }
+          // === REEMBOLSO: Modal de confirmación ===
+          document.querySelectorAll('#reembolso-section button').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+              if (btn.textContent.trim() === 'Solicitar Reembolso') {
+                document.getElementById('modal-cancelar-contrato').classList.remove('hidden');
+              }
+            });
+          });
+          // Cerrar modal con X o Cancelar
+          document.getElementById('btn-close-cancelar-modal').onclick = function() {
+            document.getElementById('modal-cancelar-contrato').classList.add('hidden');
+          };
+          document.getElementById('btn-cancelar-cancelar').onclick = function() {
+            document.getElementById('modal-cancelar-contrato').classList.add('hidden');
+          };
+          // (btn-aceptar-cancelar) solo cierra el modal por ahora
+          document.getElementById('btn-aceptar-cancelar').onclick = function() {
+            document.getElementById('modal-cancelar-contrato').classList.add('hidden');
+          };
         });
       </script>
     </div>
@@ -310,6 +346,18 @@
         <li style="padding:10px 0; border-bottom:1px solid #e3e8f0;">Tu póliza de salud está por vencer.</li>
         <li style="padding:10px 0;">Recuerda subir tus documentos para el seguro de vida.</li>
       </ul>
+    </div>
+  </div>
+
+  <div id="modal-cancelar-contrato" class="modal hidden">
+    <div class="modal-content" style="max-width: 400px; border-radius: 14px; box-shadow: 0 8px 32px rgba(30,42,60,0.18); padding: 28px 24px 18px 24px; position: relative; background: #fff; border: 1.5px solid #e3e8f0;">
+      <button id="btn-close-cancelar-modal" type="button" aria-label="Cerrar" style="position:absolute;top:12px;right:16px;font-size:1.3rem;background:none;border:none;cursor:pointer;color:#1976d2;">&times;</button>
+      <h2 style="margin-top:0; margin-bottom:14px; font-size:1.2rem; font-weight:700; color:#1e2a3c; letter-spacing:-1px;">Cancelar Contrato</h2>
+      <p>¿Está seguro de cancelar su contrato?</p>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:18px;">
+        <button id="btn-cancelar-cancelar" style="background:#e3e8f0; color:#1e2a3c; border:1px solid #b0b8c1; border-radius:4px; padding:7px 18px; font-size:1rem; cursor:pointer;">Cancelar</button>
+        <button id="btn-aceptar-cancelar" style="background:#d32f2f; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Aceptar</button>
+      </div>
     </div>
   </div>
 
