@@ -1,127 +1,127 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
-  <meta http-equiv="Pragma"        content="no-cache">
-  <meta http-equiv="Expires"       content="0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma"        content="no-cache">
+<meta http-equiv="Expires"       content="0">
 
-  <script>
-    // Evitar que "atrás/adelante" cargue en caché
-    window.addEventListener('pageshow', function(event) {
-      if (event.persisted) {
-        window.location.reload();
-      }
-    });
-    history.replaceState(null, null, location.href);
-    window.addEventListener('popstate', function () {
-      history.replaceState(null, null, location.href);
-    });
-  </script>
+<script>
+// Evitar que "atrás/adelante" cargue en caché
+window.addEventListener('pageshow', function(event) {
+if (event.persisted) {
+window.location.reload();
+}
+});
+history.replaceState(null, null, location.href);
+window.addEventListener('popstate', function () {
+history.replaceState(null, null, location.href);
+});
+</script>
 
-  <title>Panel de Agente – Plataforma de Seguros</title>
-  <!-- Ruta al CSS del Agente -->
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/agente-styles.css') }}"
-  >
-  <!-- FontAwesome para íconos -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
-    integrity="sha512-Fo3rlrZj/k7ujTTXTOmsxRrB5U5zN50q5X0M8Ay+Wtlxl+57eI4PGmgi+7olb5XRS/cvULmMTV+YZ4nF8aQ8JQ=="
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
-  />
+<title>Panel de Agente – Plataforma de Seguros</title>
+<!-- Ruta al CSS del Agente -->
+<link
+rel="stylesheet"
+href="{{ url_for('static', filename='css/agente-styles.css') }}"
+>
+<!-- FontAwesome para íconos -->
+<link
+rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+integrity="sha512-Fo3rlrZj/k7ujTTXTOmsxRrB5U5zN50q5X0M8Ay+Wtlxl+57eI4PGmgi+7olb5XRS/cvULmMTV+YZ4nF8aQ8JQ=="
+crossorigin="anonymous"
+referrerpolicy="no-referrer"
+/>
 </head>
 <body>
-  <div class="container">
-    <!-- ======== BARRA LATERAL ======== -->
-    <aside class="sidebar">
-      <div class="profile-section">
-        <div class="profile-pic">
-          <img
-            src="{{ url_for('static', filename='img/agente.jpg') }}"
-            alt="Foto de perfil del agente"
-          >
-        </div>
-        <div class="profile-info">
-          <h3>{{ session.get('username', 'Agente') }}</h3>
-          <p>Agente de Seguros</p>
-        </div>
-      </div>
-      <nav class="menu">
-        <ul>
-          <li class="active">
-            <a href="#"><i class="fas fa-users"></i> Inicio</a>
-          </li>
-          <li>
-            <a href="#"><i class="fas fa-chart-bar"></i> Reportes</a>
-          </li>
-          <li>
-            <a href="{{ url_for('logout') }}">
-              <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-            </a>
-          </li>
-        </ul>
-      </nav>
-    </aside>
-    <!-- ======== FIN BARRA LATERAL ======== -->
+<div class="container">
+<!-- ======== BARRA LATERAL ======== -->
+<aside class="sidebar">
+<div class="profile-section">
+<div class="profile-pic">
+<img
+src="{{ url_for('static', filename='img/agente.jpg') }}"
+alt="Foto de perfil del agente"
+>
+</div>
+<div class="profile-info">
+<h3>{{ session.get('username', 'Agente') }}</h3>
+<p>Agente de Seguros</p>
+</div>
+</div>
+<nav class="menu">
+<ul>
+<li class="active">
+<a href="#"><i class="fas fa-users"></i> Inicio</a>
+</li>
+<li>
+<a href="#"><i class="fas fa-chart-bar"></i> Reportes</a>
+</li>
+<li>
+<a href="{{ url_for('logout') }}">
+<i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+</a>
+</li>
+</ul>
+</nav>
+</aside>
+<!-- ======== FIN BARRA LATERAL ======== -->
 
-    <!-- ======== CONTENIDO PRINCIPAL ======== -->
-    <main class="main-content">
-      <header class="header">
-        <h1>Gestión y Contratación de Clientes</h1>
-      </header>
+<!-- ======== CONTENIDO PRINCIPAL ======== -->
+<main class="main-content">
+<header class="header">
+<h1>Gestión y Contratación de Clientes</h1>
+</header>
 
-      <section class="content-section">
-        <div class="section-header">
-          <h2>Panel de Clientes</h2>
-          <button id="btn-nuevo-cliente" class="btn-green">
-            <i class="fas fa-user-plus"></i> Nuevo Cliente
-          </button>
-        </div>
-        <div class="table-container">
-          <table id="tabla-clientes">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Correo Electrónico</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Se inyectará dinámicamente la lista de clientes -->
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </main>
-    <!-- ======== FIN CONTENIDO PRINCIPAL ======== -->
-  </div>
+<section class="content-section">
+<div class="section-header">
+<h2>Panel de Clientes</h2>
+<button id="btn-nuevo-cliente" class="btn-green">
+<i class="fas fa-user-plus"></i> Nuevo Cliente
+</button>
+</div>
+<div class="table-container">
+<table id="tabla-clientes">
+<thead>
+<tr>
+<th>Nombre</th>
+<th>Correo Electrónico</th>
+<th>Estado</th>
+<th>Acciones</th>
+</tr>
+</thead>
+<tbody>
+<!-- Se inyectará dinámicamente la lista de clientes -->
+</tbody>
+</table>
+</div>
+</section>
+</main>
+<!-- ======== FIN CONTENIDO PRINCIPAL ======== -->
+</div>
 
-  <!-- ========== Modal de "Contratar Seguro" (oculto inicialmente) ========== -->
-  <div id="modal-contratar-agente" class="modal hidden">
-    <div class="modal-overlay"></div>
-    <div class="modal-content">
-      <h2 id="modal-title-agente">Contratar Seguro</h2>
-      <!-- Información del cliente seleccionado -->
-      <div id="info-cliente-seleccionado" style="margin-bottom: 12px;">
-        <!-- Se rellenará: "Cliente: Nombre (email)" -->
-      </div>
+<!-- ========== Modal de "Contratar Seguro" (oculto inicialmente) ========== -->
+<div id="modal-contratar-agente" class="modal hidden">
+<div class="modal-overlay"></div>
+<div class="modal-content">
+<h2 id="modal-title-agente">Contratar Seguro</h2>
+<!-- Información del cliente seleccionado -->
+<div id="info-cliente-seleccionado" style="margin-bottom: 12px;">
+<!-- Se rellenará: "Cliente: Nombre (email)" -->
+</div>
 
-      <!-- Formulario de contratación -->
-      <form id="form-contratar-agente" enctype="multipart/form-data">
-        <input type="hidden" id="input-client-id" name="client_id">
-        <input type="hidden" id="input-policy-id" name="policy_id">
+<!-- Formulario de contratación -->
+<form id="form-contratar-agente" enctype="multipart/form-data">
+<input type="hidden" id="input-client-id" name="client_id">
+<input type="hidden" id="input-policy-id" name="policy_id">
 
-        <div class="form-group">
-            <label for="input-client-name">Cliente:</label>
-            <input type="text" id="input-client-name" readonly>
-            <button type="button" id="btn-seleccionar-cliente" class="btn-small">Seleccionar Cliente</button>
-        </div>
+<div class="form-group">
+<label for="input-client-name">Cliente:</label>
+<input type="text" id="input-client-name" readonly>
+<button type="button" id="btn-seleccionar-cliente" class="btn-small">Seleccionar Cliente</button>
+</div>
 
         <div class="form-group">
             <label for="tipo-seguro">Tipo de Seguro:</label>
@@ -132,111 +132,114 @@
             </select>
         </div>
 
-        <div class="form-group">
-            <label for="select-seguro">Seleccionar Seguro:</label>
-            <select id="select-seguro" name="policy_id" required>
-                <option value="">--Seleccione un Seguro--</option>
-                <!-- Se llenará dinámicamente -->
-            </select>
-        </div>
+<div class="form-group">
+<label for="select-seguro">Seleccionar Seguro:</label>
+<select id="select-seguro" name="policy_id" required>
+<option value="">--Seleccione un Seguro--</option>
+<!-- Se llenará dinámicamente -->
+</select>
+</div>
 
+        <div id="detalles-seguro" class="seguro-details">
+            <!-- Se mostrarán los detalles del seguro seleccionado -->
+        </div>
         <div id="campos-adicionales"></div>
 
-        <div class="form-group">
-            <label for="input-prima">Prima Ajustada ($):</label>
-            <input type="number" id="input-prima" name="premium_amount" step="0.01" min="1" required>
-        </div>
+<div class="form-group">
+<label for="input-prima">Prima Ajustada ($):</label>
+<input type="number" id="input-prima" name="premium_amount" step="0.01" min="1" required>
+</div>
 
-        <div class="form-group">
-            <label for="select-frecuencia">Frecuencia de Pago:</label>
-            <select id="select-frecuencia" name="payment_frequency" required>
-                <option value="">--Seleccione Frecuencia--</option>
-                <option value="Mensual">Mensual</option>
-                <option value="Trimestral">Trimestral</option>
-                <option value="Anual">Anual</option>
-            </select>
-        </div>
+<div class="form-group">
+<label for="select-frecuencia">Frecuencia de Pago:</label>
+<select id="select-frecuencia" name="payment_frequency" required>
+<option value="">--Seleccione Frecuencia--</option>
+<option value="Mensual">Mensual</option>
+<option value="Trimestral">Trimestral</option>
+<option value="Anual">Anual</option>
+</select>
+</div>
 
-        <div class="form-group">
-            <label>Beneficiarios:</label>
-            <div id="beneficiarios-container">
-                <!-- Se agregarán dinámicamente los beneficiarios -->
-            </div>
-            <div style="margin: 0.5rem 0; font-size: 0.95em; color: #1971c2;">
-                Total porcentaje: <span id="total-beneficiarios-porcentaje">0</span>%
-            </div>
-            <button type="button" id="btn-agregar-beneficiario" class="btn-small">+ Agregar Beneficiario</button>
-        </div>
+<div class="form-group">
+<label>Beneficiarios:</label>
+<div id="beneficiarios-container">
+<!-- Se agregarán dinámicamente los beneficiarios -->
+</div>
+<div style="margin: 0.5rem 0; font-size: 0.95em; color: #1971c2;">
+Total porcentaje: <span id="total-beneficiarios-porcentaje">0</span>%
+</div>
+<button type="button" id="btn-agregar-beneficiario" class="btn-small">+ Agregar Beneficiario</button>
+</div>
 
-        <div class="form-group">
-            <label for="input-documentos">Documentos Requeridos:</label>
-            <input type="file" id="input-documentos" name="documents" multiple>
-        </div>
+<div class="form-group">
+<label for="input-documentos">Documentos Requeridos:</label>
+<input type="file" id="input-documentos" name="documents" multiple>
+</div>
 
-        <div class="form-buttons">
-            <button type="button" id="btn-cancelar" class="btn-cancel">Cancelar</button>
-            <button type="submit" id="btn-guardar" class="btn-save">Guardar Contrato</button>
-        </div>
-      </form>
-    </div>
-  </div>
-  <!-- ========== Fin Modal ========== -->
+<div class="form-buttons">
+<button type="button" id="btn-cancelar" class="btn-cancel">Cancelar</button>
+<button type="submit" id="btn-guardar" class="btn-save">Guardar Contrato</button>
+</div>
+</form>
+</div>
+</div>
+<!-- ========== Fin Modal ========== -->
 
-  <!-- Modal para crear cliente -->
-  <div id="modal-nuevo-cliente" class="modal hidden">
-    <div class="modal-content" style="max-width:400px;">
-      <h3>Nuevo Cliente</h3>
-      <form id="form-nuevo-cliente">
-        <div class="form-group">
-          <label for="nc-username">Usuario</label>
-          <input type="text" id="nc-username" name="username" required placeholder="Nombre de usuario">
-        </div>
-        <div class="form-group">
-          <label for="nc-email">Email</label>
-          <input type="email" id="nc-email" name="email" required placeholder="correo@ejemplo.com">
-        </div>
-        <div class="form-group">
-          <label for="nc-password">Contraseña</label>
-          <input type="password" id="nc-password" name="password" required placeholder="Ingrese una contraseña">
-        </div>
-        <div class="form-group">
-          <label for="nc-fullname">Nombre Completo</label>
-          <input type="text" id="nc-fullname" name="full_name" required placeholder="Nombre y apellidos completos">
-        </div>
-        <div class="form-group">
-          <label for="nc-dob">Fecha de Nacimiento</label>
-          <input type="date" id="nc-dob" name="dob" required placeholder="dd/mm/aaaa">
-        </div>
-        <div class="form-group">
-          <label for="nc-phone">Teléfono</label>
-          <input type="text" id="nc-phone" name="phone" required placeholder="+1234567890">
-        </div>
-        <div class="form-group">
-          <label for="nc-address">Dirección</label>
-          <input type="text" id="nc-address" name="address" required placeholder="Dirección completa">
-        </div>
-        <div class="form-buttons" style="display:flex; justify-content:flex-end; gap:10px;">
-          <button type="button" id="btn-cancelar-nc" class="btn-cancel">Cancelar</button>
-          <button type="submit" class="btn-save">Crear</button>
-        </div>
-      </form>
-    </div>
-  </div>
+<!-- Modal para crear cliente -->
+<div id="modal-nuevo-cliente" class="modal hidden">
+<div class="modal-content" style="max-width:400px;">
+<h3>Nuevo Cliente</h3>
+<form id="form-nuevo-cliente">
+<div class="form-group">
+<label for="nc-username">Usuario</label>
+<input type="text" id="nc-username" name="username" required placeholder="Nombre de usuario">
+</div>
+<div class="form-group">
+<label for="nc-email">Email</label>
+<input type="email" id="nc-email" name="email" required placeholder="correo@ejemplo.com">
+</div>
+<div class="form-group">
+<label for="nc-password">Contraseña</label>
+<input type="password" id="nc-password" name="password" required placeholder="Ingrese una contraseña">
+</div>
+<div class="form-group">
+<label for="nc-fullname">Nombre Completo</label>
+<input type="text" id="nc-fullname" name="full_name" required placeholder="Nombre y apellidos completos">
+</div>
+<div class="form-group">
+<label for="nc-dob">Fecha de Nacimiento</label>
+<input type="date" id="nc-dob" name="dob" required placeholder="dd/mm/aaaa">
+</div>
+<div class="form-group">
+<label for="nc-phone">Teléfono</label>
+<input type="text" id="nc-phone" name="phone" required placeholder="+1234567890">
+</div>
+<div class="form-group">
+<label for="nc-address">Dirección</label>
+<input type="text" id="nc-address" name="address" required placeholder="Dirección completa">
+</div>
+<div class="form-buttons" style="display:flex; justify-content:flex-end; gap:10px;">
+<button type="button" id="btn-cancelar-nc" class="btn-cancel">Cancelar</button>
+<button type="submit" class="btn-save">Crear</button>
+</div>
+</form>
+</div>
+</div>
 
-  <!-- Modal para notificación de cliente -->
-  <div id="modal-notificacion-cliente" class="modal hidden">
-    <div class="modal-content" style="text-align:center;">
-      <h3 id="notificacion-cliente-titulo">¡Éxito!</h3>
-      <p id="notificacion-cliente-mensaje">Cliente creado correctamente.</p>
-      <button id="btn-cerrar-notificacion-cliente" style="margin-top:18px; background:#1976d2; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Cerrar</button>
-    </div>
-  </div>
+<!-- Modal para notificación de cliente -->
+<div id="modal-notificacion-cliente" class="modal hidden">
+<div class="modal-content" style="text-align:center;">
+<h3 id="notificacion-cliente-titulo">¡Éxito!</h3>
+<p id="notificacion-cliente-mensaje">Cliente creado correctamente.</p>
+<button id="btn-cerrar-notificacion-cliente" style="margin-top:18px; background:#1976d2; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Cerrar</button>
+</div>
+</div>
 
-  <!-- Ruta al JS del Agente -->
-  <script
-    src="{{ url_for('static', filename='js/agente.js') }}"
-    defer
-  ></script>
+<!-- Ruta al JS del Agente -->
+<script
+src="{{ url_for('static', filename='js/agente.js') }}"
+defer
+></script>
 </body>
 </html>
-
+~
