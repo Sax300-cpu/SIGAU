@@ -132,20 +132,37 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Columna Estado con dropdown ---
         const tdEstado = document.createElement('td');
         const selectEstado = document.createElement('select');
-        selectEstado.className = 'estado-dropdown';
+        selectEstado.className = 'estado-dropdown custom-estado';
         selectEstado.setAttribute('data-contract-id', cliente.id);
         const estados = [
           { value: 'active', label: 'Activo' },
-          { value: 'cancelled', label: 'Cancelado' },
-          { value: 'expired', label: 'Expirado' }
+          { value: 'inactive', label: 'Inactivo' }
         ];
         estados.forEach(opt => {
           const option = document.createElement('option');
           option.value = opt.value;
           option.textContent = opt.label;
-          if (cliente.status === opt.value) option.selected = true;
+          if ((cliente.status === 'active' && opt.value === 'active') || (cliente.status !== 'active' && opt.value === 'inactive')) option.selected = true;
+          option.style.color = opt.value === 'active' ? '#2ecc71' : '#e74c3c';
           selectEstado.appendChild(option);
         });
+        // Aplicar color al select según valor
+        function actualizarColorEstado(sel) {
+          if (sel.value === 'active') {
+            sel.style.background = '#eafaf1';
+            sel.style.color = '#27ae60';
+            sel.style.borderColor = '#27ae60';
+          } else {
+            sel.style.background = '#fdeaea';
+            sel.style.color = '#c0392b';
+            sel.style.borderColor = '#c0392b';
+          }
+        }
+        actualizarColorEstado(selectEstado);
+        selectEstado.addEventListener('change', function() {
+          actualizarColorEstado(this);
+        });
+        // Quitar flechita del select con clase custom-estado (CSS en el HTML)
         tdEstado.appendChild(selectEstado);
         // --- Fin columna Estado ---
         const tdAcciones = document.createElement('td');
@@ -186,20 +203,25 @@ document.addEventListener('DOMContentLoaded', () => {
       tablaClientesBody.querySelectorAll('.accion-contratar').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.preventDefault();
-          document.getElementById('input-client-id').value = btn.getAttribute('data-id');
-          document.getElementById('input-client-name').value = `${btn.getAttribute('data-name')} (${btn.getAttribute('data-email')})`;
-          if (modal) modal.classList.remove('hidden');
+          mostrarModalConfirmacion('¿Desea iniciar una contratación de seguro?', () => {
+            document.getElementById('input-client-id').value = btn.getAttribute('data-id');
+            document.getElementById('input-client-name').value = `${btn.getAttribute('data-name')} (${btn.getAttribute('data-email')})`;
+            if (modal) modal.classList.remove('hidden');
+          });
         });
       });
       tablaClientesBody.querySelectorAll('.accion-editar').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.preventDefault();
-          mostrarModalConfirmacion('¿Desea editar los datos del Cliente?');
+          mostrarModalConfirmacion('¿Desea editar los datos del Cliente?', () => {
+            // Aquí puedes poner la lógica real de edición
+            alert('Funcionalidad de edición por implementar.');
+          });
         });
       });
 
-      // Función para mostrar modal elegante de confirmación
-      function mostrarModalConfirmacion(mensaje) {
+      // Función para mostrar modal elegante de confirmación con callback
+      function mostrarModalConfirmacion(mensaje, onConfirm) {
         let modal = document.getElementById('modal-confirmacion-accion');
         if (!modal) {
           modal = document.createElement('div');
@@ -223,8 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btn-cancelar-modal').onclick = () => modal.classList.add('hidden');
         document.getElementById('btn-confirmar-modal').onclick = () => {
           modal.classList.add('hidden');
-          // Aquí puedes poner la lógica real de edición
-          alert('Funcionalidad de edición por implementar.');
+          if (typeof onConfirm === 'function') onConfirm();
         };
       }
 
@@ -386,20 +407,37 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Columna Estado con dropdown ---
         const tdEstado = document.createElement('td');
         const selectEstado = document.createElement('select');
-        selectEstado.className = 'estado-dropdown';
+        selectEstado.className = 'estado-dropdown custom-estado';
         selectEstado.setAttribute('data-contract-id', cliente.id);
         const estados = [
           { value: 'active', label: 'Activo' },
-          { value: 'cancelled', label: 'Cancelado' },
-          { value: 'expired', label: 'Expirado' }
+          { value: 'inactive', label: 'Inactivo' }
         ];
         estados.forEach(opt => {
           const option = document.createElement('option');
           option.value = opt.value;
           option.textContent = opt.label;
-          if (cliente.status === opt.value) option.selected = true;
+          if ((cliente.status === 'active' && opt.value === 'active') || (cliente.status !== 'active' && opt.value === 'inactive')) option.selected = true;
+          option.style.color = opt.value === 'active' ? '#2ecc71' : '#e74c3c';
           selectEstado.appendChild(option);
         });
+        // Aplicar color al select según valor
+        function actualizarColorEstado(sel) {
+          if (sel.value === 'active') {
+            sel.style.background = '#eafaf1';
+            sel.style.color = '#27ae60';
+            sel.style.borderColor = '#27ae60';
+          } else {
+            sel.style.background = '#fdeaea';
+            sel.style.color = '#c0392b';
+            sel.style.borderColor = '#c0392b';
+          }
+        }
+        actualizarColorEstado(selectEstado);
+        selectEstado.addEventListener('change', function() {
+          actualizarColorEstado(this);
+        });
+        // Quitar flechita del select con clase custom-estado (CSS en el HTML)
         tdEstado.appendChild(selectEstado);
         // --- Fin columna Estado ---
         const tdAcciones = document.createElement('td');

@@ -82,6 +82,44 @@
     .dropdown.show .dropdown-content {
       display: block;
     }
+    .custom-estado {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-position: right 0.7em center;
+      background-repeat: no-repeat;
+      background-size: 0;
+      padding: 2px 12px;
+      font-weight: 600;
+      min-width: 90px;
+      max-width: 110px;
+      height: 32px;
+      text-align: center;
+      margin: 0 auto;
+      display: block;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    th, td {
+      padding: 10px 8px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    th {
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    th:nth-child(1), td:nth-child(1) { min-width: 140px; max-width: 180px; }
+    th:nth-child(2), td:nth-child(2) { min-width: 180px; max-width: 220px; }
+    th:nth-child(3), td:nth-child(3) { min-width: 90px; max-width: 110px; }
+    th:nth-child(4), td:nth-child(4) { min-width: 110px; max-width: 130px; }
+    .custom-estado option[value="active"] {
+      color: #27ae60;
+    }
+    .custom-estado option[value="inactive"] {
+      color: #c0392b;
+    }
   </style>
 </head>
 <body>
