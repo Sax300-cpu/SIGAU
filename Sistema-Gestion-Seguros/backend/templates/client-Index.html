@@ -39,28 +39,22 @@
       <nav>
         <ul>
           <li class="active">
-            <a href="#"><i class="fas fa-home"></i><span>Inicio</span></a>
+            <a href="#" id="inicio-link"><i class="fas fa-home"></i><span>Inicio</span></a>
           </li>
           <li>
-            <a href="#"><i class="fas fa-file-contract"></i><span>Mis Pólizas</span></a>
+            <a href="#" id="mis-polizas-link"><i class="fas fa-file-contract"></i><span>Mis Pólizas</span></a>
           </li>
           <li>
-            <a href="#"><i class="fas fa-heartbeat"></i><span>Seguro de Salud</span></a>
+            <a href="#" id="salud-link"><i class="fas fa-heartbeat"></i><span>Seguro de Salud</span></a>
           </li>
           <li>
-            <a href="#"><i class="fas fa-user"></i><span>Seguro de Vida</span></a>
+            <a href="#" id="vida-link"><i class="fas fa-user"></i><span>Seguro de Vida</span></a>
           </li>
           <li>
-            <a href="#"><i class="fas fa-car"></i><span>Seguro de Auto</span></a>
+            <a href="#" id="pagos-link"><i class="fas fa-credit-card"></i><span>Pagos</span></a>
           </li>
           <li>
-            <a href="#"><i class="fas fa-house-user"></i><span>Seguro de Hogar</span></a>
-          </li>
-          <li>
-            <a href="#"><i class="fas fa-credit-card"></i><span>Pagos</span></a>
-          </li>
-          <li>
-            <a href="#"><i class="fas fa-cog"></i><span>Configuración</span></a>
+            <a href="#" id="reembolso-link"><i class="fas fa-money-bill-wave"></i><span>Reembolso</span></a>
           </li>
           <li>
             <a href="{{ url_for('logout') }}">
@@ -83,7 +77,7 @@
          ====================== -->
     <div class="main-content">
       <header>
-        <h1>Panel de Inicio</h1>
+        <h1 id="main-title">Inicio</h1>
         <div class="search-notification">
           <div class="search-box">
             <i class="fas fa-search"></i>
@@ -95,15 +89,32 @@
         </div>
       </header>
 
-      <div class="content">
-        <!-- Listado de contratos activos del cliente -->
-        <div class="insurance-cards">
+      <div class="content" id="inicio-section">
+        <div style="text-align:center; font-size:1.3rem; color:#1976d2; margin-top:40px; font-weight:600;">AÑADIR FUNCIONES PRÓXIMAMENTE</div>
+      </div>
+      <div class="content" id="vida-section" style="display:none;">
+        <div style="text-align:center; margin-top:40px;">
+          <div style="font-size:2rem; color:#111; font-weight:700;">No tiene seguros de vida contratados</div>
+          <div style="font-size:1rem; color:#111; margin-top:18px;">Contactese a con nuestros agentes para obetner un seguro</div>
+          <div style="font-size:1rem; color:#111; margin-top:4px;">0992352247</div>
+        </div>
+      </div>
+      <div class="content" id="salud-section" style="display:none;">
+        <div style="text-align:center; margin-top:40px;">
+          <div style="font-size:2rem; color:#111; font-weight:700;">No tiene seguros de salud contratados</div>
+          <div style="font-size:1rem; color:#111; margin-top:18px;">Contactese a con nuestros agentes para obetner un seguro</div>
+         <div style="font-size:1rem; color:#111; margin-top:4px;">0992352247</div>
+        </div>
+      </div>
+      <div id="mis-polizas-section" style="display:none;">
+        <div class="insurance-cards" style="margin-top:32px;">
           {% if contracts %}
             {% for c in contracts %}
               <div class="insurance-card">
+                <span class="document-status-label">Pendiente de Documentación</span>
                 <h3>{{ c.name }}</h3>
                 {% if c.status != 'active' %}
-                  <div class="seguro-aviso" style="background:#ffeaea; color:#d32f2f; border:1px solid #f8bbbb; border-radius:6px; padding:8px 12px; margin-bottom:10px; font-size:0.98em;">
+                  <div class="seguro-aviso" style="background:#ffeaea; color:#d32f2f; border:1px solid #f8bbbb; border-radius:5px; padding:5px 8px; margin-bottom:6px; font-size:0.89em;">
                     {% if c.status == 'cancelled' %}
                       Este seguro fue desactivado por el agente. Por favor, comuníquese con su agente.
                     {% elif c.status == 'expired' %}
@@ -115,9 +126,8 @@
                 {% endif %}
                 <button class="status-toggle-btn status pending"
                         data-contract-id="{{ c.id }}"
-                        data-status="pending"
-                        style="border:none;outline:none;cursor:pointer;min-width:70px;">
-                  Pendiente
+                        data-status="pending">
+                  <i class="fas fa-exclamation-circle"></i>Pendiente
                 </button>
                 <div class="details">
                   <p><strong>N.º de contrato:</strong> {{ c.id }}</p>
@@ -125,12 +135,8 @@
                 </div>
                 <button 
                   class="btn-completar-docs" 
-                  data-contract-id="{{ c.id }}"
-                  style="background:#1976d2; color:#fff; border:none; border-radius:6px; padding:8px 20px; font-size:1rem; font-weight:500; box-shadow:0 2px 8px rgba(25,118,210,0.08); transition:background 0.2s, box-shadow 0.2s; cursor:pointer; margin-top:10px; letter-spacing:0.5px;"
-                  onmouseover="this.style.background='#1251a3'" 
-                  onmouseout="this.style.background='#1976d2'"
-                >
-                  <i class="fas fa-file-upload" style="margin-right:7px;"></i>Completar documentos
+                  data-contract-id="{{ c.id }}">
+                  <i class="fas fa-file-upload"></i>Completar documentos
                 </button>
               </div>
             {% endfor %}
@@ -139,6 +145,101 @@
           {% endif %}
         </div>
       </div>
+      <div class="content" id="pagos-section" style="display:none;">
+        <div style="text-align:center; margin-top:40px;">
+          <div style="font-size:2rem; color:#111; font-weight:700;">Todavía no ha pagado nada</div>
+        </div>
+      </div>
+      <div class="content" id="reembolso-section" style="display:none;">
+        <div style="text-align:center; margin-top:40px;">
+          <div style="font-size:2rem; color:#111; font-weight:700;">No ha solicitado reembolsos</div>
+          <div style="font-size:1rem; color:#111; margin-top:18px;">Cuando realice pagos cubiertos por su póliza, podrá solicitar reembolsos aquí.</div>
+        </div>
+      </div>
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          var polizasLink = document.getElementById('mis-polizas-link');
+          var polizasSection = document.getElementById('mis-polizas-section');
+          var inicioLink = document.getElementById('inicio-link');
+          var inicioSection = document.getElementById('inicio-section');
+          var vidaLink = document.getElementById('vida-link');
+          var vidaSection = document.getElementById('vida-section');
+          var saludLink = document.getElementById('salud-link');
+          var saludSection = document.getElementById('salud-section');
+          var pagosLink = document.getElementById('pagos-link');
+          var pagosSection = document.getElementById('pagos-section');
+          var reembolsoLink = document.getElementById('reembolso-link');
+          var reembolsoSection = document.getElementById('reembolso-section');
+          var mainTitle = document.getElementById('main-title');
+          // Al iniciar sesión, mostrar solo la sección de inicio y el título correspondiente
+          function mostrarInicio() {
+            if (mainTitle) mainTitle.textContent = 'Inicio';
+            if (inicioSection) inicioSection.style.display = 'block';
+            if (polizasSection) polizasSection.style.display = 'none';
+            if (vidaSection) vidaSection.style.display = 'none';
+            if (saludSection) saludSection.style.display = 'none';
+            if (pagosSection) pagosSection.style.display = 'none';
+            if (reembolsoSection) reembolsoSection.style.display = 'none';
+          }
+          mostrarInicio();
+          function ocultarTodo() {
+            if (inicioSection) inicioSection.style.display = 'none';
+            if (polizasSection) polizasSection.style.display = 'none';
+            if (vidaSection) vidaSection.style.display = 'none';
+            if (saludSection) saludSection.style.display = 'none';
+            if (pagosSection) pagosSection.style.display = 'none';
+            if (reembolsoSection) reembolsoSection.style.display = 'none';
+          }
+          if (polizasLink && polizasSection && inicioSection) {
+            polizasLink.addEventListener('click', function(e) {
+              e.preventDefault();
+              ocultarTodo();
+              polizasSection.style.display = 'block';
+              if (mainTitle) mainTitle.textContent = 'Mis Pólizas';
+            });
+          }
+          if (inicioLink && polizasSection && inicioSection) {
+            inicioLink.addEventListener('click', function(e) {
+              e.preventDefault();
+              ocultarTodo();
+              inicioSection.style.display = 'block';
+              if (mainTitle) mainTitle.textContent = 'Inicio';
+            });
+          }
+          if (vidaLink && vidaSection) {
+            vidaLink.addEventListener('click', function(e) {
+              e.preventDefault();
+              ocultarTodo();
+              vidaSection.style.display = 'block';
+              if (mainTitle) mainTitle.textContent = 'Seguros de Vida';
+            });
+          }
+          if (saludLink && saludSection) {
+            saludLink.addEventListener('click', function(e) {
+              e.preventDefault();
+              ocultarTodo();
+              saludSection.style.display = 'block';
+              if (mainTitle) mainTitle.textContent = 'Seguros de Salud';
+            });
+          }
+          if (pagosLink && pagosSection) {
+            pagosLink.addEventListener('click', function(e) {
+              e.preventDefault();
+              ocultarTodo();
+              pagosSection.style.display = 'block';
+              if (mainTitle) mainTitle.textContent = 'Pagos';
+            });
+          }
+          if (reembolsoLink && reembolsoSection) {
+            reembolsoLink.addEventListener('click', function(e) {
+              e.preventDefault();
+              ocultarTodo();
+              reembolsoSection.style.display = 'block';
+              if (mainTitle) mainTitle.textContent = 'Reembolso';
+            });
+          }
+        });
+      </script>
     </div>
   </div>
 
@@ -197,6 +298,18 @@
       <h3 id="notificacion-titulo">¡Éxito!</h3>
       <p id="notificacion-mensaje">Documentos guardados 🎉</p>
       <button id="btn-cerrar-notificacion" style="margin-top:18px; background:#1976d2; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Cerrar</button>
+    </div>
+  </div>
+
+  <div id="modal-lista-notificaciones" class="modal hidden">
+    <div class="modal-content" style="max-width: 400px; border-radius: 14px; box-shadow: 0 8px 32px rgba(30,42,60,0.18); padding: 28px 24px 18px 24px; position: relative; background: #fff; border: 1.5px solid #e3e8f0;">
+      <button id="btn-close-notif-modal" type="button" aria-label="Cerrar" style="position:absolute;top:12px;right:16px;font-size:1.3rem;background:none;border:none;cursor:pointer;color:#1976d2;">&times;</button>
+      <h2 style="margin-top:0; margin-bottom:14px; font-size:1.2rem; font-weight:700; color:#1e2a3c; letter-spacing:-1px;">Notificaciones</h2>
+      <ul id="lista-notificaciones" style="list-style:none; padding:0; margin:0;">
+        <li style="padding:10px 0; border-bottom:1px solid #e3e8f0; color:#1976d2; font-weight:500;">Tienes un nuevo contrato pendiente de completar.</li>
+        <li style="padding:10px 0; border-bottom:1px solid #e3e8f0;">Tu póliza de salud está por vencer.</li>
+        <li style="padding:10px 0;">Recuerda subir tus documentos para el seguro de vida.</li>
+      </ul>
     </div>
   </div>
 

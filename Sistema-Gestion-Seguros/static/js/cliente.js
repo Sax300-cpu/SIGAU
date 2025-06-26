@@ -8,9 +8,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // === (6) Notificaciones (igual que antes) ===
+    // === (6) Notificaciones (ahora con modal de lista) ===
     document.querySelector('.notification').addEventListener('click', function() {
-        alert('Tienes 3 notificaciones nuevas');
+        const modalListaNotif = document.getElementById('modal-lista-notificaciones');
+        modalListaNotif.classList.remove('hidden');
+        const btnCloseNotifModal = document.getElementById('btn-close-notif-modal');
+        if (btnCloseNotifModal) {
+          btnCloseNotifModal.onclick = function() {
+            modalListaNotif.classList.add('hidden');
+          };
+        }
     });
 
     // === (7) "Ver detalles" de pólizas existentes ===
