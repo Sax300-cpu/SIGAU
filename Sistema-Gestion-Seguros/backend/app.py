@@ -645,7 +645,7 @@ def get_policies():
         cur = mysql.connection.cursor()
         cur.execute("""
             SELECT p.id, p.name, pt.name as type_name, p.coverage_details, 
-                   p.benefits, p.premium_amount, p.payment_frequency, p.status
+                   p.benefits, p.premium_amount, p.payment_frequency, p.insured_amount, p.payment_method, p.status
             FROM policies p
             JOIN policy_types pt ON p.type_id = pt.id
             ORDER BY p.id DESC
@@ -661,7 +661,9 @@ def get_policies():
             'benefits': p[4],
             'premium_amount': float(p[5]),
             'payment_frequency': p[6],
-            'status': p[7]
+            'insured_amount': float(p[7]) if p[7] is not None else None,
+            'payment_method': p[8],
+            'status': p[9]
         } for p in policies])
 
     except Exception as e:
@@ -686,9 +688,9 @@ def create_policy():
         cur.execute("""
             INSERT INTO policies (
                 name, type_id, coverage_details, benefits,
-                premium_amount, payment_frequency, status,
+                premium_amount, payment_frequency, insured_amount, payment_method, status,
                 start_date, end_date
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 YEAR))
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 YEAR))
         """, (
             data['name'],
             data['type_id'],
@@ -696,6 +698,8 @@ def create_policy():
             data['benefits'],
             data['premium_amount'],
             data['payment_frequency'],
+            data.get('insured_amount'),
+            data.get('payment_method'),
             data.get('status', 'pending')
         ))
         
@@ -723,6 +727,8 @@ def get_policy(policy_id):
           p.coverage_details,
           p.premium_amount,
           p.payment_frequency,
+          p.insured_amount,
+          p.payment_method,
           p.status
         FROM policies p
         JOIN policy_types pt ON p.type_id = pt.id
@@ -742,7 +748,9 @@ def get_policy(policy_id):
         "coverage_details":  row[5] or "",
         "premium_amount":    float(row[6]),
         "payment_frequency": row[7],
-        "status":            row[8]
+        "insured_amount":    float(row[8]) if row[8] is not None else None,
+        "payment_method":    row[9],
+        "status":            row[10]
     }
     return jsonify(policy), 200
 
@@ -769,6 +777,8 @@ def update_policy(policy_id):
                 benefits = %s,
                 premium_amount = %s,
                 payment_frequency = %s,
+                insured_amount = %s,
+                payment_method = %s,
                 status = %s
             WHERE id = %s
         """, (
@@ -778,6 +788,8 @@ def update_policy(policy_id):
             data['benefits'],
             data['premium_amount'],
             data['payment_frequency'],
+            data.get('insured_amount'),
+            data.get('payment_method'),
             data.get('status', 'pending'),
             policy_id
         ))

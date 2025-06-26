@@ -693,6 +693,15 @@ function showModal(message, onConfirm) {
   // 11) Finalmente, cargamos la primera vez las pólizas
   loadPolicies();
 
+  // Filtrar tipos de póliza para mostrar solo Vida y Salud
+  if (typeSelect) {
+    Array.from(typeSelect.options).forEach(opt => {
+      if (opt.value && !['Vida', 'Salud'].includes(opt.text.trim())) {
+        opt.style.display = 'none';
+      }
+    });
+  }
+
 // Función para eliminar usuario
 async function deleteUser(id) {
   try {
