@@ -129,6 +129,25 @@ document.addEventListener('DOMContentLoaded', () => {
         tdName.textContent = cliente.name;
         const tdEmail = document.createElement('td');
         tdEmail.textContent = cliente.email;
+        // --- Columna Estado con dropdown ---
+        const tdEstado = document.createElement('td');
+        const selectEstado = document.createElement('select');
+        selectEstado.className = 'estado-dropdown';
+        selectEstado.setAttribute('data-contract-id', cliente.id);
+        const estados = [
+          { value: 'active', label: 'Activo' },
+          { value: 'cancelled', label: 'Cancelado' },
+          { value: 'expired', label: 'Expirado' }
+        ];
+        estados.forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt.value;
+          option.textContent = opt.label;
+          if (cliente.status === opt.value) option.selected = true;
+          selectEstado.appendChild(option);
+        });
+        tdEstado.appendChild(selectEstado);
+        // --- Fin columna Estado ---
         const tdAcciones = document.createElement('td');
         const btnSeleccionar = document.createElement('button');
         btnSeleccionar.textContent = 'Seleccionar';
@@ -137,8 +156,28 @@ document.addEventListener('DOMContentLoaded', () => {
         tdAcciones.appendChild(btnSeleccionar);
         tr.appendChild(tdName);
         tr.appendChild(tdEmail);
+        tr.appendChild(tdEstado);
         tr.appendChild(tdAcciones);
         tablaClientesBody.appendChild(tr);
+      });
+      // --- Event listener para el dropdown de estado ---
+      document.querySelectorAll('.estado-dropdown').forEach(selectEstado => {
+        selectEstado.addEventListener('change', async function() {
+          const contractId = this.getAttribute('data-contract-id');
+          const newStatus = this.value;
+          this.disabled = true;
+          const resp = await fetch(`/contracts/${contractId}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+          });
+          if (resp.ok) {
+            cargarClientes();
+          } else {
+            alert('Error al cambiar el estado.');
+            this.disabled = false;
+          }
+        });
       });
 
       // Agregar los event listeners a los botones de selección
@@ -289,6 +328,25 @@ document.addEventListener('DOMContentLoaded', () => {
         tdName.textContent = cliente.name;
         const tdEmail = document.createElement('td');
         tdEmail.textContent = cliente.email;
+        // --- Columna Estado con dropdown ---
+        const tdEstado = document.createElement('td');
+        const selectEstado = document.createElement('select');
+        selectEstado.className = 'estado-dropdown';
+        selectEstado.setAttribute('data-contract-id', cliente.id);
+        const estados = [
+          { value: 'active', label: 'Activo' },
+          { value: 'cancelled', label: 'Cancelado' },
+          { value: 'expired', label: 'Expirado' }
+        ];
+        estados.forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt.value;
+          option.textContent = opt.label;
+          if (cliente.status === opt.value) option.selected = true;
+          selectEstado.appendChild(option);
+        });
+        tdEstado.appendChild(selectEstado);
+        // --- Fin columna Estado ---
         const tdAcciones = document.createElement('td');
         const btnSeleccionar = document.createElement('button');
         btnSeleccionar.textContent = 'Seleccionar';
@@ -302,6 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tdAcciones.appendChild(btnSeleccionar);
         tr.appendChild(tdName);
         tr.appendChild(tdEmail);
+        tr.appendChild(tdEstado);
         tr.appendChild(tdAcciones);
         tablaClientesBody.appendChild(tr);
       });
@@ -560,5 +619,77 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       notification.remove();
     }, 5000);
+  }
+
+  // --- NUEVO CLIENTE (AGENTE) ---
+  const btnNuevoCliente = document.getElementById('btn-nuevo-cliente');
+  const modalNuevoCliente = document.getElementById('modal-nuevo-cliente');
+  const formNuevoCliente = document.getElementById('form-nuevo-cliente');
+  const btnCancelarNC = document.getElementById('btn-cancelar-nc');
+
+  if (btnNuevoCliente && modalNuevoCliente && formNuevoCliente && btnCancelarNC) {
+    btnNuevoCliente.onclick = () => {
+      formNuevoCliente.reset();
+      modalNuevoCliente.classList.remove('hidden');
+    };
+    btnCancelarNC.onclick = () => {
+      modalNuevoCliente.classList.add('hidden');
+    };
+    formNuevoCliente.onsubmit = async e => {
+      e.preventDefault();
+      // Separar nombre completo en first_name y last_name
+      const fullName = formNuevoCliente.full_name.value.trim();
+      const nameParts = fullName.split(' ');
+      const first_name = nameParts[0] || '';
+      const last_name = nameParts.slice(1).join(' ') || '';
+      const data = {
+        username: formNuevoCliente.username.value.trim(),
+        email: formNuevoCliente.email.value.trim(),
+        password: formNuevoCliente.password.value,
+        first_name,
+        last_name,
+        dob: formNuevoCliente.dob.value,
+        phone: formNuevoCliente.phone.value.trim(),
+        address: formNuevoCliente.address.value.trim()
+      };
+      // Validación básica
+      if (!data.username || !data.email || !data.password || !fullName || !data.dob || !data.phone || !data.address) {
+        alert('Todos los campos son obligatorios.');
+        return;
+      }
+      const resp = await fetch('/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (resp.ok) {
+        modalNuevoCliente.classList.add('hidden');
+        cargarClientes();
+        // Notificación elegante
+        const modalNotif = document.getElementById('modal-notificacion-cliente');
+        const notifTitulo = document.getElementById('notificacion-cliente-titulo');
+        const notifMensaje = document.getElementById('notificacion-cliente-mensaje');
+        const btnCerrarNotif = document.getElementById('btn-cerrar-notificacion-cliente');
+        notifTitulo.textContent = '¡Éxito!';
+        notifMensaje.textContent = 'Cliente creado correctamente.';
+        modalNotif.classList.remove('hidden');
+        btnCerrarNotif.onclick = function() {
+          modalNotif.classList.add('hidden');
+        };
+      } else {
+        const err = await resp.json();
+        // Notificación elegante de error
+        const modalNotif = document.getElementById('modal-notificacion-cliente');
+        const notifTitulo = document.getElementById('notificacion-cliente-titulo');
+        const notifMensaje = document.getElementById('notificacion-cliente-mensaje');
+        const btnCerrarNotif = document.getElementById('btn-cerrar-notificacion-cliente');
+        notifTitulo.textContent = 'Error';
+        notifMensaje.textContent = err.error || 'Error al crear cliente.';
+        modalNotif.classList.remove('hidden');
+        btnCerrarNotif.onclick = function() {
+          modalNotif.classList.add('hidden');
+        };
+      }
+    };
   }
 });

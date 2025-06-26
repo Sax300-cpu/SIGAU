@@ -209,14 +209,14 @@ def client_panel():
     row = cur.fetchone()
     client_id = row[0] if row else None
 
-    # 2. Traigo sus contratos activos
+    # 2. Traigo sus contratos (sin filtrar por estado)
     contracts = []
     if client_id:
         cur.execute("""
             SELECT cp.id, p.name, cp.premium_amount, cp.payment_frequency, cp.status
             FROM client_policies cp
             JOIN policies p ON cp.policy_id = p.id
-            WHERE cp.client_id = %s AND cp.status = 'active'
+            WHERE cp.client_id = %s
             ORDER BY cp.created_at DESC
         """, (client_id,))
         contracts = [
@@ -391,16 +391,28 @@ def delete_user(user_id):
 @login_required
 def list_clients():
     cur = mysql.connection.cursor()
-    cur.execute("""
-        SELECT
-          c.id        AS id,       -- este es clients.id
-          u.username AS username,
-          u.email    AS email
-        FROM clients c
-        JOIN users   u ON u.id = c.user_id
-        WHERE u.role_id = 3
-        ORDER BY u.username ASC
-    """)
+    if session.get('role_id') == 2:  # Agente
+        cur.execute("""
+            SELECT
+              c.id AS id,
+              u.username AS username,
+              u.email AS email
+            FROM clients c
+            JOIN users u ON u.id = c.user_id
+            WHERE u.role_id = 3 AND c.agent_id = %s
+            ORDER BY u.username ASC
+        """, (session['user_id'],))
+    else:  # Admin u otro
+        cur.execute("""
+            SELECT
+              c.id AS id,
+              u.username AS username,
+              u.email AS email
+            FROM clients c
+            JOIN users u ON u.id = c.user_id
+            WHERE u.role_id = 3
+            ORDER BY u.username ASC
+        """)
     rows = cur.fetchall()
     cur.close()
 
@@ -409,6 +421,66 @@ def list_clients():
         for r in rows
     ]
     return jsonify(clientes), 200
+
+@app.route('/clients', methods=['POST'])
+@login_required
+def create_client():
+    data = request.get_json()
+    # Validar campos requeridos
+    required_fields = ['first_name', 'last_name', 'email', 'username', 'password']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({'error': f'Campo requerido: {field}'}), 400
+
+    # Determinar el agente asignado
+    if session.get('role_id') == 1:  # Admin
+        agent_id = data.get('agent_id')
+        if not agent_id:
+            return jsonify({'error': 'Debe seleccionar un agente para el cliente'}), 400
+    elif session.get('role_id') == 2:  # Agente
+        agent_id = session['user_id']
+    else:
+        return jsonify({'error': 'No autorizado'}), 403
+
+    # Campos adicionales
+    dob = data.get('dob')
+    phone = data.get('phone')
+    address = data.get('address')
+
+    # Crear usuario
+    cur = mysql.connection.cursor()
+    try:
+        # Insertar en users
+        cur.execute("""
+            INSERT INTO users (username, email, password_hash, role_id)
+            VALUES (%s, %s, %s, 3)
+        """, (
+            data['username'],
+            data['email'],
+            generate_password_hash(data['password']),
+        ))
+        user_id = cur.lastrowid
+
+        # Insertar en clients
+        cur.execute("""
+            INSERT INTO clients (user_id, first_name, last_name, dob, phone, address, agent_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (
+            user_id,
+            data['first_name'],
+            data['last_name'],
+            dob,
+            phone,
+            address,
+            agent_id
+        ))
+        mysql.connection.commit()
+        return jsonify({'success': True, 'message': 'Cliente creado correctamente.'}), 201
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
 
 # ===================================
 # API de TIPOS DE PÓLIZA (policy_types)
@@ -993,6 +1065,22 @@ def upload_docs(contract_id):
 def serve_doc(contract_id, filename):
     folder = os.path.join(app.config['UPLOAD_FOLDER'], str(contract_id))
     return send_from_directory(folder, filename)
+
+@app.route('/contracts/<int:contract_id>/status', methods=['PUT'])
+@login_required
+def update_contract_status(contract_id):
+    # Solo agentes pueden cambiar el estado
+    if session.get('role_id') != 2:
+        return jsonify({'error': 'Solo los agentes pueden cambiar el estado de contrataciones'}), 403
+    data = request.get_json()
+    new_status = data.get('status')
+    if new_status not in ['active', 'cancelled', 'expired']:
+        return jsonify({'error': 'Estado no válido'}), 400
+    cur = mysql.connection.cursor()
+    cur.execute("UPDATE client_policies SET status = %s WHERE id = %s", (new_status, contract_id))
+    mysql.connection.commit()
+    cur.close()
+    return jsonify({'success': True, 'message': f'Estado actualizado a {new_status}.'})
 
 # ===================================
 # FIN RUTAS

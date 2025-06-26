@@ -56,10 +56,10 @@
           <li>
             <a href="#"><i class="fas fa-home"></i> Inicio</a>
           </li>
-          <li>
+          <li class="active">
             <a href="#"><i class="fas fa-users"></i> Gestión de Clientes</a>
           </li>
-          <li class="active">
+          <li>
             <a href="#"><i class="fas fa-file-contract"></i> Contratación de Seguros</a>
           </li>
           <li>
@@ -90,9 +90,9 @@
 
       <section class="content-section">
         <div class="section-header">
-          <h2>Seleccionar Cliente para Contratar Seguro</h2>
-          <button id="btn-nuevo-contrato" class="btn-green">
-            <i class="fas fa-plus"></i> Nuevo Contrato
+          <h2>Gestión de Clientes</h2>
+          <button id="btn-nuevo-cliente" class="btn-green">
+            <i class="fas fa-user-plus"></i> Nuevo Cliente
           </button>
         </div>
         <div class="table-container">
@@ -101,6 +101,7 @@
               <tr>
                 <th>Nombre</th>
                 <th>Correo Electrónico</th>
+                <th>Estado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -186,6 +187,56 @@
     </div>
   </div>
   <!-- ========== Fin Modal ========== -->
+
+  <!-- Modal para crear cliente -->
+  <div id="modal-nuevo-cliente" class="modal hidden">
+    <div class="modal-content" style="max-width:400px;">
+      <h3>Nuevo Cliente</h3>
+      <form id="form-nuevo-cliente">
+        <div class="form-group">
+          <label for="nc-username">Usuario</label>
+          <input type="text" id="nc-username" name="username" required placeholder="Nombre de usuario">
+        </div>
+        <div class="form-group">
+          <label for="nc-email">Email</label>
+          <input type="email" id="nc-email" name="email" required placeholder="correo@ejemplo.com">
+        </div>
+        <div class="form-group">
+          <label for="nc-password">Contraseña</label>
+          <input type="password" id="nc-password" name="password" required placeholder="Ingrese una contraseña">
+        </div>
+        <div class="form-group">
+          <label for="nc-fullname">Nombre Completo</label>
+          <input type="text" id="nc-fullname" name="full_name" required placeholder="Nombre y apellidos completos">
+        </div>
+        <div class="form-group">
+          <label for="nc-dob">Fecha de Nacimiento</label>
+          <input type="date" id="nc-dob" name="dob" required placeholder="dd/mm/aaaa">
+        </div>
+        <div class="form-group">
+          <label for="nc-phone">Teléfono</label>
+          <input type="text" id="nc-phone" name="phone" required placeholder="+1234567890">
+        </div>
+        <div class="form-group">
+          <label for="nc-address">Dirección</label>
+          <input type="text" id="nc-address" name="address" required placeholder="Dirección completa">
+        </div>
+        <div class="form-buttons" style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" id="btn-cancelar-nc" class="btn-cancel">Cancelar</button>
+          <button type="submit" class="btn-save">Crear</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal para notificación de cliente -->
+  <div id="modal-notificacion-cliente" class="modal hidden">
+    <div class="modal-content" style="text-align:center;">
+      <h3 id="notificacion-cliente-titulo">¡Éxito!</h3>
+      <p id="notificacion-cliente-mensaje">Cliente creado correctamente.</p>
+      <button id="btn-cerrar-notificacion-cliente" style="margin-top:18px; background:#1976d2; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Cerrar</button>
+    </div>
+  </div>
 
   <!-- Ruta al JS del Agente -->
   <script
