@@ -402,27 +402,6 @@ userForm.username.addEventListener('input', function(e) {
   e.target.reportValidity();
 });
 
-// Validación en tiempo real para los campos de nombre
-userForm.first_name.addEventListener('input', function(e) {
-  const value = e.target.value.trim();
-  if (value && !validarNombre(value)) {
-    e.target.setCustomValidity('Solo se permiten letras, sin espacios ni caracteres especiales');
-  } else {
-    e.target.setCustomValidity('');
-  }
-  e.target.reportValidity();
-});
-
-userForm.last_name.addEventListener('input', function(e) {
-  const value = e.target.value.trim();
-  if (value && !validarNombre(value)) {
-    e.target.setCustomValidity('Solo se permiten letras, sin espacios ni caracteres especiales');
-  } else {
-    e.target.setCustomValidity('');
-  }
-  e.target.reportValidity();
-});
-
 // Validación en tiempo real para nombre completo (Cliente)
 userForm.full_name.addEventListener('input', function(e) {
   const value = e.target.value.trim();
@@ -557,6 +536,9 @@ function showModal(message, onConfirm) {
     const coverageSelect = document.getElementById('i-coverage');
     coverageSelect.innerHTML = '<option value="">Seleccione una cobertura</option>';
 
+    // Disparar el change para cargar coberturas si hay tipo seleccionado
+    document.getElementById('i-type').dispatchEvent(new Event('change'));
+
     if (id) {
       // Modo edición: obtengo la póliza de /policies/:id
       fetch(`/policies/${id}`)
@@ -595,17 +577,25 @@ function showModal(message, onConfirm) {
   const typeSelect = document.getElementById('i-type');
   const benefitsTextarea = document.getElementById('i-benefits');
 
+  // Mapeo dinámico de id a nombre de tipo de póliza
+  function getTypeIdToCoverageKey() {
+    const map = {};
+    const options = typeSelect.querySelectorAll('option');
+    options.forEach(opt => {
+      if (opt.value) map[opt.value] = opt.text.trim();
+    });
+    return map;
+  }
+
   // Listener para actualizar coberturas cuando cambia el tipo de póliza
   typeSelect.addEventListener('change', function() {
-    const selectedType = this.options[this.selectedIndex].text;
+    const selectedId = this.value;
+    const typeIdToCoverageKey = getTypeIdToCoverageKey();
+    const key = typeIdToCoverageKey[selectedId];
     const coverageSelect = document.getElementById('i-coverage');
-    
-    // Limpiar opciones actuales
     coverageSelect.innerHTML = '<option value="">Seleccione una cobertura</option>';
-    
-    // Añadir opciones según el tipo seleccionado
-    if (coverageTemplates[selectedType]) {
-      coverageTemplates[selectedType].forEach(coverage => {
+    if (coverageTemplates[key]) {
+      coverageTemplates[key].forEach(coverage => {
         const option = document.createElement('option');
         option.value = coverage;
         option.textContent = coverage;
