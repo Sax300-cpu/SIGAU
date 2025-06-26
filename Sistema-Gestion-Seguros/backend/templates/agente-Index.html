@@ -34,6 +34,55 @@
     crossorigin="anonymous"
     referrerpolicy="no-referrer"
   />
+  <style>
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .btn-dropdown {
+      background: #f8f9fa;
+      color: #2c3e50;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 7px 18px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    .btn-dropdown:hover, .btn-dropdown:focus {
+      background: #e3e8f0;
+      outline: none;
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #fff;
+      min-width: 170px;
+      box-shadow: 0 8px 24px rgba(30,42,60,0.18);
+      border: 1px solid #e3e8f0;
+      border-radius: 6px;
+      z-index: 10;
+      right: 0;
+    }
+    .dropdown-content a {
+      color: #1976d2;
+      padding: 12px 18px;
+      text-decoration: none;
+      display: block;
+      font-size: 1rem;
+      border-bottom: 1px solid #f0f0f0;
+      transition: background 0.2s;
+    }
+    .dropdown-content a:last-child {
+      border-bottom: none;
+    }
+    .dropdown-content a:hover {
+      background-color: #f5f5f5;
+    }
+    .dropdown.show .dropdown-content {
+      display: block;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -53,21 +102,24 @@
       </div>
       <nav class="menu">
         <ul>
-          <li>
+          <!-- Elimino Inicio -->
+          <!-- <li>
             <a href="#"><i class="fas fa-home"></i> Inicio</a>
-          </li>
+          </li> -->
           <li class="active">
-            <a href="#"><i class="fas fa-users"></i> Gestión de Clientes</a>
+            <a href="#"><i class="fas fa-users"></i> Gestión y Contratación de Clientes</a>
           </li>
-          <li>
+          <!-- Elimino Contratación de Seguros -->
+          <!-- <li>
             <a href="#"><i class="fas fa-file-contract"></i> Contratación de Seguros</a>
-          </li>
+          </li> -->
           <li>
             <a href="#"><i class="fas fa-chart-bar"></i> Reportes</a>
           </li>
-          <li>
+          <!-- Elimino Configuración -->
+          <!-- <li>
             <a href="#"><i class="fas fa-cog"></i> Configuración</a>
-          </li>
+          </li> -->
           <li>
             <a href="{{ url_for('logout') }}">
               <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
@@ -81,16 +133,12 @@
     <!-- ======== CONTENIDO PRINCIPAL ======== -->
     <main class="main-content">
       <header class="header">
-        <h1>Panel Principal del Agente</h1>
-        <div class="search-bar">
-          <input type="text" id="search-client" placeholder="Buscar cliente...">
-          <button id="btn-search"><i class="fas fa-search"></i></button>
-        </div>
+        <h1>Gestión y Contratación de Clientes</h1>
       </header>
 
       <section class="content-section">
         <div class="section-header">
-          <h2>Gestión de Clientes</h2>
+          <h2>Gestión y Contratación de Clientes</h2>
           <button id="btn-nuevo-cliente" class="btn-green">
             <i class="fas fa-user-plus"></i> Nuevo Cliente
           </button>

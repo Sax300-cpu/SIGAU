@@ -149,17 +149,85 @@ document.addEventListener('DOMContentLoaded', () => {
         tdEstado.appendChild(selectEstado);
         // --- Fin columna Estado ---
         const tdAcciones = document.createElement('td');
-        const btnSeleccionar = document.createElement('button');
-        btnSeleccionar.textContent = 'Seleccionar';
-        btnSeleccionar.classList.add('btn-blue', 'select-client-btn');
-        btnSeleccionar.setAttribute('data-client-id', cliente.id);
-        tdAcciones.appendChild(btnSeleccionar);
+        tdAcciones.innerHTML = `
+          <div class="dropdown">
+            <button class="btn-dropdown">Elegir... ▼</button>
+            <div class="dropdown-content">
+              <a href="#" class="accion-contratar" data-id="${cliente.id}" data-name="${cliente.name}" data-email="${cliente.email}">Contratar Seguro</a>
+              <a href="#" class="accion-editar" data-id="${cliente.id}">Editar Cliente</a>
+            </div>
+          </div>
+        `;
         tr.appendChild(tdName);
         tr.appendChild(tdEmail);
         tr.appendChild(tdEstado);
         tr.appendChild(tdAcciones);
         tablaClientesBody.appendChild(tr);
       });
+
+      // Lógica para mostrar/ocultar el menú desplegable de acciones
+      tablaClientesBody.querySelectorAll('.btn-dropdown').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          // Cerrar otros dropdowns
+          document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+          // Abrir este
+          this.parentElement.classList.toggle('show');
+        });
+      });
+      // Cerrar el dropdown si se hace clic fuera
+      document.addEventListener('click', function(e) {
+        document.querySelectorAll('.dropdown').forEach(d => {
+          if (!d.contains(e.target)) d.classList.remove('show');
+        });
+      });
+
+      // Listeners para acciones del dropdown
+      tablaClientesBody.querySelectorAll('.accion-contratar').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          document.getElementById('input-client-id').value = btn.getAttribute('data-id');
+          document.getElementById('input-client-name').value = `${btn.getAttribute('data-name')} (${btn.getAttribute('data-email')})`;
+          if (modal) modal.classList.remove('hidden');
+        });
+      });
+      tablaClientesBody.querySelectorAll('.accion-editar').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          mostrarModalConfirmacion('¿Desea editar los datos del Cliente?');
+        });
+      });
+
+      // Función para mostrar modal elegante de confirmación
+      function mostrarModalConfirmacion(mensaje) {
+        let modal = document.getElementById('modal-confirmacion-accion');
+        if (!modal) {
+          modal = document.createElement('div');
+          modal.id = 'modal-confirmacion-accion';
+          modal.className = 'modal hidden';
+          modal.innerHTML = `
+            <div class="modal-content" style="max-width:400px;text-align:center;">
+              <h3>Confirmación</h3>
+              <p id="modal-confirmacion-mensaje">${mensaje}</p>
+              <div style="margin-top:18px;display:flex;justify-content:center;gap:16px;">
+                <button id="btn-cancelar-modal" style="background:#e3e8f0;color:#1e2a3c;border:1px solid #b0b8c1;border-radius:4px;padding:7px 18px;font-size:1rem;cursor:pointer;">Cancelar</button>
+                <button id="btn-confirmar-modal" style="background:#1976d2;color:#fff;border:none;border-radius:4px;padding:7px 18px;font-size:1rem;font-weight:500;cursor:pointer;">Confirmar</button>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(modal);
+        } else {
+          document.getElementById('modal-confirmacion-mensaje').textContent = mensaje;
+        }
+        modal.classList.remove('hidden');
+        document.getElementById('btn-cancelar-modal').onclick = () => modal.classList.add('hidden');
+        document.getElementById('btn-confirmar-modal').onclick = () => {
+          modal.classList.add('hidden');
+          // Aquí puedes poner la lógica real de edición
+          alert('Funcionalidad de edición por implementar.');
+        };
+      }
+
       // --- Event listener para el dropdown de estado ---
       document.querySelectorAll('.estado-dropdown').forEach(selectEstado => {
         selectEstado.addEventListener('change', async function() {
@@ -177,19 +245,6 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Error al cambiar el estado.');
             this.disabled = false;
           }
-        });
-      });
-
-      // Agregar los event listeners a los botones de selección
-      document.querySelectorAll('.select-client-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const clientId = btn.getAttribute('data-client-id');
-          const clientName = btn.closest('tr').querySelector('td:first-child').textContent;
-          const clientEmail = btn.closest('tr').querySelector('td:nth-child(2)').textContent;
-          
-          document.getElementById('input-client-id').value = clientId;
-          document.getElementById('input-client-name').value = `${clientName} (${clientEmail})`;
-          if (modal) modal.classList.remove('hidden');
         });
       });
     } catch (err) {
@@ -348,16 +403,15 @@ document.addEventListener('DOMContentLoaded', () => {
         tdEstado.appendChild(selectEstado);
         // --- Fin columna Estado ---
         const tdAcciones = document.createElement('td');
-        const btnSeleccionar = document.createElement('button');
-        btnSeleccionar.textContent = 'Seleccionar';
-        btnSeleccionar.classList.add('btn-blue');
-        btnSeleccionar.setAttribute('data-id', cliente.id);
-        btnSeleccionar.addEventListener('click', () => {
-          inputClientId.value = cliente.id;
-          inputClientName.value = `${cliente.name} (${cliente.email})`;
-          if (modal) modal.classList.remove('hidden');
-        });
-        tdAcciones.appendChild(btnSeleccionar);
+        tdAcciones.innerHTML = `
+          <div class="dropdown">
+            <button class="btn-dropdown">Elegir... ▼</button>
+            <div class="dropdown-content">
+              <a href="#" class="accion-contratar" data-id="${cliente.id}" data-name="${cliente.name}" data-email="${cliente.email}">Contratar Seguro</a>
+              <a href="#" class="accion-editar" data-id="${cliente.id}">Editar Cliente</a>
+            </div>
+          </div>
+        `;
         tr.appendChild(tdName);
         tr.appendChild(tdEmail);
         tr.appendChild(tdEstado);
