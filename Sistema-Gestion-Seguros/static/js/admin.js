@@ -479,7 +479,8 @@ function showModal(message, onConfirm) {
           </td>
           <td>$${policy.premium_amount.toFixed(2)}</td>
           <td>${policy.payment_frequency}</td>
-          <td>${policy.status === 'active' ? 'Activo' : 'Inactivo'}</td>
+          <td>$${policy.insured_amount ? Number(policy.insured_amount).toLocaleString('es-MX', {minimumFractionDigits: 2}) : '0.00'}</td>
+          <td>${policy.payment_method || '-'}</td>
           <td>
             <button class="icon-btn btn-edit-insurance" data-id="${policy.id}">
               <i class="fas fa-edit"></i>
@@ -546,15 +547,13 @@ function showModal(message, onConfirm) {
         .then(data => {
           document.getElementById('i-name').value = data.name;
           document.getElementById('i-type').value = data.type_id;
-          // Disparamos el change para rellenar las coberturas
           document.getElementById('i-type').dispatchEvent(new Event('change'));
-          // Fijamos la cobertura actual del seguro
           document.getElementById('i-coverage').value = data.coverage_details;
-          // Cargamos el valor real de beneficios
           document.getElementById('i-benefits').value = data.benefits;
           document.getElementById('i-cost').value = data.premium_amount;
           document.getElementById('i-payment').value = data.payment_frequency;
-          document.getElementById('i-status').value = (data.status === 'active' ? '1' : '0');
+          document.getElementById('i-insured-amount').value = data.insured_amount || '';
+          document.getElementById('i-payment-method').value = data.payment_method || 'Tarjeta';
         })
         .catch(err => console.error('Error cargando póliza para editar:', err));
     }
@@ -614,7 +613,8 @@ function showModal(message, onConfirm) {
     const benefits  = document.getElementById('i-benefits').value.trim();
     const cost      = parseFloat(insuranceForm.cost.value);
     const payment   = insuranceForm.payment.value;
-    const status    = insuranceForm.status.value === '1'; // true → 'active'
+    const insured_amount = parseFloat(document.getElementById('i-insured-amount').value);
+    const payment_method = document.getElementById('i-payment-method').value;
 
     // -------------- Validaciones adicionales --------------
     // 1) Nombre no puede estar vacío (o espacios) y sólo letras y espacios
@@ -653,7 +653,8 @@ function showModal(message, onConfirm) {
       benefits:          benefits,
       premium_amount:    cost,
       payment_frequency: payment,
-      status:            status ? 'active' : 'inactive'
+      insured_amount:    insured_amount,
+      payment_method:    payment_method
     };
 
     try {

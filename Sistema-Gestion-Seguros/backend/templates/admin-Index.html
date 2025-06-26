@@ -136,7 +136,8 @@
                 <th>Beneficios</th>
                 <th>Costo</th>
                 <th>Frecuencia de Pago</th>
-                <th>Estado</th>
+                <th>Suma asegurada</th>
+                <th>Forma de pago</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -355,10 +356,15 @@
         </div>
         <!-- Estado -->
         <div class="form-group">
-          <label for="i-status">Estado</label>
-          <select id="i-status" name="status" required>
-            <option value="1">Activo</option>
-            <option value="0">Inactivo</option>
+          <label for="i-insured-amount">Suma asegurada</label>
+          <input type="number" id="i-insured-amount" name="insured_amount" min="0" step="0.01" placeholder="0.00" required />
+        </div>
+        <div class="form-group">
+          <label for="i-payment-method">Forma de pago</label>
+          <select id="i-payment-method" name="payment_method" required>
+            <option value="Tarjeta">Tarjeta</option>
+            <option value="Débito">Débito</option>
+            <option value="Transferencia">Transferencia</option>
           </select>
         </div>
         <!-- Botones al pie -->
