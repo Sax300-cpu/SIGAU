@@ -124,6 +124,15 @@
         </div>
 
         <div class="form-group">
+            <label for="tipo-seguro">Tipo de Seguro:</label>
+            <select id="tipo-seguro" required>
+                <option value="">Seleccione tipo</option>
+                <option value="Vida">Vida</option>
+                <option value="Salud">Salud</option>
+            </select>
+        </div>
+
+        <div class="form-group">
             <label for="select-seguro">Seleccionar Seguro:</label>
             <select id="select-seguro" name="policy_id" required>
                 <option value="">--Seleccione un Seguro--</option>
@@ -131,9 +140,7 @@
             </select>
         </div>
 
-        <div id="detalles-seguro" class="seguro-details">
-            <!-- Se mostrarán los detalles del seguro seleccionado -->
-        </div>
+        <div id="campos-adicionales"></div>
 
         <div class="form-group">
             <label for="input-prima">Prima Ajustada ($):</label>

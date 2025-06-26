@@ -314,29 +314,93 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ---------- 5) Cargar seguros disponibles al enfocar el select ----------
+  let segurosDisponibles = [];
+
+  // Cargar todos los seguros al inicio
   async function cargarSeguros() {
-    try {
-      const resp = await fetch('/policies');
-      if (!resp.ok) throw new Error('Error al cargar seguros');
-      
-      const seguros = await resp.json();
-      selectSeguro.innerHTML = '<option value="">--Seleccione un Seguro--</option>';
-      
-      seguros.forEach(seg => {
-        const option = document.createElement('option');
-        option.value = seg.id;
-        option.textContent = `${seg.name} (${seg.type_name}) - $${seg.premium_amount.toFixed(2)}`;
-        option.setAttribute('data-type', seg.type_name);
-        selectSeguro.appendChild(option);
-      });
-    } catch (err) {
-      console.error(err);
-      selectSeguro.innerHTML = '<option value="">No se pudieron cargar los seguros</option>';
-    }
+    const resp = await fetch('/policies');
+    segurosDisponibles = await resp.json();
   }
-  if (selectSeguro) {
-    selectSeguro.addEventListener('focus', cargarSeguros);
+  cargarSeguros();
+
+  const tipoSeguroSelect = document.getElementById('tipo-seguro');
+  const camposAdicionalesDiv = document.getElementById('campos-adicionales');
+
+  if (tipoSeguroSelect && selectSeguro) {
+    tipoSeguroSelect.addEventListener('change', function() {
+      const tipo = this.value;
+      selectSeguro.innerHTML = '<option value="">--Seleccione un Seguro--</option>';
+      segurosDisponibles
+        .filter(seg => seg.type_name === tipo)
+        .forEach(seg => {
+          const option = document.createElement('option');
+          option.value = seg.id;
+          option.textContent = `${seg.name} - $${seg.premium_amount.toFixed(2)}`;
+          selectSeguro.appendChild(option);
+        });
+      // Mostrar campos adicionales según el tipo
+      if (camposAdicionalesDiv) {
+        if (tipo === 'Vida') {
+          camposAdicionalesDiv.innerHTML = `
+            <div class="form-group"><label>Estado civil</label><input type="text" name="estado_civil" required></div>
+            <div class="form-group"><label>Sexo</label>
+              <select name="sexo" required>
+                <option value="">Seleccione</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Femenino">Femenino</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Ocupación</label><input type="text" name="ocupacion" required></div>
+            <div class="form-group"><label>Nacionalidad</label><input type="text" name="nacionalidad" required></div>
+            <div class="form-group"><label>Altura (cm)</label><input type="number" name="altura" required></div>
+            <div class="form-group"><label>Peso (kg)</label><input type="number" name="peso" required></div>
+            <div class="form-group"><label>¿Tiene enfermedades crónicas?</label><input type="text" name="enfermedades_cronicas"></div>
+            <div class="form-group"><label>¿Fuma o consume alcohol?</label><input type="text" name="fuma_alcohol"></div>
+            <div class="form-group"><label>¿Toma medicamentos actualmente?</label><input type="text" name="medicamentos"></div>
+            <div class="form-group"><label>¿Ha sido hospitalizado recientemente?</label><input type="text" name="hospitalizado"></div>
+            <div class="form-group"><label>¿Ha tenido cirugías importantes?</label><input type="text" name="cirugias"></div>
+          `;
+        } else if (tipo === 'Salud') {
+          camposAdicionalesDiv.innerHTML = `
+            <div class="form-group"><label>Alergias conocidas</label><input type="text" name="alergias_conocidas"></div>
+            <div class="form-group"><label>Sexo</label>
+              <select name="sexo_salud" id="sexo-salud-select" required>
+                <option value="">Seleccione</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Femenino">Femenino</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Enfermedades previas o actuales</label><input type="text" name="enfermedades_previas"></div>
+            <div class="form-group"><label>¿Ha sido hospitalizado recientemente? (fecha, motivo)</label><input type="text" name="hospitalizado_salud"></div>
+            <div class="form-group"><label>¿Está en tratamiento médico actualmente?</label><input type="text" name="tratamiento_actual"></div>
+            <div class="form-group" id="campo-embarazo" style="display:none;">
+              <label>¿Está embarazada?</label>
+              <select name="embarazada">
+                <option value="">Seleccione</option>
+                <option value="No">No</option>
+                <option value="Sí">Sí</option>
+              </select>
+            </div>
+          `;
+          // Lógica para mostrar el campo embarazo solo si es femenino
+          setTimeout(() => {
+            const sexoSalud = document.getElementById('sexo-salud-select');
+            const campoEmbarazo = document.getElementById('campo-embarazo');
+            if (sexoSalud && campoEmbarazo) {
+              sexoSalud.addEventListener('change', function() {
+                if (this.value === 'Femenino') {
+                  campoEmbarazo.style.display = '';
+                } else {
+                  campoEmbarazo.style.display = 'none';
+                }
+              });
+            }
+          }, 100);
+        } else {
+          camposAdicionalesDiv.innerHTML = '';
+        }
+      }
+    });
   }
 
   // ---------- 6) Mostrar detalles del seguro seleccionado ----------

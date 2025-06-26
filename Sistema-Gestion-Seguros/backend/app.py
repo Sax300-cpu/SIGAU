@@ -915,12 +915,23 @@ def create_contract():
         mysql.connection.commit()
         cur.close()
 
+        # --- Guardar datos adicionales en extra_data ---
+        extra_fields = [
+            # Vida
+            'estado_civil', 'sexo', 'ocupacion', 'nacionalidad', 'altura', 'peso',
+            'enfermedades_cronicas', 'fuma_alcohol', 'medicamentos', 'hospitalizado', 'cirugias',
+            # Salud
+            'alergias_conocidas', 'sexo_salud', 'enfermedades_previas', 'hospitalizado_salud', 'tratamiento_actual', 'embarazada'
+        ]
+        extra_data = {field: data.get(field) for field in extra_fields if data.get(field) is not None and data.get(field) != ''}
+
         return jsonify({
             'success': True,
             'contract_id': contract_id,
             'message': 'Contrato creado exitosamente',
             'beneficiarios_count': len(beneficiarios),
-            'documentos_count': len(request.files.getlist('documents')) if 'documents' in request.files else 0
+            'documentos_count': len(request.files.getlist('documents')) if 'documents' in request.files else 0,
+            'extra_data': extra_data
         }), 201
 
     except Exception as e:
