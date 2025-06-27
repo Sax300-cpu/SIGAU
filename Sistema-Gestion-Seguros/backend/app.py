@@ -1122,5 +1122,42 @@ def update_contract_status(contract_id):
 # FIN RUTAS
 # ===================================
 
+@app.route('/clients/<int:client_id>/contracts')
+@login_required
+def get_client_contracts(client_id):
+    cur = mysql.connection.cursor()
+    # Traer todos los contratos de este cliente
+    cur.execute('''
+        SELECT cp.id, p.name, cp.premium_amount, cp.payment_frequency, cp.status
+        FROM client_policies cp
+        JOIN policies p ON cp.policy_id = p.id
+        WHERE cp.client_id = %s
+        ORDER BY cp.created_at DESC
+    ''', (client_id,))
+    contratos = cur.fetchall()
+    resultado = []
+    for contrato in contratos:
+        contract_id = contrato[0]
+        # Beneficiarios
+        cur.execute('SELECT name, relationship, percentage FROM beneficiaries WHERE contract_id = %s', (contract_id,))
+        beneficiarios = [
+            {'name': b[0], 'relationship': b[1], 'percentage': float(b[2])}
+            for b in cur.fetchall()
+        ]
+        # Datos extra
+        cur.execute('SELECT field_name, field_value FROM client_policy_extra_data WHERE contract_id = %s', (contract_id,))
+        extra_data = {row[0]: row[1] for row in cur.fetchall()}
+        resultado.append({
+            'contract_id': contract_id,
+            'policy_name': contrato[1],
+            'premium_amount': float(contrato[2]),
+            'payment_frequency': contrato[3],
+            'status': contrato[4],
+            'beneficiaries': beneficiarios,
+            'extra_data': extra_data
+        })
+    cur.close()
+    return jsonify(resultado)
+
 if __name__ == "__main__":
     app.run(debug=True)

@@ -483,6 +483,31 @@ input:checked + .slider:before {
     color: #888;
 }
 
+/* Estilo para el select de acciones "Elegir..." en la tabla de clientes */
+.acciones-dropdown {
+    min-width: 90px;
+    max-width: 120px;
+    width: 100px;
+    padding: 5px 8px;
+    font-size: 0.95rem;
+    border-radius: 4px;
+    border: 1px solid #b0b8c1;
+    background: #f8f9fa;
+    color: #2c3e50;
+    transition: border 0.2s;
+    box-shadow: none;
+    outline: none;
+    cursor: pointer;
+    margin: 0 auto;
+    display: block;
+}
+.acciones-dropdown:focus {
+    border-color: #1976d2;
+}
+.acciones-dropdown option {
+    color: #2c3e50;
+}
+
 /* Centrar encabezados y celdas de la tabla de clientes */
 #tabla-clientes th,
 #tabla-clientes td {
@@ -525,4 +550,90 @@ input:checked + .slider:before {
 /* Ajustar ancho de la columna Acciones para simetría */
 #tabla-clientes th:last-child, #tabla-clientes td:last-child {
     width: 140px;
+}
+
+/* Modal elegante para información de cliente */
+#modal-info-cliente.modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(30, 42, 60, 0.45);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s;
+}
+#modal-info-cliente .modal-content {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(30,42,60,0.18);
+    padding: 36px 32px 24px 32px;
+    max-width: 600px;
+    width: 100%;
+    position: relative;
+    animation: modalShow 0.25s cubic-bezier(.4,2,.6,1) 1;
+}
+@keyframes modalShow {
+    from { transform: translateY(40px) scale(0.98); opacity: 0; }
+    to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+#modal-info-cliente h3 {
+    margin-top: 0;
+    color: #1976d2;
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 18px;
+    text-align: center;
+}
+#modal-info-cliente ul {
+    margin: 0 0 0 18px;
+    padding: 0;
+}
+#modal-info-cliente li {
+    margin-bottom: 2px;
+    font-size: 0.98rem;
+}
+#modal-info-cliente .close-btn {
+    display: inline-block;
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 28px;
+    font-size: 1.05rem;
+    font-weight: 500;
+    margin: 24px auto 0 auto;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(25,118,210,0.08);
+    transition: background 0.18s;
+    display: block;
+}
+#modal-info-cliente .close-btn:hover {
+    background: #1251a3;
+}
+#modal-info-cliente .modal-content > div {
+    margin-bottom: 10px;
+}
+#modal-info-cliente .modal-content > div:last-child {
+    margin-bottom: 0;
+}
+
+/* Botón X para cerrar el modal de información de cliente */
+#modal-info-cliente .close-x {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #1976d2;
+    cursor: pointer;
+    z-index: 2;
+    transition: color 0.18s;
+    line-height: 1;
+    padding: 0 6px;
+}
+#modal-info-cliente .close-x:hover {
+    color: #c0392b;
 }

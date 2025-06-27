@@ -173,6 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         accionesSelect.innerHTML = `
           <option value="">Elegir...</option>
           <option value="contratar">Contratar Seguro</option>
+          <option value="mostrar">Mostrar información de cliente</option>
           <option value="editar">Editar Cliente</option>
         `;
         accionesSelect.addEventListener('change', function() {
@@ -182,6 +183,8 @@ document.addEventListener('DOMContentLoaded', () => {
               document.getElementById('input-client-name').value = `${cliente.name} (${cliente.email})`;
               if (modal) modal.classList.remove('hidden');
             });
+          } else if (this.value === 'mostrar') {
+            mostrarInformacionCliente(cliente.id);
           } else if (this.value === 'editar') {
             mostrarModalConfirmacion('¿Desea editar los datos del Cliente?', () => {
               alert('Funcionalidad de edición por implementar.');
@@ -528,6 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
         accionesSelect.innerHTML = `
           <option value="">Elegir...</option>
           <option value="contratar">Contratar Seguro</option>
+          <option value="mostrar">Mostrar información de cliente</option>
           <option value="editar">Editar Cliente</option>
         `;
         accionesSelect.addEventListener('change', function() {
@@ -537,6 +541,8 @@ document.addEventListener('DOMContentLoaded', () => {
               document.getElementById('input-client-name').value = `${cliente.name} (${cliente.email})`;
               if (modal) modal.classList.remove('hidden');
             });
+          } else if (this.value === 'mostrar') {
+            mostrarInformacionCliente(cliente.id);
           } else if (this.value === 'editar') {
             mostrarModalConfirmacion('¿Desea editar los datos del Cliente?', () => {
               alert('Funcionalidad de edición por implementar.');
@@ -886,5 +892,93 @@ document.addEventListener('DOMContentLoaded', () => {
         };
       }
     };
+  }
+
+  // --- MODAL PARA MOSTRAR INFORMACIÓN COMPLETA DEL CLIENTE Y SUS CONTRATOS ---
+  async function mostrarInformacionCliente(clientId) {
+    try {
+      // Traer contratos del cliente
+      const resp = await fetch(`/clients/${clientId}/contracts`);
+      if (!resp.ok) throw new Error('No se pudo obtener la información del cliente');
+      const data = await resp.json();
+      // Crear modal si no existe
+      let modal = document.getElementById('modal-info-cliente');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-info-cliente';
+        modal.className = 'modal';
+        modal.innerHTML = `
+          <div class="modal-overlay"></div>
+          <div class="modal-content">
+            <button id="btn-cerrar-info-cliente-x" class="close-x" title="Cerrar">&times;</button>
+            <h3>Información completa del cliente</h3>
+            <div id="info-cliente-detalle"></div>
+            <button id="btn-cerrar-info-cliente" class="close-btn">Cerrar</button>
+          </div>
+        `;
+        document.body.appendChild(modal);
+      }
+      // Llenar datos
+      const detalleDiv = modal.querySelector('#info-cliente-detalle');
+      detalleDiv.innerHTML = '';
+      if (data.length === 0) {
+        detalleDiv.innerHTML = '<p>Este cliente no tiene contratos registrados.</p>';
+      } else {
+        data.forEach(contrato => {
+          detalleDiv.innerHTML += `
+            <div style="border-bottom:1px solid #ccc;margin-bottom:10px;padding-bottom:10px;">
+              <strong>Póliza:</strong> ${contrato.policy_name}<br>
+              <strong>Prima:</strong> $${contrato.premium_amount}<br>
+              <strong>Frecuencia:</strong> ${contrato.payment_frequency}<br>
+              <strong>Estado:</strong> ${contrato.status}<br>
+              <strong>Beneficiarios:</strong> <ul>${contrato.beneficiaries.map(b=>`<li>${b.name} (${b.relationship}) - ${b.percentage}%</li>`).join('')}</ul>
+              <strong>Datos adicionales:</strong>
+              <ul>${contrato.extra_data && Object.keys(contrato.extra_data).length > 0 ? Object.entries(contrato.extra_data).map(([k,v])=>`<li><b>${k.replace(/_/g,' ')}:</b> ${v}</li>`).join('') : '<li>No hay datos adicionales</li>'}</ul>
+            </div>
+          `;
+        });
+      }
+      modal.classList.remove('hidden');
+      
+      // Mostrar el modal
+      modal.style.display = 'flex';
+      modal.classList.remove('hidden');
+      
+      // Asignar eventos de cierre usando onclick para evitar duplicados
+      const btnCerrarX = modal.querySelector('#btn-cerrar-info-cliente-x');
+      const btnCerrar = modal.querySelector('#btn-cerrar-info-cliente');
+      const modalOverlay = modal.querySelector('.modal-overlay');
+      
+      console.log('Modal creado:', modal);
+      console.log('Botón X encontrado:', btnCerrarX);
+      console.log('Botón Cerrar encontrado:', btnCerrar);
+      
+      if (btnCerrarX) {
+        btnCerrarX.onclick = function() {
+          console.log('Botón X clickeado');
+          modal.classList.add('hidden');
+          modal.style.display = 'none';
+        };
+      }
+      
+      if (btnCerrar) {
+        btnCerrar.onclick = function() {
+          console.log('Botón Cerrar clickeado');
+          modal.classList.add('hidden');
+          modal.style.display = 'none';
+        };
+      }
+      
+      if (modalOverlay) {
+        modalOverlay.onclick = function() {
+          console.log('Overlay clickeado');
+          modal.classList.add('hidden');
+          modal.style.display = 'none';
+        };
+      }
+      
+    } catch (err) {
+      alert('Error al mostrar información del cliente: ' + err.message);
+    }
   }
 });
