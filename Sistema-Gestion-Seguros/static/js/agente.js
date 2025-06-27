@@ -715,6 +715,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // === AGREGAR CAMPOS EXTRA (datos adicionales según tipo de seguro) ===
+        const camposExtra = document.querySelectorAll('#campos-adicionales [name]');
+        camposExtra.forEach(input => {
+            formData.append(input.name, input.value);
+        });
+        // === FIN CAMPOS EXTRA ===
+
         // Verificar que los campos requeridos están presentes
         const requiredFields = ['client_id', 'policy_id', 'premium_amount', 'payment_frequency'];
         for (const field of requiredFields) {

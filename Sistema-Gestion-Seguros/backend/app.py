@@ -913,7 +913,6 @@ def create_contract():
 
         # 4) Commit final con los inserts de documentos
         mysql.connection.commit()
-        cur.close()
 
         # --- Guardar datos adicionales en extra_data ---
         extra_fields = [
@@ -925,6 +924,20 @@ def create_contract():
         ]
         extra_data = {field: data.get(field) for field in extra_fields if data.get(field) is not None and data.get(field) != ''}
 
+        # === GUARDAR DATOS EXTRA EN TABLA SEPARADA ===
+        # extra_data ya contiene solo los campos con valor
+        for key, value in extra_data.items():
+            cur.execute(
+                """
+                INSERT INTO client_policy_extra_data (contract_id, field_name, field_value)
+                VALUES (%s, %s, %s)
+                """,
+                (contract_id, key, value)
+            )
+        mysql.connection.commit()
+        # === FIN DATOS EXTRA ===
+
+        cur.close()
         return jsonify({
             'success': True,
             'contract_id': contract_id,
