@@ -904,13 +904,18 @@ def create_contract():
         for idx, ben in ben_data.items():
             cur.execute("""
                 INSERT INTO beneficiaries
-                  (contract_id, name, relationship, percentage)
-                VALUES (%s, %s, %s, %s)
-            """, (
+                  (contract_id, name, last_name, relationship, percentage, phone, identification_number, address)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
                 contract_id,
                 ben.get('name'),
+                ben.get('last_name'),
                 ben.get('relationship'),
-                float(ben.get('percentage'))
+                float(ben.get('percentage')),
+                ben.get('phone'),
+                ben.get('identification_number'),
+                ben.get('address')
             ))
         mysql.connection.commit()
         # === FIN INSERTAR BENEFICIARIOS ===
@@ -1367,7 +1372,7 @@ def get_client_contracts(client_id):
     cur = mysql.connection.cursor()
     # Traer todos los contratos de este cliente
     cur.execute('''
-        SELECT cp.id, p.name, cp.premium_amount, cp.payment_frequency, cp.status
+        SELECT cp.id, p.name, p.type_id, cp.premium_amount, cp.payment_frequency, cp.status
         FROM client_policies cp
         JOIN policies p ON cp.policy_id = p.id
         WHERE cp.client_id = %s
@@ -1378,9 +1383,17 @@ def get_client_contracts(client_id):
     for contrato in contratos:
         contract_id = contrato[0]
         # Beneficiarios
-        cur.execute('SELECT name, relationship, percentage FROM beneficiaries WHERE contract_id = %s', (contract_id,))
+        cur.execute('SELECT name, last_name, relationship, percentage, phone, identification_number, address FROM beneficiaries WHERE contract_id = %s', (contract_id,))
         beneficiarios = [
-            {'name': b[0], 'relationship': b[1], 'percentage': float(b[2])}
+            {
+                'name': b[0],
+                'last_name': b[1],
+                'relationship': b[2],
+                'percentage': float(b[3]),
+                'phone': b[4],
+                'identification_number': b[5],
+                'address': b[6]
+            }
             for b in cur.fetchall()
         ]
         # Datos extra
@@ -1389,9 +1402,10 @@ def get_client_contracts(client_id):
         resultado.append({
             'contract_id': contract_id,
             'policy_name': contrato[1],
-            'premium_amount': float(contrato[2]),
-            'payment_frequency': contrato[3],
-            'status': contrato[4],
+            'type_id': contrato[2],
+            'premium_amount': float(contrato[3]),
+            'payment_frequency': contrato[4],
+            'status': contrato[5],
             'beneficiaries': beneficiarios,
             'extra_data': extra_data
         })

@@ -70,6 +70,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <input type="text" name="beneficiarios[${index}][name]" required>
                 </div>
                 <div class="form-group">
+                    <label>Apellido</label>
+                    <input type="text" name="beneficiarios[${index}][last_name]" required>
+                </div>
+                <div class="form-group">
                     <label>Relación</label>
                     <select name="beneficiarios[${index}][relationship]" required>
                         <option value="">Seleccione relación</option>
@@ -84,6 +88,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     <label>Porcentaje (%)</label>
                     <input type="number" name="beneficiarios[${index}][percentage]" 
                            min="1" max="100" required oninput="actualizarTotalPorcentajeBeneficiarios()">
+                </div>
+                <div class="form-group">
+                    <label>Teléfono</label>
+                    <input type="text" name="beneficiarios[${index}][phone]" required>
+                </div>
+                <div class="form-group">
+                    <label>Cédula</label>
+                    <input type="text" name="beneficiarios[${index}][identification_number]" required>
+                </div>
+                <div class="form-group">
+                    <label>Dirección</label>
+                    <input type="text" name="beneficiarios[${index}][address]" required>
                 </div>
                 <button type="button" onclick="this.closest('.beneficiario-item').remove(); actualizarTotalPorcentajeBeneficiarios()">
                     ×
@@ -652,6 +668,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <input type="text" name="beneficiario_nombre" required>
                 </div>
                 <div class="form-group">
+                    <label>Apellido</label>
+                    <input type="text" name="beneficiario_apellido" required>
+                </div>
+                <div class="form-group">
                     <label>Relación</label>
                     <select name="beneficiario_relacion" required>
                         <option value="">Seleccione relación</option>
@@ -666,6 +686,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     <label>Porcentaje (%)</label>
                     <input type="number" name="beneficiario_porcentaje" min="1" max="100" required 
                            oninput="actualizarTotalPorcentajeBeneficiarios()">
+                </div>
+                <div class="form-group">
+                    <label>Teléfono</label>
+                    <input type="text" name="beneficiario_telefono" required>
+                </div>
+                <div class="form-group">
+                    <label>Cédula</label>
+                    <input type="text" name="beneficiario_cedula" required>
+                </div>
+                <div class="form-group">
+                    <label>Dirección</label>
+                    <input type="text" name="beneficiario_direccion" required>
                 </div>
                 <button type="button" class="btn-remove" onclick="this.parentElement.parentElement.remove(); actualizarTotalPorcentajeBeneficiarios()">
                     ×
@@ -720,8 +752,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.beneficiario-item').forEach((item, index) => {
                 beneficiarios.push({
                     name: item.querySelector('[name^="beneficiarios["]').value,
+                    last_name: item.querySelector('[name^="beneficiarios["][name$="[last_name]"]').value,
                     relationship: item.querySelector('[name$="[relationship]"]').value,
-                    percentage: item.querySelector('[name$="[percentage]"]').value
+                    percentage: item.querySelector('[name$="[percentage]"]').value,
+                    phone: item.querySelector('[name$="[phone]"]').value,
+                    identification_number: item.querySelector('[name$="[identification_number]"]').value,
+                    address: item.querySelector('[name$="[address]"]').value
                 });
             });
             if (beneficiarios.length === 0) {
@@ -735,8 +771,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             beneficiarios.forEach((b, i) => {
                 formData.append(`beneficiarios[${i}][name]`, b.name);
+                formData.append(`beneficiarios[${i}][last_name]`, b.last_name);
                 formData.append(`beneficiarios[${i}][relationship]`, b.relationship);
                 formData.append(`beneficiarios[${i}][percentage]`, b.percentage);
+                formData.append(`beneficiarios[${i}][phone]`, b.phone);
+                formData.append(`beneficiarios[${i}][identification_number]`, b.identification_number);
+                formData.append(`beneficiarios[${i}][address]`, b.address);
             });
         }
 
@@ -1007,13 +1047,46 @@ document.addEventListener('DOMContentLoaded', () => {
             </li>`;
           }
 
+          // Mostrar beneficiarios solo si es seguro de Vida (type_id === 1)
+          let beneficiariosHTML = '';
+          if (contrato.type_id === 1 && contrato.beneficiaries.length > 0) {
+            beneficiariosHTML = `
+              <table style="width:100%;margin-bottom:8px;border-collapse:collapse;">
+                <thead>
+                  <tr>
+                    <th style='border-bottom:1px solid #ccc;'>Nombre</th>
+                    <th style='border-bottom:1px solid #ccc;'>Apellido</th>
+                    <th style='border-bottom:1px solid #ccc;'>Relación</th>
+                    <th style='border-bottom:1px solid #ccc;'>Porcentaje</th>
+                    <th style='border-bottom:1px solid #ccc;'>Teléfono</th>
+                    <th style='border-bottom:1px solid #ccc;'>Cédula</th>
+                    <th style='border-bottom:1px solid #ccc;'>Dirección</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${contrato.beneficiaries.map(b => `
+                    <tr>
+                      <td>${b.name || ''}</td>
+                      <td>${b.last_name || ''}</td>
+                      <td>${b.relationship || ''}</td>
+                      <td>${b.percentage || ''}%</td>
+                      <td>${b.phone || ''}</td>
+                      <td>${b.identification_number || ''}</td>
+                      <td>${b.address || ''}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            `;
+          }
+
           detalleDiv.innerHTML += `
             <div style="border-bottom:1px solid #ccc;margin-bottom:10px;padding-bottom:10px;">
               <strong>Póliza:</strong> ${contrato.policy_name}<br>
               <strong>Prima:</strong> $${contrato.premium_amount}<br>
               <strong>Frecuencia:</strong> ${contrato.payment_frequency}<br>
               <strong>Estado:</strong> ${contrato.status}<br>
-              <strong>Beneficiarios:</strong> <ul>${contrato.beneficiaries.map(b=>`<li>${b.name} (${b.relationship}) - ${b.percentage}%</li>`).join('')}</ul>
+              <strong>Beneficiarios:</strong> ${beneficiariosHTML || '<span>No aplica</span>'}<br>
               <strong>Datos adicionales:</strong>
               <ul>
                 ${
