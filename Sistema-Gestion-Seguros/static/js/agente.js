@@ -1018,26 +1018,55 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
           }
 
+          // Datos adicionales en formato tarjeta elegante
+          let datosAdicionalesHTML = '';
+          if (contrato.extra_data && orderedKeys.length > 0) {
+            datosAdicionalesHTML = `<div class="info-datos-adicionales-card">` +
+              orderedKeys.map(k => {
+                const label = extraLabels[k] || k.replace(/_/g,' ');
+                return `<div class="info-dato-adicional-item"><span class="label">${label}:</span> <span class="valor">${contrato.extra_data[k]}</span></div>`;
+              }).join('') +
+              `</div>`;
+          }
+
+          // Tarjeta de información del seguro
+          let seguroHTML = `<div class="info-card" style="margin-top:0;">
+            <div><span class="label"><strong>Póliza:</strong></span> <span class="valor">${contrato.policy_name}</span></div>
+            <div><span class="label"><strong>Prima:</strong></span> <span class="valor">$${contrato.premium_amount}</span></div>
+            <div><span class="label"><strong>Frecuencia:</strong></span> <span class="valor">${contrato.payment_frequency}</span></div>
+            <div><span class="label"><strong>Estado:</strong></span> <span class="valor">${contrato.status}</span></div>
+          </div>`;
+
+          // Tarjeta de beneficiarios
+          let beneficiariosCardHTML = '';
+          if (beneficiariosHTML) {
+            beneficiariosCardHTML = `<div class="info-card"><strong>Beneficiarios:</strong>${beneficiariosHTML}</div>`;
+          }
+
+          // Tarjeta de datos adicionales (si hay datos)
+          let datosAdicionalesCardHTML = '';
+          if (datosAdicionalesHTML) {
+            datosAdicionalesCardHTML = `<div class="info-datos-adicionales-card">${datosAdicionalesHTML}</div>`;
+          }
+
+          // Tarjeta de contacto de emergencia (si existe)
+          let contactoEmergenciaCardHTML = '';
+          if (emergenciaNombre || emergenciaRelacion || emergenciaTelefono) {
+            contactoEmergenciaCardHTML = `<div class="info-card-emergencia">
+              <div class="label" style="font-weight:700;margin-bottom:6px;">Contacto de Emergencia:</div>
+              ${emergenciaNombre ? `<div class="info-dato-adicional-item"><span class="label">Nombre:</span><span class="valor">${emergenciaNombre}</span></div>` : ''}
+              ${emergenciaRelacion ? `<div class="info-dato-adicional-item"><span class="label">Relación:</span><span class="valor">${emergenciaRelacion}</span></div>` : ''}
+              ${emergenciaTelefono ? `<div class="info-dato-adicional-item"><span class="label">Teléfono:</span><span class="valor">${emergenciaTelefono}</span></div>` : ''}
+            </div>`;
+          }
+
           detalleDiv.innerHTML += `
-            <div style="border-bottom:1px solid #ccc;margin-bottom:10px;padding-bottom:10px;">
-              <strong>Póliza:</strong> ${contrato.policy_name}<br>
-              <strong>Prima:</strong> $${contrato.premium_amount}<br>
-              <strong>Frecuencia:</strong> ${contrato.payment_frequency}<br>
-              <strong>Estado:</strong> ${contrato.status}<br>
-              <strong>Beneficiarios:</strong> ${beneficiariosHTML || '<span>No aplica</span>'}<br>
-              <strong>Datos adicionales:</strong>
-              <ul>
-                ${
-                  contrato.extra_data && orderedKeys.length > 0
-                    ? orderedKeys.map(k => {
-                        const label = extraLabels[k] || k.replace(/_/g,' ');
-                        return `<li><b>${label}:</b> ${contrato.extra_data[k]}</li>`;
-                      }).join('')
-                    : ''
-                }
-                ${contactoEmergenciaHTML}
-                ${(!contrato.extra_data || (orderedKeys.length === 0 && !contactoEmergenciaHTML)) ? '<li>No hay datos adicionales</li>' : ''}
-              </ul>
+            <div>
+              ${seguroHTML}
+              ${beneficiariosCardHTML}
+              <div><strong>Datos adicionales:</strong></div>
+              ${datosAdicionalesCardHTML || '<div style="margin-top:6px;">No hay datos adicionales</div>'}
+              ${contactoEmergenciaCardHTML}
             </div>
           `;
         });
