@@ -50,13 +50,10 @@
       <h3>Bienvenido, Admin</h3>
     </div>
     <div class="nav-menu">
-      <button class="menu-btn" data-content="roles">
-        <i class="fas fa-user-shield"></i> Gestión de Roles
-      </button>
-      <button class="menu-btn" data-content="usuarios">
+      <button class="menu-btn active" data-content="usuarios">
         <i class="fas fa-users-cog"></i> Administración de Usuarios
       </button>
-      <button class="menu-btn active" data-content="seguros">
+      <button class="menu-btn" data-content="seguros">
         <i class="fas fa-file-contract"></i> Gestión de Seguros
       </button>
     </div>
@@ -79,16 +76,9 @@
 
     <div id="dynamic-content">
       <!-- =========================
-           SECCIÓN: ROLES
-           ========================= -->
-      <div class="content-section" id="roles-content">
-        <!-- Aquí va tu contenido de "Gestión de Roles" -->
-      </div>
-
-      <!-- =========================
            SECCIÓN: USUARIOS
            ========================= -->
-      <div class="content-section" id="usuarios-content">
+      <div class="content-section active" id="usuarios-content">
         <div class="users-header">
           <button id="btn-new-user" class="btn btn-primary">
             <i class="fas fa-user-plus"></i> Crear Usuario
@@ -112,12 +102,11 @@
         </div>
       </div>
 
-
       
       <!-- =========================
            SECCIÓN: SEGUROS
            ========================= -->
-      <div class="content-section active" id="seguros-content">
+      <div class="content-section" id="seguros-content">
         <!-- Botón para crear póliza -->
         <div class="users-header">
           <button id="btn-new-insurance" class="btn btn-primary">
@@ -373,18 +362,19 @@
   </div>
 
   <!-- =========================
-       MODAL: Crear/Editar Seguro
+       MODAL: Crear Seguro
        ========================= -->
-  <div id="insurance-modal" class="modal hidden">
+  <div id="create-insurance-modal" class="modal hidden">
     <div class="modal-content create-user">
-      <h2 id="insurance-modal-title">Crear Seguro</h2>
-      <form id="insurance-form">
+      <span class="close-user-modal" id="close-create-insurance-modal">&times;</span>
+      <h2>Crear Seguro</h2>
+      <form id="create-insurance-form">
         <!-- Nombre del Seguro -->
         <div class="form-group">
-          <label for="i-name">Nombre del Seguro</label>
+          <label for="create-i-name">Nombre del Seguro</label>
           <input
             type="text"
-            id="i-name"
+            id="create-i-name"
             name="name"
             placeholder="Ej: Seguro de Vida Premium"
             required
@@ -394,8 +384,8 @@
         </div>
         <!-- Tipo de Póliza -->
         <div class="form-group">
-          <label for="i-type">Tipo de Póliza</label>
-          <select id="i-type" name="type_id" required>
+          <label for="create-i-type">Tipo de Póliza</label>
+          <select id="create-i-type" name="type_id" required>
             <option value="">Seleccione un tipo</option>
             {% for pt in policy_types %}
             <option value="{{ pt.id }}">{{ pt.name }}</option>
@@ -404,9 +394,9 @@
         </div>
         <!-- Cobertura -->
         <div class="form-group">
-          <label for="i-coverage">Cobertura</label>
+          <label for="create-i-coverage">Cobertura</label>
           <select
-            id="i-coverage"
+            id="create-i-coverage"
             name="coverage_id"
             class="form-select w-auto"
             required
@@ -416,9 +406,9 @@
         </div>
         <!-- Beneficios -->
         <div class="form-group">
-          <label for="i-benefits">Beneficios</label>
+          <label for="create-i-benefits">Beneficios</label>
           <textarea
-            id="i-benefits"
+            id="create-i-benefits"
             name="benefits"
             rows="3"
             placeholder="Servicios incluidos, asistencia médica, indemnización"
@@ -428,10 +418,10 @@
         <!-- Fila: Costo + Frecuencia de Pago -->
         <div class="form-row">
           <div class="form-group">
-            <label for="i-cost">Costo</label>
+            <label for="create-i-cost">Costo</label>
             <input
               type="number"
-              id="i-cost"
+              id="create-i-cost"
               name="cost"
               step="0.01"
               min="0"
@@ -440,8 +430,8 @@
             />
           </div>
           <div class="form-group">
-            <label for="i-payment">Frecuencia de Pago</label>
-            <select id="i-payment" name="payment" required>
+            <label for="create-i-payment">Frecuencia de Pago</label>
+            <select id="create-i-payment" name="payment" required>
               <option value="Mensual">Mensual</option>
               <option value="Trimestral">Trimestral</option>
               <option value="Anual">Anual</option>
@@ -450,12 +440,12 @@
         </div>
         <!-- Estado -->
         <div class="form-group">
-          <label for="i-insured-amount">Suma asegurada</label>
-          <input type="number" id="i-insured-amount" name="insured_amount" min="0" step="0.01" placeholder="0.00" required />
+          <label for="create-i-insured-amount">Suma asegurada</label>
+          <input type="number" id="create-i-insured-amount" name="insured_amount" min="0" step="0.01" placeholder="0.00" required />
         </div>
         <div class="form-group">
-          <label for="i-payment-method">Forma de pago</label>
-          <select id="i-payment-method" name="payment_method" required>
+          <label for="create-i-payment-method">Forma de pago</label>
+          <select id="create-i-payment-method" name="payment_method" required>
             <option value="Tarjeta">Tarjeta</option>
             <option value="Débito">Débito</option>
             <option value="Transferencia">Transferencia</option>
@@ -463,11 +453,115 @@
         </div>
         <!-- Botones al pie -->
         <div class="modal-actions">
-          <button type="button" id="cancel-insurance" class="btn btn-secondary">
+          <button type="button" id="cancel-create-insurance" class="btn btn-secondary">
             <i class="fas fa-times"></i> Cancelar
           </button>
           <button type="submit" class="btn btn-primary">
             <i class="fas fa-save"></i> Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================
+       MODAL: Editar Seguro
+       ========================= -->
+  <div id="edit-insurance-modal" class="modal hidden">
+    <div class="modal-content create-user">
+      <span class="close-user-modal" id="close-edit-insurance-modal">&times;</span>
+      <h2>Editar Seguro</h2>
+      <form id="edit-insurance-form">
+        <input type="hidden" id="edit-i-id" name="insurance_id" />
+        <!-- Nombre del Seguro -->
+        <div class="form-group">
+          <label for="edit-i-name">Nombre del Seguro</label>
+          <input
+            type="text"
+            id="edit-i-name"
+            name="name"
+            placeholder="Ej: Seguro de Vida Premium"
+            required
+            pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+"
+            title="Solo letras y espacios, sin números ni caracteres especiales"
+          />
+        </div>
+        <!-- Tipo de Póliza -->
+        <div class="form-group">
+          <label for="edit-i-type">Tipo de Póliza</label>
+          <select id="edit-i-type" name="type_id" required>
+            <option value="">Seleccione un tipo</option>
+            {% for pt in policy_types %}
+            <option value="{{ pt.id }}">{{ pt.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <!-- Cobertura -->
+        <div class="form-group">
+          <label for="edit-i-coverage">Cobertura</label>
+          <select
+            id="edit-i-coverage"
+            name="coverage_id"
+            class="form-select w-auto"
+            required
+          >
+            <option value="">Seleccione una cobertura</option>
+          </select>
+        </div>
+        <!-- Beneficios -->
+        <div class="form-group">
+          <label for="edit-i-benefits">Beneficios</label>
+          <textarea
+            id="edit-i-benefits"
+            name="benefits"
+            rows="3"
+            placeholder="Servicios incluidos, asistencia médica, indemnización"
+            required
+          ></textarea>
+        </div>
+        <!-- Fila: Costo + Frecuencia de Pago -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-i-cost">Costo</label>
+            <input
+              type="number"
+              id="edit-i-cost"
+              name="cost"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="edit-i-payment">Frecuencia de Pago</label>
+            <select id="edit-i-payment" name="payment" required>
+              <option value="Mensual">Mensual</option>
+              <option value="Trimestral">Trimestral</option>
+              <option value="Anual">Anual</option>
+            </select>
+          </div>
+        </div>
+        <!-- Estado -->
+        <div class="form-group">
+          <label for="edit-i-insured-amount">Suma asegurada</label>
+          <input type="number" id="edit-i-insured-amount" name="insured_amount" min="0" step="0.01" placeholder="0.00" required />
+        </div>
+        <div class="form-group">
+          <label for="edit-i-payment-method">Forma de pago</label>
+          <select id="edit-i-payment-method" name="payment_method" required>
+            <option value="Tarjeta">Tarjeta</option>
+            <option value="Débito">Débito</option>
+            <option value="Transferencia">Transferencia</option>
+          </select>
+        </div>
+        <!-- Botones al pie -->
+        <div class="modal-actions">
+          <button type="button" id="cancel-edit-insurance" class="btn btn-secondary">
+            <i class="fas fa-times"></i> Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Actualizar
           </button>
         </div>
       </form>
