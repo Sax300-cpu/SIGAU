@@ -924,7 +924,42 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.length === 0) {
         detalleDiv.innerHTML = '<p>Este cliente no tiene contratos registrados.</p>';
       } else {
+        // Mapeo de claves a textos amigables
+        const extraLabels = {
+          'estado_civil': 'Estado civil',
+          'sexo': 'Sexo',
+          'nacionalidad': 'Nacionalidad',
+          'ocupacion': 'Ocupación',
+          'altura': 'Altura (cm)',
+          'peso': 'Peso (kg)',
+          'enfermedades_cronicas': '¿Tiene enfermedades crónicas?',
+          'fuma_alcohol': '¿Fuma o consume alcohol?',
+          'medicamentos': '¿Toma medicamentos actualmente?',
+          'hospitalizado': '¿Ha sido hospitalizado recientemente?',
+          'cirugias': '¿Ha tenido cirugías importantes?',
+          'alergias_conocidas': 'Alergias conocidas',
+          'enfermedades_previas': 'Enfermedades previas o actuales',
+          'hospitalizado_salud': '¿Ha sido hospitalizado recientemente? (fecha, motivo)',
+          'tratamiento_actual': '¿Está en tratamiento médico actualmente?',
+          'embarazada': '¿Está embarazada?'
+        };
+        // Orden deseado de los campos
+        const extraOrder = [
+          'estado_civil', 'sexo', 'nacionalidad', 'ocupacion', 'altura', 'peso',
+          'enfermedades_cronicas', 'fuma_alcohol', 'medicamentos', 'hospitalizado', 'cirugias',
+          'alergias_conocidas', 'enfermedades_previas', 'hospitalizado_salud', 'tratamiento_actual', 'embarazada'
+        ];
         data.forEach(contrato => {
+          // Ordenar las claves de extra_data según extraOrder
+          let orderedKeys = [];
+          let extraDataKeys = contrato.extra_data ? Object.keys(contrato.extra_data) : [];
+          extraOrder.forEach(key => {
+            if (extraDataKeys.includes(key)) orderedKeys.push(key);
+          });
+          // Agregar cualquier campo no listado al final
+          extraDataKeys.forEach(key => {
+            if (!orderedKeys.includes(key)) orderedKeys.push(key);
+          });
           detalleDiv.innerHTML += `
             <div style="border-bottom:1px solid #ccc;margin-bottom:10px;padding-bottom:10px;">
               <strong>Póliza:</strong> ${contrato.policy_name}<br>
@@ -933,7 +968,16 @@ document.addEventListener('DOMContentLoaded', () => {
               <strong>Estado:</strong> ${contrato.status}<br>
               <strong>Beneficiarios:</strong> <ul>${contrato.beneficiaries.map(b=>`<li>${b.name} (${b.relationship}) - ${b.percentage}%</li>`).join('')}</ul>
               <strong>Datos adicionales:</strong>
-              <ul>${contrato.extra_data && Object.keys(contrato.extra_data).length > 0 ? Object.entries(contrato.extra_data).map(([k,v])=>`<li><b>${k.replace(/_/g,' ')}:</b> ${v}</li>`).join('') : '<li>No hay datos adicionales</li>'}</ul>
+              <ul>
+                ${
+                  contrato.extra_data && orderedKeys.length > 0
+                    ? orderedKeys.map(k => {
+                        const label = extraLabels[k] || k.replace(/_/g,' ');
+                        return `<li><b>${label}:</b> ${contrato.extra_data[k]}</li>`;
+                      }).join('')
+                    : '<li>No hay datos adicionales</li>'
+                }
+              </ul>
             </div>
           `;
         });
