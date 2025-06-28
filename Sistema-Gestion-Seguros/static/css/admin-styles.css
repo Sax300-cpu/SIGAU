@@ -995,3 +995,37 @@ body {
   }
 }
 
+/* --- Beneficiarios compactos en el modal de contratación --- */
+.beneficiarios-grid {
+  display: grid;
+  grid-template-columns: 110px 110px 110px 110px 110px 110px 160px;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+}
+.beneficiarios-grid .form-group {
+  margin-bottom: 0;
+}
+.beneficiarios-grid input,
+.beneficiarios-grid select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  font-size: 0.97rem;
+}
+.beneficiario-item {
+  margin-bottom: 6px;
+}
+@media (max-width: 900px) {
+  .beneficiarios-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .beneficiarios-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+

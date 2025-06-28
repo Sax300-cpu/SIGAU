@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Función para crear HTML de beneficiario
     const crearBeneficiarioHTML = (index) => `
         <div class="beneficiario-item">
-            <div class="form-row">
+            <div class="beneficiarios-grid">
                 <div class="form-group">
                     <label>Nombre</label>
                     <input type="text" name="beneficiarios[${index}][name]" required>
@@ -320,6 +320,10 @@ document.addEventListener('DOMContentLoaded', () => {
       detallesSeguroDiv.innerHTML = '';
       inputPrima.value = '';
       selectFrecuencia.value = '';
+      // Limpiar beneficiarios
+      if (beneficiariosContainer) beneficiariosContainer.innerHTML = '';
+      const totalSpan = document.getElementById('total-beneficiarios-porcentaje');
+      if (totalSpan) totalSpan.textContent = '0';
       // Mostrar el modal
       if (modal) modal.classList.remove('hidden');
     });
@@ -596,8 +600,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectSeguroMejorado = document.getElementById('select-seguro');
   const inputPrimaMejorado = document.getElementById('input-prima');
   const selectFrecuenciaMejorado = document.getElementById('select-frecuencia');
-  const beneficiariosContainerMejorado = document.getElementById('beneficiarios-container');
-  const btnAgregarBeneficiarioMejorado = document.querySelector('#btn-agregar-beneficiario');
   const inputDocumentosMejorado = document.getElementById('input-documentos');
   const detallesSeguroDivMejorado = document.getElementById('detalles-seguro');
 
@@ -607,8 +609,6 @@ document.addEventListener('DOMContentLoaded', () => {
       && selectSeguro          // ya definido arriba como #select-seguro
       && inputPrima            // #input-prima
       && selectFrecuencia      // #select-frecuencia
-      && beneficiariosContainer // #beneficiarios-container
-      && btnAgregarBeneficiario  // #btn-agregar-beneficiario
       && inputDocumentosMejorado  // #input-documentos
       && detallesSeguroDiv) {  // #detalles-seguro
 
@@ -655,57 +655,6 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (error) {
         console.error('Error al cargar detalles del seguro:', error);
       }
-    });
-
-    // Agregar beneficiario
-    btnAgregarBeneficiarioMejorado.addEventListener('click', () => {
-        const beneficiarioDiv = document.createElement('div');
-        beneficiarioDiv.className = 'beneficiario-item';
-        beneficiarioDiv.innerHTML = `
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Nombre</label>
-                    <input type="text" name="beneficiario_nombre" required>
-                </div>
-                <div class="form-group">
-                    <label>Apellido</label>
-                    <input type="text" name="beneficiario_apellido" required>
-                </div>
-                <div class="form-group">
-                    <label>Relación</label>
-                    <select name="beneficiario_relacion" required>
-                        <option value="">Seleccione relación</option>
-                        <option value="Cónyuge">Cónyuge</option>
-                        <option value="Hijo/a">Hijo/a</option>
-                        <option value="Padre/Madre">Padre/Madre</option>
-                        <option value="Hermano/a">Hermano/a</option>
-                        <option value="Otro">Otro</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Porcentaje (%)</label>
-                    <input type="number" name="beneficiario_porcentaje" min="1" max="100" required 
-                           oninput="actualizarTotalPorcentajeBeneficiarios()">
-                </div>
-                <div class="form-group">
-                    <label>Teléfono</label>
-                    <input type="text" name="beneficiario_telefono" required>
-                </div>
-                <div class="form-group">
-                    <label>Cédula</label>
-                    <input type="text" name="beneficiario_cedula" required>
-                </div>
-                <div class="form-group">
-                    <label>Dirección</label>
-                    <input type="text" name="beneficiario_direccion" required>
-                </div>
-                <button type="button" class="btn-remove" onclick="this.parentElement.parentElement.remove(); actualizarTotalPorcentajeBeneficiarios()">
-                    ×
-                </button>
-            </div>
-        `;
-        beneficiariosContainerMejorado.appendChild(beneficiarioDiv);
-        actualizarTotalPorcentajeBeneficiarios();
     });
 
     // Evento submit del formulario (único manejador)
@@ -833,7 +782,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Resetear formulario
             formContratoMejorado.reset();
-            beneficiariosContainerMejorado.innerHTML = '';
             document.getElementById('total-beneficiarios-porcentaje').textContent = '0';
             modal.classList.add('hidden');
             // Restaurar la lista de clientes
