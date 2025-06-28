@@ -920,7 +920,9 @@ def create_contract():
             'estado_civil', 'sexo', 'ocupacion', 'nacionalidad', 'altura', 'peso',
             'enfermedades_cronicas', 'fuma_alcohol', 'medicamentos', 'hospitalizado', 'cirugias',
             # Salud
-            'alergias_conocidas', 'sexo_salud', 'enfermedades_previas', 'hospitalizado_salud', 'tratamiento_actual', 'embarazada'
+            'alergias_conocidas', 'sexo_salud', 'enfermedades_previas', 'hospitalizado_salud', 'tratamiento_actual', 'embarazada',
+            # Contacto de emergencia (Salud)
+            'emergencia_nombre', 'emergencia_relacion', 'emergencia_telefono'
         ]
         extra_data = {field: data.get(field) for field in extra_fields if data.get(field) is not None and data.get(field) != ''}
 
