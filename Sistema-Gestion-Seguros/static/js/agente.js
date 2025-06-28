@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         accionesSelect.innerHTML = `
           <option value="">Elegir...</option>
           <option value="contratar">Contratar Seguro</option>
-          <option value="mostrar">Mostrar información de cliente</option>
+          <option value="mostrar">Mostrar datos adicionales del Cliente</option>
           <option value="editar">Editar Cliente</option>
         `;
         accionesSelect.addEventListener('change', function() {
@@ -531,7 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
         accionesSelect.innerHTML = `
           <option value="">Elegir...</option>
           <option value="contratar">Contratar Seguro</option>
-          <option value="mostrar">Mostrar información de cliente</option>
+          <option value="mostrar">Mostrar datos adicionales del Cliente</option>
           <option value="editar">Editar Cliente</option>
         `;
         accionesSelect.addEventListener('change', function() {
@@ -911,7 +911,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="modal-overlay"></div>
           <div class="modal-content">
             <button id="btn-cerrar-info-cliente-x" class="close-x" title="Cerrar">&times;</button>
-            <h3>Información completa del cliente</h3>
+            <h3>Información adicional del cliente</h3>
             <div id="info-cliente-detalle"></div>
             <button id="btn-cerrar-info-cliente" class="close-btn">Cerrar</button>
           </div>
@@ -950,6 +950,7 @@ document.addEventListener('DOMContentLoaded', () => {
           'alergias_conocidas', 'enfermedades_previas', 'hospitalizado_salud', 'tratamiento_actual', 'embarazada'
         ];
         data.forEach(contrato => {
+          detalleDiv.innerHTML += `<h4 style='margin-bottom:8px;'>Su seguro:</h4>`;
           // Ordenar las claves de extra_data según extraOrder
           let orderedKeys = [];
           let extraDataKeys = contrato.extra_data ? Object.keys(contrato.extra_data) : [];
