@@ -1005,32 +1005,16 @@ document.addEventListener('DOMContentLoaded', () => {
           let beneficiariosHTML = '';
           if (contrato.type_id === 1 && contrato.beneficiaries.length > 0) {
             beneficiariosHTML = `
-              <table style="width:100%;margin-bottom:8px;border-collapse:collapse;">
-                <thead>
-                  <tr>
-                    <th style='border-bottom:1px solid #ccc;'>Nombre</th>
-                    <th style='border-bottom:1px solid #ccc;'>Apellido</th>
-                    <th style='border-bottom:1px solid #ccc;'>Relación</th>
-                    <th style='border-bottom:1px solid #ccc;'>Porcentaje</th>
-                    <th style='border-bottom:1px solid #ccc;'>Teléfono</th>
-                    <th style='border-bottom:1px solid #ccc;'>Cédula</th>
-                    <th style='border-bottom:1px solid #ccc;'>Dirección</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${contrato.beneficiaries.map(b => `
-                    <tr>
-                      <td>${b.name || ''}</td>
-                      <td>${b.last_name || ''}</td>
-                      <td>${b.relationship || ''}</td>
-                      <td>${b.percentage || ''}%</td>
-                      <td>${b.phone || ''}</td>
-                      <td>${b.identification_number || ''}</td>
-                      <td>${b.address || ''}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
+              <ul class="info-datos-adicionales-list" style="margin-bottom:8px;">
+                ${contrato.beneficiaries.map(b => `
+                  <li>
+                    <b>Nombre:</b> ${b.name || ''} <b>Apellido:</b> ${b.last_name || ''}<br>
+                    <b>Relación:</b> ${b.relationship || ''} <b>Porcentaje:</b> ${b.percentage || ''}%<br>
+                    <b>Teléfono:</b> ${b.phone || ''} <b>Cédula:</b> ${b.identification_number || ''}<br>
+                    <b>Dirección:</b> ${b.address || ''}
+                  </li>
+                `).join('')}
+              </ul>
             `;
           }
 
@@ -1161,47 +1145,65 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         let html = '';
         contratos.forEach(contrato => {
-          html += `<div style="margin-bottom:18px;">
+          // Separar documento_firmado.pdf y otros archivos
+          let docs = (contrato.documents || []).slice();
+          const firmado = docs.find(d => d.filename === 'documento_firmado.pdf');
+          const otros = docs.filter(d => d.filename !== 'documento_firmado.pdf');
+          html += `<div class="doc-section" style="margin-bottom:18px;">
             <strong>Póliza:</strong> ${contrato.policy_name}<br>
             <strong>Estado:</strong> ${contrato.status}<br>
-            <strong>Documentos:</strong>
-            <table style="width:100%;margin-top:6px;margin-bottom:8px;border-collapse:collapse;">
-              <thead>
+            <strong>Documento firmado:</strong>
+            <table class="doc-table doc-table-signed">
+              <thead class="doc-table-header">
                 <tr>
-                  <th style='border-bottom:1px solid #ccc;'>Archivo</th>
-                  <th style='border-bottom:1px solid #ccc;'>Subido por</th>
-                  <th style='border-bottom:1px solid #ccc;'>Estado</th>
-                  <th style='border-bottom:1px solid #ccc;'>Acción</th>
+                  <th>Archivo</th>
+                  <th>Subido por</th>
+                  <th>Estado</th>
+                  <th>Acción</th>
                 </tr>
               </thead>
               <tbody>
-          `;
-          // Ordenar: primero documento_firmado.pdf si existe
-          let docs = (contrato.documents || []).slice();
-          docs.sort((a, b) => {
-            if (a.filename === 'documento_firmado.pdf') return -1;
-            if (b.filename === 'documento_firmado.pdf') return 1;
-            return 0;
-          });
-          if (docs.length === 0) {
-            html += `<tr><td colspan="4" style="text-align:center;color:#888;">No hay documentos</td></tr>`;
-          } else {
-            docs.forEach(doc => {
-              html += `<tr${doc.filename === 'documento_firmado.pdf' ? ' style="background:#eafaf1;"' : ''}>
-                <td><a href="/contracts/${contrato.contract_id}/docs/${encodeURIComponent(doc.filename)}" target="_blank">${doc.filename}</a></td>
-                <td>${doc.uploaded_by ? doc.uploaded_by.charAt(0).toUpperCase() + doc.uploaded_by.slice(1) : '-'}</td>
-                <td>${doc.status ? doc.status.charAt(0).toUpperCase() + doc.status.slice(1) : '-'}</td>
+            `;
+            if (firmado) {
+              html += `<tr class="doc-signed-highlight">
+                <td><a href="/contracts/${contrato.contract_id}/docs/${encodeURIComponent(firmado.filename)}" target="_blank" class="doc-download-link">${firmado.filename}</a></td>
+                <td>${firmado.uploaded_by ? firmado.uploaded_by.charAt(0).toUpperCase() + firmado.uploaded_by.slice(1) : '-'}</td>
+                <td>${firmado.status ? firmado.status.charAt(0).toUpperCase() + firmado.status.slice(1) : '-'}</td>
                 <td>
-                  <a href="/contracts/${contrato.contract_id}/docs/${encodeURIComponent(doc.filename)}" target="_blank" class="btn-small">Descargar</a>
-                  ${doc.filename === 'documento_firmado.pdf' && doc.uploaded_by === 'cliente' && doc.status === 'pendiente' ?
-                    `<button class="btn-small btn-aprobar-doc" data-docid="${doc.id}" data-contrato="${contrato.contract_id}">Aprobar</button>
-                     <button class="btn-small btn-rechazar-doc" data-docid="${doc.id}" data-contrato="${contrato.contract_id}">Rechazar</button>`
+                  ${firmado.uploaded_by === 'cliente' && firmado.status === 'pendiente' ?
+                    `<button class="btn-small doc-action-btn doc-approve" data-docid="${firmado.id}" data-contrato="${contrato.contract_id}">Aprobar</button>
+                     <button class="btn-small doc-action-btn doc-reject" data-docid="${firmado.id}" data-contrato="${contrato.contract_id}">Rechazar</button>`
                     : ''}
                 </td>
               </tr>`;
-            });
-          }
-          html += '</tbody></table></div>';
+            } else {
+              html += `<tr><td colspan="4" style="text-align:center;color:#888;">No hay documento firmado</td></tr>`;
+            }
+            html += '</tbody></table>';
+            // Otros archivos
+            html += `<strong>Otros archivos:</strong>
+              <table class="doc-table doc-table-other">
+                <thead class="doc-table-header">
+                  <tr>
+                    <th>Archivo</th>
+                    <th>Subido por</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+            `;
+            if (otros.length === 0) {
+              html += `<tr><td colspan="3" style="text-align:center;color:#888;">No hay otros archivos</td></tr>`;
+            } else {
+              otros.forEach(doc => {
+                html += `<tr>
+                  <td><a href="/contracts/${contrato.contract_id}/docs/${encodeURIComponent(doc.filename)}" target="_blank" class="doc-download-link">${doc.filename}</a></td>
+                  <td>${doc.uploaded_by ? doc.uploaded_by.charAt(0).toUpperCase() + doc.uploaded_by.slice(1) : '-'}</td>
+                  <td><a href="/contracts/${contrato.contract_id}/docs/${encodeURIComponent(doc.filename)}" target="_blank" class="btn-small doc-action-btn doc-download-link">Descargar</a></td>
+                </tr>`;
+              });
+            }
+            html += '</tbody></table></div>';
         });
         detalleDiv.innerHTML = html;
         // Aquí luego implementaremos la lógica de aprobar/rechazar

@@ -552,92 +552,6 @@ input:checked + .slider:before {
     width: 140px;
 }
 
-<<<<<<< Updated upstream
-/* Modal elegante para información de cliente */
-#modal-info-cliente.modal {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(30, 42, 60, 0.45);
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.2s;
-}
-#modal-info-cliente .modal-content {
-    background: #fff;
-    border-radius: 14px;
-    box-shadow: 0 8px 32px rgba(30,42,60,0.18);
-    padding: 36px 32px 24px 32px;
-    max-width: 600px;
-    width: 100%;
-    position: relative;
-    animation: modalShow 0.25s cubic-bezier(.4,2,.6,1) 1;
-}
-@keyframes modalShow {
-    from { transform: translateY(40px) scale(0.98); opacity: 0; }
-    to   { transform: translateY(0) scale(1); opacity: 1; }
-}
-#modal-info-cliente h3 {
-    margin-top: 0;
-    color: #1976d2;
-    font-size: 1.35rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    margin-bottom: 18px;
-    text-align: center;
-}
-#modal-info-cliente ul {
-    margin: 0 0 0 18px;
-    padding: 0;
-}
-#modal-info-cliente li {
-    margin-bottom: 2px;
-    font-size: 0.98rem;
-}
-#modal-info-cliente .close-btn {
-    display: inline-block;
-    background: #1976d2;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 9px 28px;
-    font-size: 1.05rem;
-    font-weight: 500;
-    margin: 24px auto 0 auto;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(25,118,210,0.08);
-    transition: background 0.18s;
-    display: block;
-}
-#modal-info-cliente .close-btn:hover {
-    background: #1251a3;
-}
-#modal-info-cliente .modal-content > div {
-    margin-bottom: 10px;
-}
-#modal-info-cliente .modal-content > div:last-child {
-    margin-bottom: 0;
-}
-
-/* Botón X para cerrar el modal de información de cliente */
-#modal-info-cliente .close-x {
-    position: absolute;
-    top: 14px;
-    right: 18px;
-    background: none;
-    border: none;
-    font-size: 2rem;
-    color: #1976d2;
-    cursor: pointer;
-    z-index: 2;
-    transition: color 0.18s;
-    line-height: 1;
-    padding: 0 6px;
-}
-#modal-info-cliente .close-x:hover {
-    color: #c0392b;
-=======
 /* ======================
    ESTILOS PARA REEMBOLSOS
    ====================== */
@@ -741,5 +655,235 @@ input:checked + .slider:before {
     font-size: 0.95rem;
     resize: vertical;
     min-height: 80px;
->>>>>>> Stashed changes
+}
+
+/* === MODAL DE DOCUMENTOS DEL CONTRATO (mejora visual) === */
+.doc-section {
+  background: #f8fafc;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(44,62,80,0.07);
+  padding: 18px 18px 10px 18px;
+  margin-bottom: 28px;
+}
+.doc-section strong {
+  color: #1976d2;
+  font-size: 1.08em;
+}
+.doc-table {
+  width: 100%;
+  border-radius: 8px;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 8px;
+  margin-bottom: 12px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(44,62,80,0.04);
+  overflow: hidden;
+}
+.doc-table-header th {
+  background: #e3e8f0;
+  color: #1e2a3c;
+  font-weight: 600;
+  padding: 10px 12px;
+  border-bottom: 1.5px solid #d1d5db;
+  text-align: center;
+  vertical-align: middle;
+}
+.doc-table td {
+  vertical-align: middle;
+  text-align: center;
+}
+.doc-table .doc-action-btn {
+  display: inline-block;
+  margin: 0 6px 0 0;
+  min-width: 70px;
+  padding: 5px 12px;
+  font-size: 0.98em;
+}
+.doc-table .doc-approve + .doc-reject {
+  margin-left: 0;
+}
+.doc-table .doc-action-btn:last-child {
+  margin-right: 0;
+}
+.doc-signed-highlight td {
+  vertical-align: middle;
+  text-align: center;
+}
+.doc-table-signed {
+  /* border: 2px solid #27ae60; */
+  border: 1.5px solid #b0b8c1;
+  margin-bottom: 18px;
+}
+.doc-table-other {
+  border: 1.5px solid #b0b8c1;
+}
+.doc-action-btn {
+  margin-right: 6px;
+  margin-bottom: 3px;
+  border-radius: 5px;
+  font-size: 0.97em;
+  transition: background 0.18s, color 0.18s;
+}
+.doc-approve {
+  background: #27ae60;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+}
+.doc-approve:hover {
+  background: #219150;
+}
+.doc-reject {
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+}
+.doc-reject:hover {
+  background: #c0392b;
+}
+.doc-download-link {
+  color: #1976d2;
+  text-decoration: underline;
+  font-weight: 500;
+  transition: color 0.18s;
+}
+.doc-download-link:hover {
+  color: #0d47a1;
+  text-decoration: underline;
+}
+@media (max-width: 700px) {
+  .doc-section { padding: 10px 2px 6px 2px; }
+  .doc-table th, .doc-table td { padding: 7px 4px; font-size: 0.97em; }
+}
+@media (max-width: 600px) {
+  .doc-table .doc-action-btn {
+    display: block;
+    width: 100%;
+    margin: 6px 0;
+  }
+}
+
+/* === MODAL INFO CLIENTE (Mostrar datos adicionales del Cliente) === */
+#modal-info-cliente .modal-content {
+  max-width: 700px;
+  width: 95%;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(44,62,80,0.13);
+  padding: 28px 28px 18px 28px;
+  position: relative;
+  font-size: 1.05em;
+}
+#modal-info-cliente h3 {
+  margin-top: 0;
+  margin-bottom: 18px;
+  color: #1976d2;
+  font-size: 1.35em;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+#modal-info-cliente h4 {
+  color: #1976d2;
+  margin-bottom: 8px;
+  font-size: 1.13em;
+}
+#modal-info-cliente strong {
+  color: #1e2a3c;
+}
+#modal-info-cliente .close-x {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  background: none;
+  border: none;
+  font-size: 1.7em;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.2s;
+  z-index: 10;
+}
+#modal-info-cliente .close-x:hover {
+  color: #e74c3c;
+}
+#modal-info-cliente .close-btn {
+  margin-top: 18px;
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 7px 18px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+#modal-info-cliente #info-cliente-detalle {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+/* Tabla de beneficiarios en el modal info cliente */
+.info-beneficiarios-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+  background: #f8f9fa;
+  border-radius: 7px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(44,62,80,0.04);
+}
+.info-beneficiarios-table th, .info-beneficiarios-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e3e8f0;
+  text-align: center;
+  font-size: 0.98em;
+}
+.info-beneficiarios-table th {
+  background: #e3e8f0;
+  color: #1976d2;
+  font-weight: 600;
+}
+.info-beneficiarios-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Lista de datos adicionales */
+.info-datos-adicionales-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0 0 0 0;
+}
+.info-datos-adicionales-list li {
+  margin-bottom: 6px;
+  padding: 6px 0 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.99em;
+}
+.info-datos-adicionales-list li:last-child {
+  border-bottom: none;
+}
+
+/* Contacto de emergencia dentro de la lista */
+.info-contacto-emergencia {
+  background: #f1f8e9;
+  border-radius: 6px;
+  padding: 7px 12px;
+  margin: 7px 0 7px 0;
+  font-size: 0.98em;
+  border: 1px solid #c5e1a5;
+}
+
+@media (max-width: 800px) {
+  #modal-info-cliente .modal-content {
+    padding: 12px 4vw 10px 4vw;
+    font-size: 0.98em;
+  }
+  .info-beneficiarios-table th, .info-beneficiarios-table td {
+    padding: 6px 3px;
+    font-size: 0.95em;
+  }
 }
