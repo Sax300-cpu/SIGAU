@@ -150,7 +150,7 @@
           <div style="font-size:2rem; color:#111; font-weight:700;">Todavía no ha pagado nada</div>
         </div>
       </div>
-      <div class="content" id="reembolso-section" style="display:none;">
+      <div class="content" id="reembolso-section" style="display:none;" data-has-contracts="{% if contracts and contracts|length > 0 %}true{% else %}false{% endif %}">
         {% if contracts and contracts|length > 0 %}
           <div style="display: flex; flex-direction: column; gap: 24px; margin-top: 40px;">
             {% for c in contracts %}
@@ -168,8 +168,9 @@
           </div>
         {% else %}
           <div style="text-align:center; margin-top:40px;">
-            <div style="font-size:2rem; color:#111; font-weight:700;">No ha solicitado reembolsos</div>
-            <div style="font-size:1rem; color:#111; margin-top:18px;">Cuando realice pagos cubiertos por su póliza, podrá solicitar reembolsos aquí.</div>
+            <div style="font-size:2rem; color:#111; font-weight:700;">No tiene seguros contratados</div>
+            <div style="font-size:1rem; color:#111; margin-top:18px;">Para solicitar reembolsos, primero debe contratar un seguro.</div>
+            <div style="font-size:1rem; color:#111; margin-top:4px;">Contacte a nuestros agentes: 0992352247</div>
           </div>
         {% endif %}
       </div>
@@ -188,6 +189,16 @@
           var reembolsoLink = document.getElementById('reembolso-link');
           var reembolsoSection = document.getElementById('reembolso-section');
           var mainTitle = document.getElementById('main-title');
+          
+          // Variable para almacenar el contract_id seleccionado
+          var selectedContractId = null;
+          
+          // Verificar si hay contratos para mostrar/ocultar el enlace de reembolsos
+          var hasContracts = reembolsoSection && reembolsoSection.getAttribute('data-has-contracts') === 'true';
+          if (!hasContracts && reembolsoLink) {
+            reembolsoLink.parentElement.style.display = 'none';
+          }
+          
           // Al iniciar sesión, mostrar solo la sección de inicio y el título correspondiente
           function mostrarInicio() {
             if (mainTitle) mainTitle.textContent = 'Inicio';
@@ -199,6 +210,7 @@
             if (reembolsoSection) reembolsoSection.style.display = 'none';
           }
           mostrarInicio();
+          
           function ocultarTodo() {
             if (inicioSection) inicioSection.style.display = 'none';
             if (polizasSection) polizasSection.style.display = 'none';
@@ -207,6 +219,7 @@
             if (pagosSection) pagosSection.style.display = 'none';
             if (reembolsoSection) reembolsoSection.style.display = 'none';
           }
+          
           if (polizasLink && polizasSection && inicioSection) {
             polizasLink.addEventListener('click', function(e) {
               e.preventDefault();
@@ -247,7 +260,7 @@
               if (mainTitle) mainTitle.textContent = 'Pagos';
             });
           }
-          if (reembolsoLink && reembolsoSection) {
+          if (reembolsoLink && reembolsoSection && hasContracts) {
             reembolsoLink.addEventListener('click', function(e) {
               e.preventDefault();
               ocultarTodo();
@@ -255,25 +268,102 @@
               if (mainTitle) mainTitle.textContent = 'Reembolso';
             });
           }
-          // === REEMBOLSO: Modal de confirmación ===
-          document.querySelectorAll('#reembolso-section button').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-              if (btn.textContent.trim() === 'Solicitar Reembolso') {
-                document.getElementById('modal-cancelar-contrato').classList.remove('hidden');
+          
+          // === REEMBOLSO: Delegación de eventos para botones dinámicos ===
+          document.addEventListener('click', function(e) {
+            // Botón "Solicitar Reembolso"
+            if (e.target.textContent.trim() === 'Solicitar Reembolso') {
+              console.log('Botón Solicitar Reembolso clickeado');
+              
+              // Obtener el contract_id del seguro seleccionado
+              var insuranceCard = e.target.closest('div[style*="position: relative"]');
+              var contractIdElement = insuranceCard.querySelector('div[style*="N.º de contrato"]');
+              if (contractIdElement) {
+                var contractIdText = contractIdElement.textContent;
+                selectedContractId = contractIdText.split(':')[1].trim();
+                console.log('Contract ID capturado:', selectedContractId);
+              } else {
+                console.log('No se pudo encontrar el contract ID');
               }
-            });
+              document.getElementById('modal-cancelar-contrato').classList.remove('hidden');
+            }
+            
+            // Botón cerrar modal (X)
+            if (e.target.id === 'btn-close-cancelar-modal') {
+              document.getElementById('modal-cancelar-contrato').classList.add('hidden');
+              selectedContractId = null;
+            }
+            
+            // Botón cancelar
+            if (e.target.id === 'btn-cancelar-cancelar') {
+              document.getElementById('modal-cancelar-contrato').classList.add('hidden');
+              selectedContractId = null;
+            }
+            
+            // Botón aceptar
+            if (e.target.id === 'btn-aceptar-cancelar') {
+              console.log('Botón aceptar clickeado');
+              console.log('selectedContractId:', selectedContractId);
+              
+              if (selectedContractId) {
+                console.log('Enviando solicitud de reembolso...');
+                fetch('/refunds', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    contract_id: selectedContractId
+                  })
+                })
+                .then(response => {
+                  console.log('Respuesta recibida:', response);
+                  return response.json();
+                })
+                .then(data => {
+                  console.log('Datos recibidos:', data);
+                  if (data.success) {
+                    // Mostrar notificación de éxito
+                    document.getElementById('notificacion-titulo').textContent = '¡Solicitud Enviada!';
+                    document.getElementById('notificacion-mensaje').textContent = data.message;
+                    document.getElementById('modal-notificacion').classList.remove('hidden');
+                  } else {
+                    // Mostrar notificación de error
+                    document.getElementById('notificacion-titulo').textContent = 'Error';
+                    document.getElementById('notificacion-mensaje').textContent = data.error || 'Error al enviar la solicitud';
+                    document.getElementById('modal-notificacion').classList.remove('hidden');
+                  }
+                  document.getElementById('modal-cancelar-contrato').classList.add('hidden');
+                  selectedContractId = null;
+                })
+                .catch(error => {
+                  console.error('Error:', error);
+                  document.getElementById('notificacion-titulo').textContent = 'Error';
+                  document.getElementById('notificacion-mensaje').textContent = 'Error de conexión';
+                  document.getElementById('modal-notificacion').classList.remove('hidden');
+                  document.getElementById('modal-cancelar-contrato').classList.add('hidden');
+                  selectedContractId = null;
+                });
+              } else {
+                console.log('No hay contract_id seleccionado');
+              }
+            }
+            
+            // Botón cerrar notificación
+            if (e.target.id === 'btn-cerrar-notificacion') {
+              document.getElementById('modal-notificacion').classList.add('hidden');
+            }
+            
+            // Botón cerrar notificación de cliente
+            if (e.target.id === 'btn-cerrar-notificacion-cliente') {
+              document.getElementById('modal-notificacion-cliente').classList.add('hidden');
+            }
+            
+            // Botón cerrar lista de notificaciones
+            if (e.target.id === 'btn-close-notif-modal') {
+              document.getElementById('modal-lista-notificaciones').classList.add('hidden');
+            }
           });
-          // Cerrar modal con X o Cancelar
-          document.getElementById('btn-close-cancelar-modal').onclick = function() {
-            document.getElementById('modal-cancelar-contrato').classList.add('hidden');
-          };
-          document.getElementById('btn-cancelar-cancelar').onclick = function() {
-            document.getElementById('modal-cancelar-contrato').classList.add('hidden');
-          };
-          // (btn-aceptar-cancelar) solo cierra el modal por ahora
-          document.getElementById('btn-aceptar-cancelar').onclick = function() {
-            document.getElementById('modal-cancelar-contrato').classList.add('hidden');
-          };
         });
       </script>
     </div>
