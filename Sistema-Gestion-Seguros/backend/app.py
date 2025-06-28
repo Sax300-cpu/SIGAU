@@ -359,6 +359,8 @@ def get_user(user_id):
 def update_user(user_id):
     data = request.get_json()
     fields, values = [], []
+    if 'username' in data:
+        fields.append("username=%s"); values.append(data['username'])
     if 'email' in data:
         fields.append("email=%s"); values.append(data['email'])
     if 'role_id' in data:
@@ -370,6 +372,25 @@ def update_user(user_id):
     sql = f"UPDATE users SET {', '.join(fields)} WHERE id=%s"
     cur = mysql.connection.cursor()
     cur.execute(sql, tuple(values))
+    
+    # Si es un cliente y hay datos adicionales, actualizar tabla clients
+    if data.get('role_id') == 3 and any(key in data for key in ['first_name', 'last_name', 'dob', 'phone', 'address']):
+        client_fields, client_values = [], []
+        if 'first_name' in data:
+            client_fields.append("first_name=%s"); client_values.append(data['first_name'])
+        if 'last_name' in data:
+            client_fields.append("last_name=%s"); client_values.append(data['last_name'])
+        if 'dob' in data:
+            client_fields.append("dob=%s"); client_values.append(data['dob'])
+        if 'phone' in data:
+            client_fields.append("phone=%s"); client_values.append(data['phone'])
+        if 'address' in data:
+            client_fields.append("address=%s"); client_values.append(data['address'])
+        
+        client_values.append(user_id)
+        client_sql = f"UPDATE clients SET {', '.join(client_fields)} WHERE user_id=%s"
+        cur.execute(client_sql, tuple(client_values))
+    
     mysql.connection.commit()
     cur.close()
     return jsonify(success=True), 200
