@@ -403,6 +403,20 @@ document.addEventListener('DOMContentLoaded', () => {
           camposAdicionalesDiv.innerHTML = '';
         }
       }
+      // Mostrar/ocultar beneficiarios o contacto de emergencia según tipo de seguro
+      if (tipo === 'Vida') {
+        beneficiariosContainer.style.display = '';
+        btnAgregarBeneficiario.style.display = '';
+        contactoEmergenciaDiv.style.display = 'none';
+      } else if (tipo === 'Salud') {
+        beneficiariosContainer.style.display = 'none';
+        btnAgregarBeneficiario.style.display = 'none';
+        contactoEmergenciaDiv.style.display = '';
+      } else {
+        beneficiariosContainer.style.display = 'none';
+        btnAgregarBeneficiario.style.display = 'none';
+        contactoEmergenciaDiv.style.display = 'none';
+      }
     });
   }
 
@@ -683,35 +697,48 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append(key, value);
         });
 
-        // Agregar beneficiarios
-        const beneficiarios = [];
-        document.querySelectorAll('.beneficiario-item').forEach((item, index) => {
-            beneficiarios.push({
-                name: item.querySelector('[name^="beneficiarios["]').value,
-                relationship: item.querySelector('[name$="[relationship]"]').value,
-                percentage: item.querySelector('[name$="[percentage]"]').value
+        // Obtener tipo de seguro seleccionado
+        const tipoSeguro = tipoSeguroSelect ? tipoSeguroSelect.value : '';
+
+        // Validar y agregar beneficiarios o contacto de emergencia
+        if (tipoSeguro === 'Salud') {
+            // Validar contacto de emergencia
+            const nombre = document.getElementById('emergencia-nombre').value.trim();
+            const relacion = document.getElementById('emergencia-relacion').value.trim();
+            const telefono = document.getElementById('emergencia-telefono').value.trim();
+            if (!nombre || !relacion || !telefono) {
+                showNotification('error', 'Debe ingresar todos los datos del contacto de emergencia');
+                return;
+            }
+            // Agregar a campos extra
+            formData.append('emergencia_nombre', nombre);
+            formData.append('emergencia_relacion', relacion);
+            formData.append('emergencia_telefono', telefono);
+        } else {
+            // Agregar beneficiarios (lógica actual)
+            const beneficiarios = [];
+            document.querySelectorAll('.beneficiario-item').forEach((item, index) => {
+                beneficiarios.push({
+                    name: item.querySelector('[name^="beneficiarios["]').value,
+                    relationship: item.querySelector('[name$="[relationship]"]').value,
+                    percentage: item.querySelector('[name$="[percentage]"]').value
+                });
             });
-        });
-
-        // Validar beneficiarios
-        if (beneficiarios.length === 0) {
-            showNotification('error', 'Debe agregar al menos un beneficiario');
-            return;
+            if (beneficiarios.length === 0) {
+                showNotification('error', 'Debe agregar al menos un beneficiario');
+                return;
+            }
+            const totalPercentage = beneficiarios.reduce((sum, b) => sum + parseFloat(b.percentage), 0);
+            if (Math.abs(totalPercentage - 100) > 0.01) {
+                showNotification('error', 'La suma de porcentajes debe ser exactamente 100%');
+                return;
+            }
+            beneficiarios.forEach((b, i) => {
+                formData.append(`beneficiarios[${i}][name]`, b.name);
+                formData.append(`beneficiarios[${i}][relationship]`, b.relationship);
+                formData.append(`beneficiarios[${i}][percentage]`, b.percentage);
+            });
         }
-
-        // Validar porcentaje de beneficiarios (suma = 100%)
-        const totalPercentage = beneficiarios.reduce((sum, b) => sum + parseFloat(b.percentage), 0);
-        if (Math.abs(totalPercentage - 100) > 0.01) {
-            showNotification('error', 'La suma de porcentajes debe ser exactamente 100%');
-            return;
-        }
-
-        // Agregar beneficiarios al FormData
-        beneficiarios.forEach((b, i) => {
-            formData.append(`beneficiarios[${i}][name]`, b.name);
-            formData.append(`beneficiarios[${i}][relationship]`, b.relationship);
-            formData.append(`beneficiarios[${i}][percentage]`, b.percentage);
-        });
 
         // Agregar archivos si existen
         const documentosInput = document.getElementById('input-documentos');
@@ -941,13 +968,15 @@ document.addEventListener('DOMContentLoaded', () => {
           'enfermedades_previas': 'Enfermedades previas o actuales',
           'hospitalizado_salud': '¿Ha sido hospitalizado recientemente? (fecha, motivo)',
           'tratamiento_actual': '¿Está en tratamiento médico actualmente?',
-          'embarazada': '¿Está embarazada?'
+          'embarazada': '¿Está embarazada?',
+          'sexo_salud': 'Sexo'
         };
         // Orden deseado de los campos
         const extraOrder = [
           'estado_civil', 'sexo', 'nacionalidad', 'ocupacion', 'altura', 'peso',
           'enfermedades_cronicas', 'fuma_alcohol', 'medicamentos', 'hospitalizado', 'cirugias',
-          'alergias_conocidas', 'enfermedades_previas', 'hospitalizado_salud', 'tratamiento_actual', 'embarazada'
+          'alergias_conocidas', 'enfermedades_previas', 'hospitalizado_salud', 'tratamiento_actual', 'embarazada',
+          'sexo_salud'
         ];
         data.forEach(contrato => {
           detalleDiv.innerHTML += `<h4 style='margin-bottom:8px;'>Su seguro:</h4>`;
@@ -957,10 +986,27 @@ document.addEventListener('DOMContentLoaded', () => {
           extraOrder.forEach(key => {
             if (extraDataKeys.includes(key)) orderedKeys.push(key);
           });
-          // Agregar cualquier campo no listado al final
+          // Agregar cualquier campo no listado al final, excepto los de emergencia
           extraDataKeys.forEach(key => {
-            if (!orderedKeys.includes(key)) orderedKeys.push(key);
+            if (!orderedKeys.includes(key) && !['emergencia_nombre','emergencia_relacion','emergencia_telefono'].includes(key)) orderedKeys.push(key);
           });
+
+          // Contacto de emergencia
+          const emergenciaNombre = contrato.extra_data['emergencia_nombre'];
+          const emergenciaRelacion = contrato.extra_data['emergencia_relacion'];
+          const emergenciaTelefono = contrato.extra_data['emergencia_telefono'];
+
+          let contactoEmergenciaHTML = '';
+          if (emergenciaNombre || emergenciaRelacion || emergenciaTelefono) {
+            contactoEmergenciaHTML = `<li><b>Contacto de Emergencia:</b><br>
+              <ul style='margin-top:2px;margin-bottom:2px;'>
+                ${emergenciaNombre ? `<li><b>Nombre:</b> ${emergenciaNombre}</li>` : ''}
+                ${emergenciaRelacion ? `<li><b>Relación:</b> ${emergenciaRelacion}</li>` : ''}
+                ${emergenciaTelefono ? `<li><b>Teléfono:</b> ${emergenciaTelefono}</li>` : ''}
+              </ul>
+            </li>`;
+          }
+
           detalleDiv.innerHTML += `
             <div style="border-bottom:1px solid #ccc;margin-bottom:10px;padding-bottom:10px;">
               <strong>Póliza:</strong> ${contrato.policy_name}<br>
@@ -976,8 +1022,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         const label = extraLabels[k] || k.replace(/_/g,' ');
                         return `<li><b>${label}:</b> ${contrato.extra_data[k]}</li>`;
                       }).join('')
-                    : '<li>No hay datos adicionales</li>'
+                    : ''
                 }
+                ${contactoEmergenciaHTML}
+                ${(!contrato.extra_data || (orderedKeys.length === 0 && !contactoEmergenciaHTML)) ? '<li>No hay datos adicionales</li>' : ''}
               </ul>
             </div>
           `;
@@ -1025,5 +1073,20 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       alert('Error al mostrar información del cliente: ' + err.message);
     }
+  }
+
+  // Crear el bloque de contacto de emergencia
+  const contactoEmergenciaDiv = document.createElement('div');
+  contactoEmergenciaDiv.id = 'contacto-emergencia-container';
+  contactoEmergenciaDiv.style.display = 'none';
+  contactoEmergenciaDiv.innerHTML = `
+    <h4>Contacto de Emergencia</h4>
+    <div class="form-group"><label>Nombre</label><input type="text" id="emergencia-nombre" name="emergencia_nombre"></div>
+    <div class="form-group"><label>Relación</label><input type="text" id="emergencia-relacion" name="emergencia_relacion"></div>
+    <div class="form-group"><label>Teléfono</label><input type="text" id="emergencia-telefono" name="emergencia_telefono"></div>
+  `;
+  // Insertar el bloque de contacto de emergencia después de beneficiariosContainer
+  if (beneficiariosContainer && beneficiariosContainer.parentNode) {
+    beneficiariosContainer.parentNode.insertBefore(contactoEmergenciaDiv, beneficiariosContainer.nextSibling);
   }
 });
