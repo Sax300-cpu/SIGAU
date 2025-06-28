@@ -822,78 +822,129 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 5000);
   }
 
-  // --- NUEVO CLIENTE (AGENTE) ---
-  const btnNuevoCliente = document.getElementById('btn-nuevo-cliente');
-  const modalNuevoCliente = document.getElementById('modal-nuevo-cliente');
-  const formNuevoCliente = document.getElementById('form-nuevo-cliente');
-  const btnCancelarNC = document.getElementById('btn-cancelar-nc');
+  // ===================================
+  // NAVEGACIÓN ENTRE SECCIONES
+  // ===================================
+  const inicioLink = document.getElementById('inicio-link');
+  const reembolsosLink = document.getElementById('reembolsos-link');
+  const reportesLink = document.getElementById('reportes-link');
+  const inicioSection = document.getElementById('inicio-section');
+  const reembolsosSection = document.getElementById('reembolsos-section');
 
-  if (btnNuevoCliente && modalNuevoCliente && formNuevoCliente && btnCancelarNC) {
-    btnNuevoCliente.onclick = () => {
-      formNuevoCliente.reset();
-      modalNuevoCliente.classList.remove('hidden');
-    };
-    btnCancelarNC.onclick = () => {
-      modalNuevoCliente.classList.add('hidden');
-    };
-    formNuevoCliente.onsubmit = async e => {
-      e.preventDefault();
-      // Separar nombre completo en first_name y last_name
-      const fullName = formNuevoCliente.full_name.value.trim();
-      const nameParts = fullName.split(' ');
-      const first_name = nameParts[0] || '';
-      const last_name = nameParts.slice(1).join(' ') || '';
-      const data = {
-        username: formNuevoCliente.username.value.trim(),
-        email: formNuevoCliente.email.value.trim(),
-        password: formNuevoCliente.password.value,
-        first_name,
-        last_name,
-        dob: formNuevoCliente.dob.value,
-        phone: formNuevoCliente.phone.value.trim(),
-        address: formNuevoCliente.address.value.trim()
-      };
-      // Validación básica
-      if (!data.username || !data.email || !data.password || !fullName || !data.dob || !data.phone || !data.address) {
-        alert('Todos los campos son obligatorios.');
-        return;
-      }
-      const resp = await fetch('/clients', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      if (resp.ok) {
-        modalNuevoCliente.classList.add('hidden');
-        cargarClientes();
-        // Notificación elegante
-        const modalNotif = document.getElementById('modal-notificacion-cliente');
-        const notifTitulo = document.getElementById('notificacion-cliente-titulo');
-        const notifMensaje = document.getElementById('notificacion-cliente-mensaje');
-        const btnCerrarNotif = document.getElementById('btn-cerrar-notificacion-cliente');
-        notifTitulo.textContent = '¡Éxito!';
-        notifMensaje.textContent = 'Cliente creado correctamente.';
-        modalNotif.classList.remove('hidden');
-        btnCerrarNotif.onclick = function() {
-          modalNotif.classList.add('hidden');
-        };
-      } else {
-        const err = await resp.json();
-        // Notificación elegante de error
-        const modalNotif = document.getElementById('modal-notificacion-cliente');
-        const notifTitulo = document.getElementById('notificacion-cliente-titulo');
-        const notifMensaje = document.getElementById('notificacion-cliente-mensaje');
-        const btnCerrarNotif = document.getElementById('btn-cerrar-notificacion-cliente');
-        notifTitulo.textContent = 'Error';
-        notifMensaje.textContent = err.error || 'Error al crear cliente.';
-        modalNotif.classList.remove('hidden');
-        btnCerrarNotif.onclick = function() {
-          modalNotif.classList.add('hidden');
-        };
-      }
-    };
+  function mostrarSeccion(seccion) {
+    // Ocultar todas las secciones
+    if (inicioSection) inicioSection.style.display = 'none';
+    if (reembolsosSection) reembolsosSection.style.display = 'none';
+    
+    // Mostrar la sección seleccionada
+    if (seccion === 'inicio' && inicioSection) {
+      inicioSection.style.display = 'block';
+    } else if (seccion === 'reembolsos' && reembolsosSection) {
+      reembolsosSection.style.display = 'block';
+      cargarReembolsos(); // Cargar reembolsos cuando se muestra la sección
+    }
+    
+    // Actualizar estado activo en el menú
+    document.querySelectorAll('.menu li').forEach(li => li.classList.remove('active'));
+    if (seccion === 'inicio' && inicioLink) {
+      inicioLink.parentElement.classList.add('active');
+    } else if (seccion === 'reembolsos' && reembolsosLink) {
+      reembolsosLink.parentElement.classList.add('active');
+    }
   }
 
+  if (inicioLink) {
+    inicioLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      mostrarSeccion('inicio');
+    });
+  }
+
+  if (reembolsosLink) {
+    reembolsosLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      mostrarSeccion('reembolsos');
+    });
+  }
+
+  // ===================================
+  // FUNCIONALIDAD DE REEMBOLSOS
+  // ===================================
+  const tablaReembolsosBody = document.querySelector('#tabla-reembolsos tbody');
+  const btnRefrescarReembolsos = document.getElementById('btn-refrescar-reembolsos');
+  const modalProcesarReembolso = document.getElementById('modal-procesar-reembolso');
+  const btnCancelarReembolso = document.getElementById('btn-cancelar-reembolso');
+  const btnProcesarReembolso = document.getElementById('btn-procesar-reembolso');
+
+  let reembolsoSeleccionado = null;
+
+  async function cargarReembolsos() {
+    try {
+      const resp = await fetch('/refunds');
+      if (!resp.ok) throw new Error('Error al obtener solicitudes de reembolso');
+      const reembolsos = await resp.json();
+      
+      tablaReembolsosBody.innerHTML = '';
+      
+      if (reembolsos.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="7" style="text-align: center; padding: 20px;">No hay solicitudes de reembolso pendientes</td>';
+        tablaReembolsosBody.appendChild(tr);
+        return;
+      }
+
+      reembolsos.forEach(reembolso => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${reembolso.client_name}</td>
+          <td>${reembolso.client_email}</td>
+          <td>${reembolso.policy_name}</td>
+          <td>$${reembolso.amount}</td>
+          <td>${new Date(reembolso.request_date).toLocaleDateString()}</td>
+          <td>
+            <span class="status-badge status-${reembolso.status}">
+              ${reembolso.status === 'pending' ? 'Pendiente' : 
+                reembolso.status === 'approved' ? 'Aprobado' : 
+                reembolso.status === 'rejected' ? 'Rechazado' : 'Procesado'}
+            </span>
+          </td>
+          <td>
+            ${reembolso.status === 'pending' ? 
+              `<button class="btn-small btn-process" data-refund-id="${reembolso.refund_id}" 
+                       data-client="${reembolso.client_name}" 
+                       data-policy="${reembolso.policy_name}" 
+                       data-amount="${reembolso.amount}" 
+                       data-date="${reembolso.request_date}" 
+                       data-reason="${reembolso.reason_description}">
+                Procesar
+               </button>` : 
+              '<span style="color: #666;">Procesado</span>'
+            }
+          </td>
+        `;
+        tablaReembolsosBody.appendChild(tr);
+      });
+
+      // Agregar event listeners a los botones de procesar
+      document.querySelectorAll('.btn-process').forEach(btn => {
+        btn.addEventListener('click', function() {
+          reembolsoSeleccionado = this.getAttribute('data-refund-id');
+          document.getElementById('detalle-cliente-reembolso').textContent = this.getAttribute('data-client');
+          document.getElementById('detalle-poliza-reembolso').textContent = this.getAttribute('data-policy');
+          document.getElementById('detalle-monto-reembolso').textContent = this.getAttribute('data-amount');
+          document.getElementById('detalle-fecha-reembolso').textContent = new Date(this.getAttribute('data-date')).toLocaleDateString();
+          document.getElementById('detalle-motivo-reembolso').textContent = this.getAttribute('data-reason');
+          modalProcesarReembolso.classList.remove('hidden');
+        });
+      });
+
+    } catch (error) {
+      console.error('Error al cargar reembolsos:', error);
+      showNotification('error', 'Error al cargar las solicitudes de reembolso');
+    }
+  }
+
+<<<<<<< Updated upstream
   // --- MODAL PARA MOSTRAR INFORMACIÓN COMPLETA DEL CLIENTE Y SUS CONTRATOS ---
   async function mostrarInformacionCliente(clientId) {
     try {
@@ -1025,4 +1076,73 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Error al mostrar información del cliente: ' + err.message);
     }
   }
+=======
+  if (btnRefrescarReembolsos) {
+    btnRefrescarReembolsos.addEventListener('click', cargarReembolsos);
+  }
+
+  if (btnCancelarReembolso) {
+    btnCancelarReembolso.addEventListener('click', () => {
+      modalProcesarReembolso.classList.add('hidden');
+      reembolsoSeleccionado = null;
+      document.getElementById('estado-reembolso').value = '';
+      document.getElementById('notas-reembolso').value = '';
+    });
+  }
+
+  if (btnProcesarReembolso) {
+    btnProcesarReembolso.addEventListener('click', async () => {
+      const estado = document.getElementById('estado-reembolso').value;
+      const notas = document.getElementById('notas-reembolso').value;
+
+      if (!estado) {
+        alert('Por favor seleccione un estado');
+        return;
+      }
+
+      try {
+        const resp = await fetch(`/refunds/${reembolsoSeleccionado}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            status: estado,
+            notes: notas
+          })
+        });
+
+        const data = await resp.json();
+        
+        if (data.success) {
+          showNotification('success', data.message);
+          modalProcesarReembolso.classList.add('hidden');
+          reembolsoSeleccionado = null;
+          document.getElementById('estado-reembolso').value = '';
+          document.getElementById('notas-reembolso').value = '';
+          cargarReembolsos(); // Recargar la lista
+        } else {
+          showNotification('error', data.error || 'Error al procesar la solicitud');
+        }
+      } catch (error) {
+        console.error('Error al procesar reembolso:', error);
+        showNotification('error', 'Error de conexión');
+      }
+    });
+  }
+
+  // Cerrar modal con overlay
+  if (modalProcesarReembolso) {
+    modalProcesarReembolso.addEventListener('click', (e) => {
+      if (e.target === modalProcesarReembolso) {
+        modalProcesarReembolso.classList.add('hidden');
+        reembolsoSeleccionado = null;
+      }
+    });
+  }
+
+  // Inicializar en la sección de inicio
+  mostrarSeccion('inicio');
+
+>>>>>>> Stashed changes
 });

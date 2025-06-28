@@ -1119,6 +1119,222 @@ def update_contract_status(contract_id):
     return jsonify({'success': True, 'message': f'Estado actualizado a {new_status}.'})
 
 # ===================================
+# RUTAS DE REEMBOLSO
+# ===================================
+
+@app.route('/refunds', methods=['POST'])
+@login_required
+def create_refund_request():
+    """Crear una solicitud de reembolso desde el cliente"""
+    try:
+        # Verificar que el usuario es cliente
+        if session.get('role_id') != 3:
+            return jsonify({'error': 'Solo los clientes pueden solicitar reembolsos'}), 403
+        
+        data = request.get_json()
+        contract_id = data.get('contract_id')
+        
+        if not contract_id:
+            return jsonify({'error': 'ID de contrato requerido'}), 400
+        
+        cur = mysql.connection.cursor()
+        
+        # Obtener información del contrato y verificar que pertenece al cliente
+        cur.execute("""
+            SELECT cp.id, cp.client_id, cp.agent_id, cp.premium_amount, p.name
+            FROM client_policies cp
+            JOIN policies p ON cp.policy_id = p.id
+            WHERE cp.id = %s AND cp.client_id = (
+                SELECT id FROM clients WHERE user_id = %s
+            )
+        """, (contract_id, session['user_id']))
+        
+        contract_data = cur.fetchone()
+        if not contract_data:
+            cur.close()
+            return jsonify({'error': 'Contrato no encontrado o no autorizado'}), 404
+        
+        contract_id, client_id, agent_id, premium_amount, policy_name = contract_data
+        
+        # Crear la solicitud de reembolso
+        cur.execute("""
+            INSERT INTO refunds 
+            (policy_id, client_id, agent_id, amount, reason, reason_description, status, created_by)
+            VALUES (%s, %s, %s, %s, 'cancelation', 'Solicitud de cancelación y reembolso del cliente', 'pending', %s)
+        """, (contract_id, client_id, agent_id, premium_amount, session['user_id']))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Solicitud de reembolso creada para {policy_name}',
+            'refund_id': cur.lastrowid
+        }), 201
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        print("Error al crear solicitud de reembolso:", str(e))
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/refunds', methods=['GET'])
+@login_required
+def list_refunds():
+    """Listar solicitudes de reembolso según el rol del usuario"""
+    try:
+        cur = mysql.connection.cursor()
+        
+        if session.get('role_id') == 2:  # Agente
+            # Agentes ven solicitudes de sus clientes
+            cur.execute("""
+                SELECT 
+                    r.id AS refund_id,
+                    r.policy_id,
+                    p.name AS policy_name,
+                    CONCAT(c.first_name, ' ', c.last_name) AS client_name,
+                    u.email AS client_email,
+                    r.amount,
+                    r.request_date,
+                    r.status,
+                    r.reason,
+                    r.reason_description
+                FROM refunds r
+                JOIN client_policies cp ON r.policy_id = cp.id
+                JOIN policies p ON cp.policy_id = p.id
+                JOIN clients c ON r.client_id = c.id
+                JOIN users u ON c.user_id = u.id
+                WHERE r.agent_id = %s
+                ORDER BY r.request_date DESC
+            """, (session['user_id'],))
+            
+        elif session.get('role_id') == 1:  # Admin
+            # Admins ven todas las solicitudes
+            cur.execute("""
+                SELECT 
+                    r.id AS refund_id,
+                    r.policy_id,
+                    p.name AS policy_name,
+                    CONCAT(c.first_name, ' ', c.last_name) AS client_name,
+                    u.email AS client_email,
+                    r.amount,
+                    r.request_date,
+                    r.status,
+                    r.reason,
+                    r.reason_description
+                FROM refunds r
+                JOIN client_policies cp ON r.policy_id = cp.id
+                JOIN policies p ON cp.policy_id = p.id
+                JOIN clients c ON r.client_id = c.id
+                JOIN users u ON c.user_id = u.id
+                ORDER BY r.request_date DESC
+            """)
+            
+        else:  # Cliente
+            # Clientes ven solo sus solicitudes
+            cur.execute("""
+                SELECT 
+                    r.id AS refund_id,
+                    r.policy_id,
+                    p.name AS policy_name,
+                    r.amount,
+                    r.request_date,
+                    r.status,
+                    r.reason,
+                    r.reason_description
+                FROM refunds r
+                JOIN client_policies cp ON r.policy_id = cp.id
+                JOIN policies p ON cp.policy_id = p.id
+                WHERE r.client_id = (
+                    SELECT id FROM clients WHERE user_id = %s
+                )
+                ORDER BY r.request_date DESC
+            """, (session['user_id'],))
+        
+        refunds = []
+        for row in cur.fetchall():
+            if session.get('role_id') == 3:  # Cliente
+                refunds.append({
+                    'refund_id': row[0],
+                    'policy_id': row[1],
+                    'policy_name': row[2],
+                    'amount': float(row[3]),
+                    'request_date': row[4].isoformat() if row[4] else None,
+                    'status': row[5],
+                    'reason': row[6],
+                    'reason_description': row[7]
+                })
+            else:  # Agente o Admin
+                refunds.append({
+                    'refund_id': row[0],
+                    'policy_id': row[1],
+                    'policy_name': row[2],
+                    'client_name': row[3],
+                    'client_email': row[4],
+                    'amount': float(row[5]),
+                    'request_date': row[6].isoformat() if row[6] else None,
+                    'status': row[7],
+                    'reason': row[8],
+                    'reason_description': row[9]
+                })
+        
+        cur.close()
+        return jsonify(refunds), 200
+        
+    except Exception as e:
+        print("Error al listar reembolsos:", str(e))
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/refunds/<refund_id>/status', methods=['PUT'])
+@login_required
+def update_refund_status(refund_id):
+    """Actualizar el estado de una solicitud de reembolso (solo agentes y admins)"""
+    try:
+        if session.get('role_id') not in [1, 2]:  # Solo admin y agentes
+            return jsonify({'error': 'No autorizado'}), 403
+        
+        data = request.get_json()
+        new_status = data.get('status')
+        notes = data.get('notes', '')
+        
+        if new_status not in ['approved', 'rejected', 'processed']:
+            return jsonify({'error': 'Estado no válido'}), 400
+        
+        cur = mysql.connection.cursor()
+        
+        # Verificar que la solicitud existe y pertenece al agente (si es agente)
+        if session.get('role_id') == 2:  # Agente
+            cur.execute("""
+                SELECT id FROM refunds 
+                WHERE id = %s AND agent_id = %s
+            """, (refund_id, session['user_id']))
+        else:  # Admin
+            cur.execute("SELECT id FROM refunds WHERE id = %s", (refund_id,))
+        
+        if not cur.fetchone():
+            cur.close()
+            return jsonify({'error': 'Solicitud de reembolso no encontrada'}), 404
+        
+        # Actualizar estado
+        cur.execute("""
+            UPDATE refunds 
+            SET status = %s, processed_date = NOW(), processed_by = %s, notes = %s
+            WHERE id = %s
+        """, (new_status, session['user_id'], notes, refund_id))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Estado de reembolso actualizado a {new_status}'
+        }), 200
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        print("Error al actualizar estado de reembolso:", str(e))
+        return jsonify({'error': str(e)}), 500
+
+# ===================================
 # FIN RUTAS
 # ===================================
 

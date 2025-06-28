@@ -54,10 +54,13 @@ referrerpolicy="no-referrer"
       <nav class="menu">
         <ul>
           <li class="active">
-            <a href="#"><i class="fas fa-users"></i> Inicio</a>
+            <a href="#" id="inicio-link"><i class="fas fa-users"></i> Inicio</a>
           </li>
           <li>
-            <a href="#"><i class="fas fa-chart-bar"></i> Reportes</a>
+            <a href="#" id="reembolsos-link"><i class="fas fa-money-bill-wave"></i> Reembolsos</a>
+          </li>
+          <li>
+            <a href="#" id="reportes-link"><i class="fas fa-chart-bar"></i> Reportes</a>
           </li>
           <li>
             <a href="{{ url_for('logout') }}">
@@ -75,7 +78,7 @@ referrerpolicy="no-referrer"
 <h1>Gestión y Contratación de Clientes</h1>
 </header>
 
-<section class="content-section">
+<section class="content-section" id="inicio-section">
 <div class="section-header">
 <h2>Panel de Clientes</h2>
 <button id="btn-nuevo-cliente" class="btn-green">
@@ -94,6 +97,33 @@ referrerpolicy="no-referrer"
 </thead>
 <tbody>
 <!-- Se inyectará dinámicamente la lista de clientes -->
+</tbody>
+</table>
+</div>
+</section>
+
+<section class="content-section" id="reembolsos-section" style="display:none;">
+<div class="section-header">
+<h2>Solicitudes de Reembolso</h2>
+<button id="btn-refrescar-reembolsos" class="btn-green">
+<i class="fas fa-sync-alt"></i> Actualizar
+</button>
+</div>
+<div class="table-container">
+<table id="tabla-reembolsos">
+<thead>
+<tr>
+<th>Cliente</th>
+<th>Email</th>
+<th>Póliza</th>
+<th>Monto</th>
+<th>Fecha Solicitud</th>
+<th>Estado</th>
+<th>Acciones</th>
+</tr>
+</thead>
+<tbody>
+<!-- Se inyectará dinámicamente la lista de reembolsos -->
 </tbody>
 </table>
 </div>
@@ -233,6 +263,37 @@ Total porcentaje: <span id="total-beneficiarios-porcentaje">0</span>%
 <p id="notificacion-cliente-mensaje">Cliente creado correctamente.</p>
 <button id="btn-cerrar-notificacion-cliente" style="margin-top:18px; background:#1976d2; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Cerrar</button>
 </div>
+</div>
+
+<!-- Modal para procesar reembolso -->
+<div id="modal-procesar-reembolso" class="modal hidden">
+  <div class="modal-overlay"></div>
+  <div class="modal-content" style="max-width: 500px;">
+    <h2>Procesar Solicitud de Reembolso</h2>
+    <div id="detalle-reembolso" style="margin-bottom: 20px; padding: 15px; background: #f5f8fa; border-radius: 5px;">
+      <p><strong>Cliente:</strong> <span id="detalle-cliente-reembolso"></span></p>
+      <p><strong>Póliza:</strong> <span id="detalle-poliza-reembolso"></span></p>
+      <p><strong>Monto:</strong> $<span id="detalle-monto-reembolso"></span></p>
+      <p><strong>Fecha de solicitud:</strong> <span id="detalle-fecha-reembolso"></span></p>
+      <p><strong>Motivo:</strong> <span id="detalle-motivo-reembolso"></span></p>
+    </div>
+    <div class="form-group">
+      <label for="estado-reembolso">Estado:</label>
+      <select id="estado-reembolso" required>
+        <option value="">Seleccione estado</option>
+        <option value="approved">Aprobar</option>
+        <option value="rejected">Rechazar</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="notas-reembolso">Notas (opcional):</label>
+      <textarea id="notas-reembolso" rows="3" placeholder="Agregar comentarios sobre la decisión..."></textarea>
+    </div>
+    <div class="form-buttons">
+      <button type="button" id="btn-cancelar-reembolso" class="btn-cancel">Cancelar</button>
+      <button type="button" id="btn-procesar-reembolso" class="btn-save">Procesar</button>
+    </div>
+  </div>
 </div>
 
 <!-- Ruta al JS del Agente -->
