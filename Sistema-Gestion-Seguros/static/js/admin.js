@@ -690,35 +690,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const insured_amount = parseFloat(document.getElementById('create-i-insured-amount').value);
     const payment_method = document.getElementById('create-i-payment-method').value;
 
-    // -------------- Validaciones adicionales --------------
-    // 1) Nombre no puede estar vacío (o espacios) y sólo letras y espacios
-    const nameRegex = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
-    if (!name) {
-      return alert('El nombre del seguro es obligatorio.');
-    }
-    if (!nameRegex.test(name)) {
-      return alert('El nombre del seguro no puede contener números ni caracteres especiales.');
-    }
-
-    // 2) Cobertura y Beneficios no pueden ser sólo espacios
-    if (!coverage) {
-      return alert('Ingrese la cobertura de la póliza.');
-    }
-    if (!benefits) {
-      return alert('Ingrese los beneficios de la póliza.');
-    }
-
-    // 3) Costo válido
-    if (isNaN(cost) || cost <= 0) {
-      return alert('Ingrese un costo válido mayor a cero.');
-    }
-
-    // 4) Tipo de póliza
-    if (!type_id) {
-      return alert('Seleccione un tipo de póliza.');
-    }
-
-    // -------------------------------------------------------
 
     const data = {
       name:              name,
@@ -748,8 +719,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // Cerrar modal y recargar tabla
       createInsuranceModal.classList.add('hidden');
       loadPolicies();
+      showNotification('success', 'Éxito', 'Seguro creado correctamente.');
     } catch (error) {
-      alert(error.message);
+      showNotification('error', 'Error', error.message || 'Error al crear la póliza');
     }
   };
 
@@ -766,36 +738,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const payment   = editInsuranceForm.payment.value;
     const insured_amount = parseFloat(document.getElementById('edit-i-insured-amount').value);
     const payment_method = document.getElementById('edit-i-payment-method').value;
-
-    // -------------- Validaciones adicionales --------------
-    // 1) Nombre no puede estar vacío (o espacios) y sólo letras y espacios
-    const nameRegex = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
-    if (!name) {
-      return alert('El nombre del seguro es obligatorio.');
-    }
-    if (!nameRegex.test(name)) {
-      return alert('El nombre del seguro no puede contener números ni caracteres especiales.');
-    }
-
-    // 2) Cobertura y Beneficios no pueden ser sólo espacios
-    if (!coverage) {
-      return alert('Ingrese la cobertura de la póliza.');
-    }
-    if (!benefits) {
-      return alert('Ingrese los beneficios de la póliza.');
-    }
-
-    // 3) Costo válido
-    if (isNaN(cost) || cost <= 0) {
-      return alert('Ingrese un costo válido mayor a cero.');
-    }
-
-    // 4) Tipo de póliza
-    if (!type_id) {
-      return alert('Seleccione un tipo de póliza.');
-    }
-
-    // -------------------------------------------------------
 
     const data = {
       name:              name,
@@ -825,8 +767,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // Cerrar modal y recargar tabla
       editInsuranceModal.classList.add('hidden');
       loadPolicies();
+      showNotification('success', 'Éxito', 'Seguro actualizado correctamente.');
     } catch (error) {
-      alert(error.message);
+      showNotification('error', 'Error', error.message || 'Error al actualizar la póliza');
     }
   };
 
