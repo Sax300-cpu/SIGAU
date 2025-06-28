@@ -190,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <option value="">Elegir...</option>
           <option value="contratar">Contratar Seguro</option>
           <option value="mostrar">Mostrar datos adicionales del Cliente</option>
+          <option value="ver_documentos">Ver documentos del contrato</option>
           <option value="editar">Editar Cliente</option>
         `;
         accionesSelect.addEventListener('change', function() {
@@ -201,6 +202,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
           } else if (this.value === 'mostrar') {
             mostrarInformacionCliente(cliente.id);
+          } else if (this.value === 'ver_documentos') {
+            verDocumentosContrato(cliente.id);
           } else if (this.value === 'editar') {
             mostrarModalConfirmacion('¿Desea editar los datos del Cliente?', () => {
               alert('Funcionalidad de edición por implementar.');
@@ -566,6 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <option value="">Elegir...</option>
           <option value="contratar">Contratar Seguro</option>
           <option value="mostrar">Mostrar datos adicionales del Cliente</option>
+          <option value="ver_documentos">Ver documentos del contrato</option>
           <option value="editar">Editar Cliente</option>
         `;
         accionesSelect.addEventListener('change', function() {
@@ -577,6 +581,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
           } else if (this.value === 'mostrar') {
             mostrarInformacionCliente(cliente.id);
+          } else if (this.value === 'ver_documentos') {
+            verDocumentosContrato(cliente.id);
           } else if (this.value === 'editar') {
             mostrarModalConfirmacion('¿Desea editar los datos del Cliente?', () => {
               alert('Funcionalidad de edición por implementar.');
@@ -1109,5 +1115,99 @@ document.addEventListener('DOMContentLoaded', () => {
   // Insertar el bloque de contacto de emergencia después de beneficiariosContainer
   if (beneficiariosContainer && beneficiariosContainer.parentNode) {
     beneficiariosContainer.parentNode.insertBefore(contactoEmergenciaDiv, beneficiariosContainer.nextSibling);
+  }
+
+  // Función para ver documentos del contrato de un cliente
+  function verDocumentosContrato(clienteId) {
+    // Buscar o crear el modal
+    let modal = document.getElementById('modal-documentos-contrato');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'modal-documentos-contrato';
+      modal.className = 'modal';
+      modal.innerHTML = `
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width:700px;">
+          <button id="btn-cerrar-documentos-contrato-x" class="close-x" title="Cerrar">&times;</button>
+          <h3>Documentos del contrato</h3>
+          <div id="documentos-contrato-detalle">
+            <p>Cargando documentos...</p>
+          </div>
+          <button id="btn-cerrar-documentos-contrato" class="close-btn">Cerrar</button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+    // Mostrar el modal
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    // Asignar eventos de cierre
+    const btnCerrarX = modal.querySelector('#btn-cerrar-documentos-contrato-x');
+    const btnCerrar = modal.querySelector('#btn-cerrar-documentos-contrato');
+    const modalOverlay = modal.querySelector('.modal-overlay');
+    if (btnCerrarX) btnCerrarX.onclick = () => { modal.classList.add('hidden'); modal.style.display = 'none'; };
+    if (btnCerrar) btnCerrar.onclick = () => { modal.classList.add('hidden'); modal.style.display = 'none'; };
+    if (modalOverlay) modalOverlay.onclick = () => { modal.classList.add('hidden'); modal.style.display = 'none'; };
+
+    // Cargar contratos y documentos del cliente
+    const detalleDiv = modal.querySelector('#documentos-contrato-detalle');
+    detalleDiv.innerHTML = '<p>Cargando documentos...</p>';
+    fetch(`/clients/${clienteId}/contracts`)
+      .then(resp => resp.json())
+      .then(contratos => {
+        if (!Array.isArray(contratos) || contratos.length === 0) {
+          detalleDiv.innerHTML = '<p>Este cliente no tiene contratos registrados.</p>';
+          return;
+        }
+        let html = '';
+        contratos.forEach(contrato => {
+          html += `<div style="margin-bottom:18px;">
+            <strong>Póliza:</strong> ${contrato.policy_name}<br>
+            <strong>Estado:</strong> ${contrato.status}<br>
+            <strong>Documentos:</strong>
+            <table style="width:100%;margin-top:6px;margin-bottom:8px;border-collapse:collapse;">
+              <thead>
+                <tr>
+                  <th style='border-bottom:1px solid #ccc;'>Archivo</th>
+                  <th style='border-bottom:1px solid #ccc;'>Subido por</th>
+                  <th style='border-bottom:1px solid #ccc;'>Estado</th>
+                  <th style='border-bottom:1px solid #ccc;'>Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+          // Ordenar: primero documento_firmado.pdf si existe
+          let docs = (contrato.documents || []).slice();
+          docs.sort((a, b) => {
+            if (a.filename === 'documento_firmado.pdf') return -1;
+            if (b.filename === 'documento_firmado.pdf') return 1;
+            return 0;
+          });
+          if (docs.length === 0) {
+            html += `<tr><td colspan="4" style="text-align:center;color:#888;">No hay documentos</td></tr>`;
+          } else {
+            docs.forEach(doc => {
+              html += `<tr${doc.filename === 'documento_firmado.pdf' ? ' style="background:#eafaf1;"' : ''}>
+                <td><a href="/contracts/${contrato.contract_id}/docs/${encodeURIComponent(doc.filename)}" target="_blank">${doc.filename}</a></td>
+                <td>${doc.uploaded_by ? doc.uploaded_by.charAt(0).toUpperCase() + doc.uploaded_by.slice(1) : '-'}</td>
+                <td>${doc.status ? doc.status.charAt(0).toUpperCase() + doc.status.slice(1) : '-'}</td>
+                <td>
+                  <a href="/contracts/${contrato.contract_id}/docs/${encodeURIComponent(doc.filename)}" target="_blank" class="btn-small">Descargar</a>
+                  ${doc.filename === 'documento_firmado.pdf' && doc.uploaded_by === 'cliente' && doc.status === 'pendiente' ?
+                    `<button class="btn-small btn-aprobar-doc" data-docid="${doc.id}" data-contrato="${contrato.contract_id}">Aprobar</button>
+                     <button class="btn-small btn-rechazar-doc" data-docid="${doc.id}" data-contrato="${contrato.contract_id}">Rechazar</button>`
+                    : ''}
+                </td>
+              </tr>`;
+            });
+          }
+          html += '</tbody></table></div>';
+        });
+        detalleDiv.innerHTML = html;
+        // Aquí luego implementaremos la lógica de aprobar/rechazar
+      })
+      .catch(err => {
+        detalleDiv.innerHTML = '<p style="color:red;">Error al cargar documentos.</p>';
+      });
   }
 });

@@ -1409,6 +1409,18 @@ def get_client_contracts(client_id):
         # Datos extra
         cur.execute('SELECT field_name, field_value FROM client_policy_extra_data WHERE contract_id = %s', (contract_id,))
         extra_data = {row[0]: row[1] for row in cur.fetchall()}
+        # Documentos
+        cur.execute('SELECT id, file_path, uploaded_by, upload_date, status FROM documents WHERE contract_id = %s', (contract_id,))
+        documentos = [
+            {
+                'id': d[0],
+                'filename': d[1],
+                'uploaded_by': d[2],
+                'upload_date': d[3].isoformat() if d[3] else None,
+                'status': d[4]
+            }
+            for d in cur.fetchall()
+        ]
         resultado.append({
             'contract_id': contract_id,
             'policy_name': contrato[1],
@@ -1417,7 +1429,8 @@ def get_client_contracts(client_id):
             'payment_frequency': contrato[4],
             'status': contrato[5],
             'beneficiaries': beneficiarios,
-            'extra_data': extra_data
+            'extra_data': extra_data,
+            'documents': documentos
         })
     cur.close()
     return jsonify(resultado)
