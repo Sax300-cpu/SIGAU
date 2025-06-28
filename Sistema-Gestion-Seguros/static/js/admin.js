@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const titleEl    = document.getElementById('content-title');
   const roleMap    = { 1: 'Admin', 2: 'Agente', 3: 'Cliente' };
   const sectNames  = {
-    roles:    'Gestión de Roles',
     usuarios: 'Administración de Usuarios',
     seguros:  'Gestión de Seguros'
   };
@@ -87,10 +86,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================
   //  MODAL SEGUROS
   // ==========================
-  const insuranceModal   = document.getElementById('insurance-modal');
-  const insuranceForm    = document.getElementById('insurance-form');
-  const insurancesTbody  = document.getElementById('insurances-tbody');
-  let editInsuranceId    = null; // ID de la póliza a editar
+  // Modal Crear Seguro
+  const createInsuranceModal = document.getElementById('create-insurance-modal');
+  const createInsuranceForm = document.getElementById('create-insurance-form');
+  const btnNewInsurance = document.getElementById('btn-new-insurance');
+  const spanCloseCreateInsurance = document.getElementById('close-create-insurance-modal');
+  const cancelCreateInsurance = document.getElementById('cancel-create-insurance');
+
+  // Modal Editar Seguro
+  const editInsuranceModal = document.getElementById('edit-insurance-modal');
+  const editInsuranceForm = document.getElementById('edit-insurance-form');
+  const spanCloseEditInsurance = document.getElementById('close-edit-insurance-modal');
+  const cancelEditInsurance = document.getElementById('cancel-edit-insurance');
+
+  const insurancesTbody = document.getElementById('insurances-tbody');
 
   // ==========================
   //  NAVEGACIÓN ENTRE SECCIONES
@@ -108,14 +117,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const btnNewInsurance = document.getElementById('btn-new-insurance');
       if (btnNewInsurance) {
         btnNewInsurance.onclick = () => {
-          openInsuranceModal('Crear Seguro');
+          openCreateInsuranceModal();
         };
       }
     }
   }
 
   btns.forEach(b => b.onclick = () => showSection(b.dataset.content));
-  showSection('roles');  // Inicia mostrando "Gestión de Roles"
+  showSection('usuarios');  // Inicia mostrando "Administración de Usuarios"
 
   // ==========================
   //  CARGAR USUARIOS EN LA TABLA
@@ -497,20 +506,20 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${policy.type_name}</td>
           <td>
             <button
-              class="btn-detail"
+              class="btn btn-secondary btn-sm btn-detail"
               data-field="cobertura"
               data-text="${policy.coverage_details.replace(/"/g, '&quot;')}"
             >
-              <i class="fas fa-info-circle"></i>
+              Ver
             </button>
           </td>
           <td>
             <button
-              class="btn-detail"
+              class="btn btn-secondary btn-sm btn-detail"
               data-field="beneficios"
               data-text="${policy.benefits ? policy.benefits.replace(/"/g, '&quot;') : ''}"
             >
-              <i class="fas fa-info-circle"></i>
+              Ver
             </button>
           </td>
           <td>$${policy.premium_amount.toFixed(2)}</td>
@@ -530,7 +539,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // 2) Listeners "Editar Seguro"
       document.querySelectorAll('.btn-edit-insurance').forEach(b => {
-        b.onclick = () => openInsuranceModal('Editar Seguro', b.dataset.id);
+        b.onclick = () => openEditInsuranceModal(b.dataset.id);
       });
 
       // 3) Listeners "Eliminar Seguro"
@@ -563,71 +572,90 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 5) Abrir modal Crear / Editar póliza
-  function openInsuranceModal(title, id = null) {
-    document.getElementById('insurance-modal-title').textContent = title;
-    insuranceForm.reset();
-    editInsuranceId = id;
-
+  // 5) Abrir modal Crear Seguro
+  function openCreateInsuranceModal() {
+    createInsuranceForm.reset();
+    
     // Limpiar el select de cobertura
-    const coverageSelect = document.getElementById('i-coverage');
+    const coverageSelect = document.getElementById('create-i-coverage');
     coverageSelect.innerHTML = '<option value="">Seleccione una cobertura</option>';
 
     // Disparar el change para cargar coberturas si hay tipo seleccionado
-    document.getElementById('i-type').dispatchEvent(new Event('change'));
+    document.getElementById('create-i-type').dispatchEvent(new Event('change'));
 
-    if (id) {
-      // Modo edición: obtengo la póliza de /policies/:id
-      fetch(`/policies/${id}`)
-        .then(res => res.json())
-        .then(data => {
-          document.getElementById('i-name').value = data.name;
-          document.getElementById('i-type').value = data.type_id;
-          document.getElementById('i-type').dispatchEvent(new Event('change'));
-          document.getElementById('i-coverage').value = data.coverage_details;
-          document.getElementById('i-benefits').value = data.benefits;
-          document.getElementById('i-cost').value = data.premium_amount;
-          document.getElementById('i-payment').value = data.payment_frequency;
-          document.getElementById('i-insured-amount').value = data.insured_amount || '';
-          document.getElementById('i-payment-method').value = data.payment_method || 'Tarjeta';
-        })
-        .catch(err => console.error('Error cargando póliza para editar:', err));
-    }
-
-    insuranceModal.classList.remove('hidden');
+    createInsuranceModal.classList.remove('hidden');
   }
 
-  // 6) "Crear Seguro" abre el modal
-  document.getElementById('btn-new-insurance').onclick = () => {
-    openInsuranceModal('Crear Seguro');
+  // 6) Abrir modal Editar Seguro
+  function openEditInsuranceModal(id) {
+    editInsuranceForm.reset();
+    document.getElementById('edit-i-id').value = id;
+
+    // Limpiar el select de cobertura
+    const coverageSelect = document.getElementById('edit-i-coverage');
+    coverageSelect.innerHTML = '<option value="">Seleccione una cobertura</option>';
+
+    // Disparar el change para cargar coberturas si hay tipo seleccionado
+    document.getElementById('edit-i-type').dispatchEvent(new Event('change'));
+
+    // Modo edición: obtengo la póliza de /policies/:id
+    fetch(`/policies/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('edit-i-name').value = data.name;
+        document.getElementById('edit-i-type').value = data.type_id;
+        document.getElementById('edit-i-type').dispatchEvent(new Event('change'));
+        document.getElementById('edit-i-coverage').value = data.coverage_details;
+        document.getElementById('edit-i-benefits').value = data.benefits;
+        document.getElementById('edit-i-cost').value = data.premium_amount;
+        document.getElementById('edit-i-payment').value = data.payment_frequency;
+        document.getElementById('edit-i-insured-amount').value = data.insured_amount || '';
+        document.getElementById('edit-i-payment-method').value = data.payment_method || 'Tarjeta';
+      })
+      .catch(err => console.error('Error cargando póliza para editar:', err));
+
+    editInsuranceModal.classList.remove('hidden');
+  }
+
+  // 7) Event listeners para modales de seguros
+  // Crear Seguro
+  spanCloseCreateInsurance.onclick = () => {
+    createInsuranceModal.classList.add('hidden');
+  };
+  cancelCreateInsurance.onclick = () => {
+    createInsuranceModal.classList.add('hidden');
   };
 
-  // 7) "Cancelar" en el modal cierra y resetea
-  document.getElementById('cancel-insurance').onclick = () => {
-    insuranceModal.classList.add('hidden');
-    editInsuranceId = null;
+  // Editar Seguro
+  spanCloseEditInsurance.onclick = () => {
+    editInsuranceModal.classList.add('hidden');
+  };
+  cancelEditInsurance.onclick = () => {
+    editInsuranceModal.classList.add('hidden');
   };
 
   // 8) Listeners del formulario de seguros
-  const typeSelect = document.getElementById('i-type');
-  const benefitsTextarea = document.getElementById('i-benefits');
+  const createTypeSelect = document.getElementById('create-i-type');
+  const editTypeSelect = document.getElementById('edit-i-type');
+  const createBenefitsTextarea = document.getElementById('create-i-benefits');
+  const editBenefitsTextarea = document.getElementById('edit-i-benefits');
 
   // Mapeo dinámico de id a nombre de tipo de póliza
   function getTypeIdToCoverageKey() {
     const map = {};
-    const options = typeSelect.querySelectorAll('option');
+    const options = createTypeSelect.querySelectorAll('option');
     options.forEach(opt => {
       if (opt.value) map[opt.value] = opt.text.trim();
     });
     return map;
   }
 
-  // Listener para actualizar coberturas cuando cambia el tipo de póliza
-  typeSelect.addEventListener('change', function() {
-    const selectedId = this.value;
+  // Función para actualizar coberturas
+  function updateCoverages(typeSelect, coverageSelectId) {
+    const selectedId = typeSelect.value;
     const typeIdToCoverageKey = getTypeIdToCoverageKey();
     const key = typeIdToCoverageKey[selectedId];
-    const coverageSelect = document.getElementById('i-coverage');
+    const coverageSelect = document.getElementById(coverageSelectId);
     coverageSelect.innerHTML = '<option value="">Seleccione una cobertura</option>';
     if (coverageTemplates[key]) {
       coverageTemplates[key].forEach(coverage => {
@@ -637,20 +665,30 @@ document.addEventListener('DOMContentLoaded', () => {
         coverageSelect.appendChild(option);
       });
     }
+  }
+
+  // Listener para actualizar coberturas cuando cambia el tipo de póliza (Crear)
+  createTypeSelect.addEventListener('change', function() {
+    updateCoverages(this, 'create-i-coverage');
   });
 
-  // 9) Submit del formulario (Crear o Editar)
-  insuranceForm.onsubmit = async e => {
+  // Listener para actualizar coberturas cuando cambia el tipo de póliza (Editar)
+  editTypeSelect.addEventListener('change', function() {
+    updateCoverages(this, 'edit-i-coverage');
+  });
+
+  // 9) Submit del formulario Crear Seguro
+  createInsuranceForm.onsubmit = async e => {
     e.preventDefault();
 
-    const name      = insuranceForm.name.value.trim();
-    const type_id   = parseInt(document.getElementById('i-type').value);
-    const coverage  = insuranceForm.coverage_id.value.trim();
-    const benefits  = document.getElementById('i-benefits').value.trim();
-    const cost      = parseFloat(insuranceForm.cost.value);
-    const payment   = insuranceForm.payment.value;
-    const insured_amount = parseFloat(document.getElementById('i-insured-amount').value);
-    const payment_method = document.getElementById('i-payment-method').value;
+    const name      = createInsuranceForm.name.value.trim();
+    const type_id   = parseInt(document.getElementById('create-i-type').value);
+    const coverage  = createInsuranceForm.coverage_id.value.trim();
+    const benefits  = document.getElementById('create-i-benefits').value.trim();
+    const cost      = parseFloat(createInsuranceForm.cost.value);
+    const payment   = createInsuranceForm.payment.value;
+    const insured_amount = parseFloat(document.getElementById('create-i-insured-amount').value);
+    const payment_method = document.getElementById('create-i-payment-method').value;
 
     // -------------- Validaciones adicionales --------------
     // 1) Nombre no puede estar vacío (o espacios) y sólo letras y espacios
@@ -694,11 +732,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     try {
-      const url = editInsuranceId ? `/policies/${editInsuranceId}` : '/policies';
-      const method = editInsuranceId ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method: method,
+      const response = await fetch('/policies', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
@@ -707,18 +742,95 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Error al guardar la póliza');
+        throw new Error(error.error || 'Error al crear la póliza');
       }
 
       // Cerrar modal y recargar tabla
-      document.getElementById('insurance-modal').classList.add('hidden');
+      createInsuranceModal.classList.add('hidden');
       loadPolicies();
     } catch (error) {
       alert(error.message);
     }
   };
 
-  // 10) Cerrar el modal de detalles (Cobertura/Beneficios)
+  // 10) Submit del formulario Editar Seguro
+  editInsuranceForm.onsubmit = async e => {
+    e.preventDefault();
+
+    const id        = document.getElementById('edit-i-id').value;
+    const name      = editInsuranceForm.name.value.trim();
+    const type_id   = parseInt(document.getElementById('edit-i-type').value);
+    const coverage  = editInsuranceForm.coverage_id.value.trim();
+    const benefits  = document.getElementById('edit-i-benefits').value.trim();
+    const cost      = parseFloat(editInsuranceForm.cost.value);
+    const payment   = editInsuranceForm.payment.value;
+    const insured_amount = parseFloat(document.getElementById('edit-i-insured-amount').value);
+    const payment_method = document.getElementById('edit-i-payment-method').value;
+
+    // -------------- Validaciones adicionales --------------
+    // 1) Nombre no puede estar vacío (o espacios) y sólo letras y espacios
+    const nameRegex = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
+    if (!name) {
+      return alert('El nombre del seguro es obligatorio.');
+    }
+    if (!nameRegex.test(name)) {
+      return alert('El nombre del seguro no puede contener números ni caracteres especiales.');
+    }
+
+    // 2) Cobertura y Beneficios no pueden ser sólo espacios
+    if (!coverage) {
+      return alert('Ingrese la cobertura de la póliza.');
+    }
+    if (!benefits) {
+      return alert('Ingrese los beneficios de la póliza.');
+    }
+
+    // 3) Costo válido
+    if (isNaN(cost) || cost <= 0) {
+      return alert('Ingrese un costo válido mayor a cero.');
+    }
+
+    // 4) Tipo de póliza
+    if (!type_id) {
+      return alert('Seleccione un tipo de póliza.');
+    }
+
+    // -------------------------------------------------------
+
+    const data = {
+      name:              name,
+      type_id:           type_id,
+      coverage:          coverage,
+      benefits:          benefits,
+      premium_amount:    cost,
+      payment_frequency: payment,
+      insured_amount:    insured_amount,
+      payment_method:    payment_method
+    };
+
+    try {
+      const response = await fetch(`/policies/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al actualizar la póliza');
+      }
+
+      // Cerrar modal y recargar tabla
+      editInsuranceModal.classList.add('hidden');
+      loadPolicies();
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  // 11) Cerrar el modal de detalles (Cobertura/Beneficios)
   document.getElementById('close-detail-modal').onclick = () => {
     document.getElementById('detail-modal').classList.add('hidden');
   };
@@ -726,12 +838,19 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('detail-modal').classList.add('hidden');
   };
 
-  // 11) Finalmente, cargamos la primera vez las pólizas
+  // 12) Finalmente, cargamos la primera vez las pólizas
   loadPolicies();
 
-  // Filtrar tipos de póliza para mostrar solo Vida y Salud
-  if (typeSelect) {
-    Array.from(typeSelect.options).forEach(opt => {
+  // Filtrar tipos de póliza para mostrar solo Vida y Salud en ambos modales
+  if (createTypeSelect) {
+    Array.from(createTypeSelect.options).forEach(opt => {
+      if (opt.value && !['Vida', 'Salud'].includes(opt.text.trim())) {
+        opt.style.display = 'none';
+      }
+    });
+  }
+  if (editTypeSelect) {
+    Array.from(editTypeSelect.options).forEach(opt => {
       if (opt.value && !['Vida', 'Salud'].includes(opt.text.trim())) {
         opt.style.display = 'none';
       }
