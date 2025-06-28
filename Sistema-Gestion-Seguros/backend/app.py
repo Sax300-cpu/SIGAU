@@ -925,17 +925,18 @@ def create_contract():
         os.makedirs(contract_folder, exist_ok=True)
 
         # 2) Recorremos los archivos subidos en el campo 'documents'
+        role = session.get('role_id')
+        uploaded_by = 'agente' if role == 2 else 'cliente'
         for f in request.files.getlist('documents'):
             if f.filename:
                 filename = secure_filename(f.filename)
                 save_path = os.path.join(contract_folder, filename)
                 f.save(save_path)
-
                 # 3) Registramos en la tabla documents
                 cur.execute("""
-                    INSERT INTO documents (contract_id, file_path)
-                    VALUES (%s, %s)
-                """, (contract_id, filename))
+                    INSERT INTO documents (contract_id, file_path, uploaded_by)
+                    VALUES (%s, %s, %s)
+                """, (contract_id, filename, uploaded_by))
 
         # 4) Commit final con los inserts de documentos
         mysql.connection.commit()
@@ -1091,13 +1092,22 @@ def upload_docs(contract_id):
     signature_path = None
 
     # Archivos
+    # Determinar quién sube el documento
+    role = session.get('role_id')
+    if role == 2:
+        uploaded_by = 'agente'
+    elif role == 3:
+        uploaded_by = 'cliente'
+    else:
+        uploaded_by = 'cliente'
+
     for f in request.files.getlist('documents'):
         if f.filename:
             fname = secure_filename(f.filename)
             save_path = os.path.join(folder, fname)
             f.save(save_path)
-            cur.execute("INSERT INTO documents (contract_id, file_path) VALUES (%s,%s)",
-                        (contract_id, fname))
+            cur.execute("INSERT INTO documents (contract_id, file_path, uploaded_by) VALUES (%s,%s,%s)",
+                        (contract_id, fname, uploaded_by))
             # Si es PDF, lo guardamos para unir la firma
             if fname.lower().endswith('.pdf'):
                 pdf_path = save_path
@@ -1108,8 +1118,8 @@ def upload_docs(contract_id):
         fname = f"firma_{int(time.time())}.png"
         sig_path = os.path.join(folder, fname)
         sig.save(sig_path)
-        cur.execute("INSERT INTO documents (contract_id, file_path) VALUES (%s,%s)",
-                    (contract_id, fname))
+        cur.execute("INSERT INTO documents (contract_id, file_path, uploaded_by) VALUES (%s,%s,%s)",
+                    (contract_id, fname, uploaded_by))
         signature_path = sig_path
 
     # Si hay PDF y firma, unirlos
