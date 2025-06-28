@@ -66,14 +66,23 @@ document.addEventListener('DOMContentLoaded', () => {
   //  MODALES USUARIO
   // ==========================
   const modalConfirm     = document.getElementById('modal');
-  const userModal        = document.getElementById('user-modal');
-  const userForm         = document.getElementById('user-form');
+  
+  // Modal Crear Usuario
+  const createUserModal        = document.getElementById('create-user-modal');
+  const createUserForm         = document.getElementById('create-user-form');
+  const createUserTypeSelection= document.getElementById('create-user-type-selection');
+  const createClientFields     = document.getElementById('create-client-fields');
+  
+  // Modal Editar Usuario
+  const editUserModal          = document.getElementById('edit-user-modal');
+  const editUserForm           = document.getElementById('edit-user-form');
+  const editClientFields       = document.getElementById('edit-client-fields');
+  
   const btnNewUser       = document.getElementById('btn-new-user');
-  const spanCloseUser    = document.getElementById('close-user-modal');
-  const backToSelection  = document.getElementById('back-to-selection');
-  const userTypeSelection= document.getElementById('user-type-selection');
-  const clientFields     = document.getElementById('client-fields');
-  let editId = null; // ID del usuario a editar
+  const spanCloseCreateUser    = document.getElementById('close-create-user-modal');
+  const spanCloseEditUser      = document.getElementById('close-edit-user-modal');
+  const backToCreateSelection  = document.getElementById('back-to-create-selection');
+  const cancelEditUser         = document.getElementById('cancel-edit-user');
 
   // ==========================
   //  MODAL SEGUROS
@@ -139,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Listeners "Editar Usuario"
       document.querySelectorAll('.btn-edit').forEach(b => {
-        b.onclick = () => openUserModal('Editar Usuario', b.dataset.id);
+        b.onclick = () => openEditUserModal(b.dataset.id);
       });
 
       // Listeners "Eliminar Usuario" (modal genérico)
@@ -157,290 +166,317 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================
-  //  ABRIR MODAL CREAR / EDITAR USUARIO
+  //  ABRIR MODAL CREAR USUARIO
   // ==========================
-  // En la función openUserModal
-  function openUserModal(title, id = null) {
-    document.getElementById('user-modal-title').textContent = title;
-    userForm.reset();
-    editId = id;
+  function openCreateUserModal() {
+    createUserForm.reset();
+    createUserTypeSelection.classList.add('active');
+    createUserForm.classList.remove('active');
+    createClientFields.style.display = 'none';
+    document.getElementById('create-u-password').setAttribute('required', 'true');
+    createUserModal.classList.remove('hidden');
+  }
 
-    if (id) {
-        // Modo edición: obtengo datos del usuario
-        fetch(`/users/${id}`)
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error('Error al cargar el usuario');
+  // ==========================
+  //  ABRIR MODAL EDITAR USUARIO
+  // ==========================
+  function openEditUserModal(id) {
+    editUserForm.reset();
+    document.getElementById('edit-u-id').value = id;
+
+    // Obtener datos del usuario
+    fetch(`/users/${id}`)
+        .then(res => {
+            if (!res.ok) {
+                throw new Error('Error al cargar el usuario');
+            }
+            return res.json();
+        })
+        .then(user => {
+            // Cargar datos básicos
+            document.getElementById('edit-u-role').value = user.role_id;
+            document.getElementById('edit-u-username').value = user.username;
+            document.getElementById('edit-u-email').value = user.email;
+            document.getElementById('edit-u-password').removeAttribute('required');
+
+            if (user.role_id === 3) {
+                // Cliente: mostrar campos adicionales
+                editClientFields.style.display = 'block';
+                const fullNameField = document.getElementById('edit-u-full-name');
+                if (fullNameField) {
+                  const nombreCompleto = [user.first_name, user.last_name].filter(Boolean).join(' ');
+                  fullNameField.value = nombreCompleto;
                 }
-                return res.json();
-            })
-            .then(user => {
-                // Ocultar selección de tipo y mostrar formulario directamente
-                userTypeSelection.classList.remove('active');
-                userForm.classList.add('active');
+                document.getElementById('edit-u-dob').value = user.dob || '';
+                document.getElementById('edit-u-phone').value = user.phone || '';
+                document.getElementById('edit-u-address').value = user.address || '';
+                if (fullNameField) fullNameField.setAttribute('required', 'true');
+                document.getElementById('edit-u-dob').setAttribute('required', 'true');
+            } else {
+                // Admin o Agente
+                editClientFields.style.display = 'none';
+                const fullNameField = document.getElementById('edit-u-full-name');
+                if (fullNameField) fullNameField.removeAttribute('required');
+                document.getElementById('edit-u-dob').removeAttribute('required');
+            }
+        })
+        .catch(err => {
+            console.error('Error cargando usuario para editar:', err);
+            showNotification('error', 'Error', 'No se pudo cargar los datos del usuario');
+        });
 
-                // Cargar datos básicos
-                document.getElementById('u-role').value = user.role_id;
-                document.getElementById('u-username').value = user.username;
-                document.getElementById('u-email').value = user.email;
-                document.getElementById('u-password').removeAttribute('required'); // La contraseña es opcional en edición
+    editUserModal.classList.remove('hidden');
+  }
 
-                if (user.role_id === 3) {
-                    // Cliente: mostrar campos adicionales
-                    clientFields.style.display = 'block';
-                    const fullNameField = document.getElementById('u-full-name');
-                    if (fullNameField) {
-                      const nombreCompleto = [user.first_name, user.last_name].filter(Boolean).join(' ');
-                      fullNameField.value = nombreCompleto;
-                    }
-                    document.getElementById('u-dob').value = user.dob || '';
-                    document.getElementById('u-phone').value = user.phone || '';
-                    document.getElementById('u-address').value = user.address || '';
-                    if (fullNameField) fullNameField.setAttribute('required', 'true');
-                    document.getElementById('u-dob').setAttribute('required', 'true');
-                } else {
-                    // Admin o Agente
-                    clientFields.style.display = 'none';
-                    const fullNameField = document.getElementById('u-full-name');
-                    if (fullNameField) fullNameField.removeAttribute('required');
-                    document.getElementById('u-dob').removeAttribute('required');
-                }
-            })
-            .catch(err => {
-                console.error('Error cargando usuario para editar:', err);
-                showNotification('error', 'Error', 'No se pudo cargar los datos del usuario');
-            });
-    } else {
-        // Modo creación: mostrar selección de tipo
-        userTypeSelection.classList.add('active');
-        userForm.classList.remove('active');
-        clientFields.style.display = 'none';
-        document.getElementById('u-password').setAttribute('required', 'true'); // La contraseña es requerida en creación
-    }
-    userModal.classList.remove('hidden');
-}
+  // ==========================
+  //  EVENTOS DEL MODAL USUARIO
+  // ==========================
+  // 1) "Crear Usuario" abre el modal
+  btnNewUser.onclick = () => openCreateUserModal();
 
-// ==========================
-//  EVENTOS DEL MODAL USUARIO
-// ==========================
-// 1) "Crear Usuario" abre el modal
-btnNewUser.onclick = () => openUserModal('Crear Usuario');
-
-// 2) "X" cierra el modal
-spanCloseUser.onclick = () => {
-  userModal.classList.add('hidden');
-  editId = null;
-  userForm.reset();
-  userForm.classList.remove('active');
-  userTypeSelection.classList.add('active');
-};
-
-// 3) Selección de tipo de usuario
-document.querySelectorAll('.user-type-btn').forEach(b => {
-  b.onclick = () => {
-    const tipo = b.dataset.type;
-    userTypeSelection.classList.remove('active');
-    userForm.classList.add('active');
-
-    // Manejo seguro de campos de cliente
-    const fullNameField = document.getElementById('u-full-name');
-    const dobField = document.getElementById('u-dob');
-    if (tipo === 'client') {
-      clientFields.style.display = 'block';
-      document.getElementById('u-role').value = 3;
-      if (fullNameField) fullNameField.setAttribute('required', 'true');
-      if (dobField) dobField.setAttribute('required', 'true');
-    } else {
-      clientFields.style.display = 'none';
-      document.getElementById('u-role').value = tipo === 'admin' ? 1 : 2;
-      if (fullNameField) fullNameField.removeAttribute('required');
-      if (dobField) dobField.removeAttribute('required');
-    }
+  // 2) "X" cierra el modal
+  spanCloseCreateUser.onclick = () => {
+    createUserModal.classList.add('hidden');
+    createUserForm.reset();
+    createUserForm.classList.remove('active');
+    createUserTypeSelection.classList.add('active');
   };
-});
 
-// 4) "Volver" en el modal de usuario (regresa a selección de tipo)
-document.getElementById('back-to-selection').onclick = () => {
-  userForm.classList.remove('active');
-  userTypeSelection.classList.add('active');
-  editId = null;
-  userForm.reset();
-};
+  // 3) Selección de tipo de usuario
+  document.querySelectorAll('.user-type-btn').forEach(b => {
+    b.onclick = () => {
+      const tipo = b.dataset.type;
+      createUserTypeSelection.classList.remove('active');
+      createUserForm.classList.add('active');
 
-// 5) Envío del formulario de usuario (Crear o Editar)
-userForm.onsubmit = async e => {
-  e.preventDefault();
-  const username = userForm.username.value.trim();
-  const email = userForm.email.value.trim();
-  const password = userForm.password.value.trim();
-  const roleId = parseInt(userForm.role_id.value, 10);
+      // Manejo seguro de campos de cliente
+      const fullNameField = document.getElementById('create-u-full-name');
+      const dobField = document.getElementById('create-u-dob');
+      if (tipo === 'client') {
+        createClientFields.style.display = 'block';
+        document.getElementById('create-u-role').value = 3;
+        if (fullNameField) fullNameField.setAttribute('required', 'true');
+        if (dobField) dobField.setAttribute('required', 'true');
+      } else {
+        createClientFields.style.display = 'none';
+        document.getElementById('create-u-role').value = tipo === 'admin' ? 1 : 2;
+        if (fullNameField) fullNameField.removeAttribute('required');
+        if (dobField) dobField.removeAttribute('required');
+      }
+    };
+  });
 
-  // Validar usuario
-  const usernameValidation = validarUsuario(username);
-  if (!usernameValidation.valid) {
-    userForm.username.setCustomValidity(usernameValidation.message);
-    userForm.username.reportValidity();
-    return;
-  }
+  // 4) "Volver" en el modal de crear usuario (regresa a selección de tipo)
+  backToCreateSelection.onclick = () => {
+    createUserForm.classList.remove('active');
+    createUserTypeSelection.classList.add('active');
+    createUserForm.reset();
+  };
 
-  // Validar email (usando validación nativa del navegador)
-  if (!userForm.email.checkValidity()) {
-    userForm.email.reportValidity();
-    return;
-  }
+  // ==========================
+  //  EVENTOS DEL MODAL EDITAR USUARIO
+  // ==========================
+  // 1) "X" cierra el modal de editar
+  spanCloseEditUser.onclick = () => {
+    editUserModal.classList.add('hidden');
+    editUserForm.reset();
+  };
 
-  // Validar password si es nuevo usuario
-  if (!editId && !password) {
-    userForm.password.setCustomValidity('La contraseña es obligatoria para nuevos usuarios');
-    userForm.password.reportValidity();
-    return;
-  }
+  // 2) "Cancelar" en el modal de editar
+  cancelEditUser.onclick = () => {
+    editUserModal.classList.add('hidden');
+    editUserForm.reset();
+  };
 
-  // Solo validar/enviar campos de cliente si es cliente
-  let data = { username, email, role_id: roleId };
-  if (password) data.password = password;
-  if (roleId === 3) {
-    const fullName = userForm.full_name.value.trim();
-    const dob = userForm.dob.value;
-    if (!fullName) {
-      userForm.full_name.setCustomValidity('El nombre completo es obligatorio para clientes');
-      userForm.full_name.reportValidity();
+  // 3) Envío del formulario de editar usuario
+  editUserForm.onsubmit = async e => {
+    e.preventDefault();
+    const userId = document.getElementById('edit-u-id').value;
+    const username = editUserForm.username.value.trim();
+    const email = editUserForm.email.value.trim();
+    const password = editUserForm.password.value.trim();
+    const roleId = parseInt(editUserForm.role_id.value, 10);
+
+    // Validar usuario
+    const usernameValidation = validarUsuario(username);
+    if (!usernameValidation.valid) {
+      editUserForm.username.setCustomValidity(usernameValidation.message);
+      editUserForm.username.reportValidity();
       return;
     }
-    if (!dob) {
-      userForm.dob.setCustomValidity('La fecha de nacimiento es obligatoria para clientes');
-      userForm.dob.reportValidity();
+
+    // Validar email (usando validación nativa del navegador)
+    if (!editUserForm.email.checkValidity()) {
+      editUserForm.email.reportValidity();
       return;
     }
-    // Separar nombre completo en nombre y apellido
-    const nameParts = fullName.split(' ');
-    data.first_name = nameParts[0] || '';
-    data.last_name = nameParts.slice(1).join(' ') || '';
-    data.dob = dob;
-    data.phone = userForm.phone.value.trim();
-    data.address = userForm.address.value.trim();
-  }
-  
-  const url = editId ? `/users/${editId}` : '/users';
-  const method = editId ? 'PUT' : 'POST';
 
-  try {
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    
-    if (res.ok) {
-      showNotification('success', 'Éxito', editId ? 'Usuario actualizado correctamente.' : 'Usuario creado correctamente.');
-      loadUsers();
-      userModal.classList.add('hidden');
-      editId = null;
-      userForm.reset();
-    } else {
-      const err = await res.json();
-      // Si el error es por usuario duplicado, mostrar tooltip nativo
-      if (err.error && err.error.includes('Duplicate entry') && err.error.includes('users.username')) {
-        userForm.username.setCustomValidity('Este nombre de usuario ya está en uso.');
-        userForm.username.reportValidity();
+    // Solo validar/enviar campos de cliente si es cliente
+    let data = { username, email, role_id: roleId };
+    if (password) data.password = password;
+    if (roleId === 3) {
+      const fullName = editUserForm.full_name.value.trim();
+      const dob = editUserForm.dob.value;
+      if (!fullName) {
+        editUserForm.full_name.setCustomValidity('El nombre completo es obligatorio para clientes');
+        editUserForm.full_name.reportValidity();
         return;
       }
-      showNotification('error', 'Error', err.error || 'Error al guardar el usuario.');
+      if (!dob) {
+        editUserForm.dob.setCustomValidity('La fecha de nacimiento es obligatoria para clientes');
+        editUserForm.dob.reportValidity();
+        return;
+      }
+      // Separar nombre completo en nombre y apellido
+      const nameParts = fullName.split(' ');
+      data.first_name = nameParts[0] || '';
+      data.last_name = nameParts.slice(1).join(' ') || '';
+      data.dob = dob;
+      data.phone = editUserForm.phone.value.trim();
+      data.address = editUserForm.address.value.trim();
     }
-  } catch (error) {
-    console.error('Error:', error);
-    showNotification('error', 'Error de conexión', 'No se pudo conectar con el servidor.');
-  }
-};
-
-// Función para validar nombres (solo letras, sin espacios ni caracteres especiales)
-function validarNombre(nombre) {
-  if (!nombre || nombre.trim() === '') {
-    return false;
-  }
-  // Regex: solo letras (incluye acentos), sin espacios ni caracteres especiales
-  const regex = /^[a-zA-Z\u00C0-\u00FF]+$/;
-  return regex.test(nombre.trim());
-}
-
-// Función para validar el formato del usuario
-function validarUsuario(value) {
-  const regex = /^[a-zA-Z0-9_]+$/;
-  if (!value) {
-    return { valid: false, message: 'El usuario es obligatorio.' };
-  }
-  if (!regex.test(value)) {
-    return { valid: false, message: 'El usuario solo puede contener letras, números y guion bajo, sin espacios ni caracteres especiales.' };
-  }
-  return { valid: true };
-}
-
-// Función para validar nombre completo (para clientes)
-function validarNombreCompleto(value) {
-  const regex = /^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]+$/;
-  if (!value) {
-    return { valid: false, message: 'El nombre completo es obligatorio.' };
-  }
-  if (!regex.test(value)) {
-    return { valid: false, message: 'El nombre completo solo puede contener letras y espacios.' };
-  }
-  return { valid: true };
-}
-
-// Validación en tiempo real para el campo usuario
-userForm.username.addEventListener('input', function(e) {
-  const value = e.target.value.trim();
-  const validation = validarUsuario(value);
-  
-  if (!validation.valid) {
-    // Remover caracteres no permitidos
-    const cleanValue = value.replace(/[^a-zA-Z0-9_]/g, '');
-    e.target.value = cleanValue;
-  }
-  
-  e.target.setCustomValidity(validation.valid ? '' : validation.message);
-  e.target.reportValidity();
-});
-
-// Validación en tiempo real para nombre completo (Cliente)
-userForm.full_name.addEventListener('input', function(e) {
-  const value = e.target.value.trim();
-  const validation = validarNombreCompleto(value);
-  e.target.setCustomValidity(validation.valid ? '' : validation.message);
-  e.target.reportValidity();
-});
-
-// Función para mostrar notificación
-function showNotification(type, title, message) {
-  const notification = document.createElement('div');
-  notification.className = `notification ${type}`;
-  notification.innerHTML = `
-    <h3>${title}</h3>
-    <p>${message}</p>
-  `;
-  document.body.appendChild(notification);
-  
-  // Remover la notificación después de 3 segundos
-  setTimeout(() => {
-    notification.remove();
-  }, 3000);
-}
-
-// 6) Funciones genéricas de confirmación (Eliminar)
-function showModal(message, onConfirm) {
-  document.getElementById('modal-title').textContent = 'Confirmación';
-  document.getElementById('modal-message').textContent = message;
-  modalConfirm.classList.remove('hidden');
-
-  const btnOk     = document.getElementById('modal-confirm');
-  const btnCancel = document.getElementById('modal-cancel');
-
-  btnOk.onclick = () => {
-    onConfirm();
-    modalConfirm.classList.add('hidden');
+    
+    try {
+      const res = await fetch(`/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (res.ok) {
+        showNotification('success', 'Éxito', 'Usuario actualizado correctamente.');
+        loadUsers();
+        editUserModal.classList.add('hidden');
+        editUserForm.reset();
+      } else {
+        const err = await res.json();
+        // Si el error es por usuario duplicado, mostrar tooltip nativo
+        if (err.error && err.error.includes('Duplicate entry') && err.error.includes('users.username')) {
+          editUserForm.username.setCustomValidity('Este nombre de usuario ya está en uso.');
+          editUserForm.username.reportValidity();
+          return;
+        }
+        showNotification('error', 'Error', err.error || 'Error al actualizar el usuario.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showNotification('error', 'Error de conexión', 'No se pudo conectar con el servidor.');
+    }
   };
-  btnCancel.onclick = () => modalConfirm.classList.add('hidden');
-}
+
+  // Función para validar nombres (solo letras, sin espacios ni caracteres especiales)
+  function validarNombre(nombre) {
+    if (!nombre || nombre.trim() === '') {
+      return false;
+    }
+    // Regex: solo letras (incluye acentos), sin espacios ni caracteres especiales
+    const regex = /^[a-zA-Z\u00C0-\u00FF]+$/;
+    return regex.test(nombre.trim());
+  }
+
+  // Función para validar el formato del usuario
+  function validarUsuario(value) {
+    const regex = /^[a-zA-Z0-9_]+$/;
+    if (!value) {
+      return { valid: false, message: 'El usuario es obligatorio.' };
+    }
+    if (!regex.test(value)) {
+      return { valid: false, message: 'El usuario solo puede contener letras, números y guion bajo, sin espacios ni caracteres especiales.' };
+    }
+    return { valid: true };
+  }
+
+  // Función para validar nombre completo (para clientes)
+  function validarNombreCompleto(value) {
+    const regex = /^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]+$/;
+    if (!value) {
+      return { valid: false, message: 'El nombre completo es obligatorio.' };
+    }
+    if (!regex.test(value)) {
+      return { valid: false, message: 'El nombre completo solo puede contener letras y espacios.' };
+    }
+    return { valid: true };
+  }
+
+  // Validación en tiempo real para el campo usuario (Crear)
+  createUserForm.username.addEventListener('input', function(e) {
+    const value = e.target.value.trim();
+    const validation = validarUsuario(value);
+    
+    if (!validation.valid) {
+      // Remover caracteres no permitidos
+      const cleanValue = value.replace(/[^a-zA-Z0-9_]/g, '');
+      e.target.value = cleanValue;
+    }
+  });
+
+  // Validación en tiempo real para nombre completo (Cliente - Crear)
+  createUserForm.full_name.addEventListener('input', function(e) {
+    const value = e.target.value.trim();
+    const validation = validarNombreCompleto(value);
+    
+    if (!validation.valid) {
+      // Remover caracteres no permitidos
+      const cleanValue = value.replace(/[^a-zA-ZÁÉÍÓÚáéíóúÑñ\s]/g, '');
+      e.target.value = cleanValue;
+    }
+  });
+
+  // Validación en tiempo real para el campo usuario (Editar)
+  editUserForm.username.addEventListener('input', function(e) {
+    const value = e.target.value.trim();
+    const validation = validarUsuario(value);
+    
+    if (!validation.valid) {
+      // Remover caracteres no permitidos
+      const cleanValue = value.replace(/[^a-zA-Z0-9_]/g, '');
+      e.target.value = cleanValue;
+    }
+  });
+
+  // Validación en tiempo real para nombre completo (Cliente - Editar)
+  editUserForm.full_name.addEventListener('input', function(e) {
+    const value = e.target.value.trim();
+    const validation = validarNombreCompleto(value);
+    
+    if (!validation.valid) {
+      // Remover caracteres no permitidos
+      const cleanValue = value.replace(/[^a-zA-ZÁÉÍÓÚáéíóúÑñ\s]/g, '');
+      e.target.value = cleanValue;
+    }
+  });
+
+  // Función para mostrar notificación
+  function showNotification(type, title, message) {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+      <h3>${title}</h3>
+      <p>${message}</p>
+    `;
+    document.body.appendChild(notification);
+    
+    // Remover la notificación después de 3 segundos
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
+  }
+
+  // 6) Funciones genéricas de confirmación (Eliminar)
+  function showModal(message, onConfirm) {
+    document.getElementById('modal-title').textContent = 'Confirmación';
+    document.getElementById('modal-message').textContent = message;
+    modalConfirm.classList.remove('hidden');
+
+    const btnOk     = document.getElementById('modal-confirm');
+    const btnCancel = document.getElementById('modal-cancel');
+
+    btnOk.onclick = () => {
+      onConfirm();
+      modalConfirm.classList.add('hidden');
+    };
+    btnCancel.onclick = () => modalConfirm.classList.add('hidden');
+  }
 
   // ==========================
   //  GESTIÓN DE SEGUROS (policies)
@@ -702,36 +738,118 @@ function showModal(message, onConfirm) {
     });
   }
 
-// Función para eliminar usuario
-async function deleteUser(id) {
-  try {
-    const res = await fetch(`/users/${id}`, {
-      method: 'DELETE'
-    });
-    
-    if (res.ok) {
-      // Mostrar notificación de éxito
-      const notification = document.createElement('div');
-      notification.className = 'notification success';
-      notification.innerHTML = `
-        <h3>Éxito</h3>
-        <p>Usuario eliminado correctamente.</p>
-      `;
-      document.body.appendChild(notification);
+  // Función para eliminar usuario
+  async function deleteUser(id) {
+    try {
+      const res = await fetch(`/users/${id}`, {
+        method: 'DELETE'
+      });
       
-      // Remover la notificación después de 3 segundos
-      setTimeout(() => {
-        notification.remove();
-      }, 3000);
-      
-      loadUsers();
-    } else {
-      const err = await res.json();
-      showNotification('error', 'Error', err.error || 'Error al eliminar el usuario.');
+      if (res.ok) {
+        // Mostrar notificación de éxito
+        const notification = document.createElement('div');
+        notification.className = 'notification success';
+        notification.innerHTML = `
+          <h3>Éxito</h3>
+          <p>Usuario eliminado correctamente.</p>
+        `;
+        document.body.appendChild(notification);
+        
+        // Remover la notificación después de 3 segundos
+        setTimeout(() => {
+          notification.remove();
+        }, 3000);
+        
+        loadUsers();
+      } else {
+        const err = await res.json();
+        showNotification('error', 'Error', err.error || 'Error al eliminar el usuario.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showNotification('error', 'Error de conexión', 'No se pudo conectar con el servidor.');
     }
-  } catch (error) {
-    console.error('Error:', error);
-    showNotification('error', 'Error de conexión', 'No se pudo conectar con el servidor.');
   }
-}
+
+  // 5) Envío del formulario de crear usuario
+  createUserForm.onsubmit = async e => {
+    e.preventDefault();
+    const username = createUserForm.username.value.trim();
+    const email = createUserForm.email.value.trim();
+    const password = createUserForm.password.value.trim();
+    const roleId = parseInt(createUserForm.role_id.value, 10);
+
+    // Validar usuario
+    const usernameValidation = validarUsuario(username);
+    if (!usernameValidation.valid) {
+      createUserForm.username.setCustomValidity(usernameValidation.message);
+      createUserForm.username.reportValidity();
+      return;
+    }
+
+    // Validar email (usando validación nativa del navegador)
+    if (!createUserForm.email.checkValidity()) {
+      createUserForm.email.reportValidity();
+      return;
+    }
+
+    // Validar password si es nuevo usuario
+    if (!password) {
+      createUserForm.password.setCustomValidity('La contraseña es obligatoria para nuevos usuarios');
+      createUserForm.password.reportValidity();
+      return;
+    }
+
+    // Solo validar/enviar campos de cliente si es cliente
+    let data = { username, email, role_id: roleId };
+    if (password) data.password = password;
+    if (roleId === 3) {
+      const fullName = createUserForm.full_name.value.trim();
+      const dob = createUserForm.dob.value;
+      if (!fullName) {
+        createUserForm.full_name.setCustomValidity('El nombre completo es obligatorio para clientes');
+        createUserForm.full_name.reportValidity();
+        return;
+      }
+      if (!dob) {
+        createUserForm.dob.setCustomValidity('La fecha de nacimiento es obligatoria para clientes');
+        createUserForm.dob.reportValidity();
+        return;
+      }
+      // Separar nombre completo en nombre y apellido
+      const nameParts = fullName.split(' ');
+      data.first_name = nameParts[0] || '';
+      data.last_name = nameParts.slice(1).join(' ') || '';
+      data.dob = dob;
+      data.phone = createUserForm.phone.value.trim();
+      data.address = createUserForm.address.value.trim();
+    }
+    
+    try {
+      const res = await fetch('/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (res.ok) {
+        showNotification('success', 'Éxito', 'Usuario creado correctamente.');
+        loadUsers();
+        createUserModal.classList.add('hidden');
+        createUserForm.reset();
+      } else {
+        const err = await res.json();
+        // Si el error es por usuario duplicado, mostrar tooltip nativo
+        if (err.error && err.error.includes('Duplicate entry') && err.error.includes('users.username')) {
+          createUserForm.username.setCustomValidity('Este nombre de usuario ya está en uso.');
+          createUserForm.username.reportValidity();
+          return;
+        }
+        showNotification('error', 'Error', err.error || 'Error al crear el usuario.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showNotification('error', 'Error de conexión', 'No se pudo conectar con el servidor.');
+    }
+  };
 });

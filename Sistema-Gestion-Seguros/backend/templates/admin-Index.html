@@ -151,15 +151,15 @@
   </div>
 
   <!-- =========================
-       MODAL: Crear/Editar Usuario
+       MODAL: Crear Usuario
        ========================= -->
-  <div id="user-modal" class="modal hidden">
+  <div id="create-user-modal" class="modal hidden">
     <div class="modal-content create-user">
-      <span class="close-user-modal" id="close-user-modal">&times;</span>
-      <h2 id="user-modal-title">Crear Usuario</h2>
+      <span class="close-user-modal" id="close-create-user-modal">&times;</span>
+      <h2>Crear Usuario</h2>
 
-      <!-- 1) Selección de tipo de usuario (solo para crear) -->
-      <div id="user-type-selection" class="user-step">
+      <!-- 1) Selección de tipo de usuario -->
+      <div id="create-user-type-selection" class="user-step">
         <h3>Seleccione el tipo de usuario</h3>
         <div class="user-type-options">
           <button class="user-type-btn" data-type="admin">
@@ -174,34 +174,34 @@
         </div>
       </div>
 
-      <!-- 2) Formulario de Usuario -->
-      <form id="user-form" class="user-step">
-        <input type="hidden" id="u-role" name="role_id" value="1" />
+      <!-- 2) Formulario de Crear Usuario -->
+      <form id="create-user-form" class="user-step">
+        <input type="hidden" id="create-u-role" name="role_id" value="1" />
         <div class="form-group">
-          <label for="u-username">Usuario</label>
+          <label for="create-u-username">Usuario</label>
           <input
             type="text"
-            id="u-username"
+            id="create-u-username"
             name="username"
             placeholder="Nombre de usuario"
             required
           />
         </div>
         <div class="form-group">
-          <label for="u-email">Email</label>
+          <label for="create-u-email">Email</label>
           <input
             type="email"
-            id="u-email"
+            id="create-u-email"
             name="email"
             placeholder="correo@ejemplo.com"
             required
           />
         </div>
         <div class="form-group">
-          <label for="u-password">Contraseña</label>
+          <label for="create-u-password">Contraseña</label>
           <input
             type="password"
-            id="u-password"
+            id="create-u-password"
             name="password"
             placeholder="Ingrese una contraseña"
             required
@@ -209,51 +209,145 @@
         </div>
 
         <!-- Campos adicionales para cliente -->
-        <div id="client-fields" style="display: none;">
+        <div id="create-client-fields" style="display: none;">
           <div class="form-group">
-            <label for="u-full-name">Nombre Completo</label>
+            <label for="create-u-full-name">Nombre Completo</label>
             <input
               type="text"
-              id="u-full-name"
+              id="create-u-full-name"
               name="full_name"
               placeholder="Nombre y apellidos completos"
               required
             />
           </div>
           <div class="form-group">
-            <label for="u-dob">Fecha de Nacimiento</label>
+            <label for="create-u-dob">Fecha de Nacimiento</label>
             <input
               type="date"
-              id="u-dob"
+              id="create-u-dob"
               name="dob"
               required
             />
           </div>
           <div class="form-group">
-            <label for="u-phone">Teléfono</label>
+            <label for="create-u-phone">Teléfono</label>
             <input
               type="tel"
-              id="u-phone"
+              id="create-u-phone"
               name="phone"
               placeholder="+1234567890"
             />
           </div>
           <div class="form-group">
-            <label for="u-address">Dirección</label>
+            <label for="create-u-address">Dirección</label>
             <input
               type="text"
-              id="u-address"
+              id="create-u-address"
               name="address"
               placeholder="Dirección completa"
             />
           </div>
         </div>
         <div class="form-actions">
-          <button type="button" id="back-to-selection" class="btn btn-secondary">
+          <button type="button" id="back-to-create-selection" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Volver
           </button>
           <button type="submit" class="btn btn-primary">
             <i class="fas fa-save"></i> Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================
+       MODAL: Editar Usuario
+       ========================= -->
+  <div id="edit-user-modal" class="modal hidden">
+    <div class="modal-content create-user">
+      <span class="close-user-modal" id="close-edit-user-modal">&times;</span>
+      <h2>Editar Usuario</h2>
+
+      <!-- Formulario de Editar Usuario -->
+      <form id="edit-user-form">
+        <input type="hidden" id="edit-u-role" name="role_id" value="1" />
+        <input type="hidden" id="edit-u-id" name="user_id" />
+        <div class="form-group">
+          <label for="edit-u-username">Usuario</label>
+          <input
+            type="text"
+            id="edit-u-username"
+            name="username"
+            placeholder="Nombre de usuario"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="edit-u-email">Email</label>
+          <input
+            type="email"
+            id="edit-u-email"
+            name="email"
+            placeholder="correo@ejemplo.com"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="edit-u-password">Contraseña (opcional)</label>
+          <input
+            type="password"
+            id="edit-u-password"
+            name="password"
+            placeholder="Dejar vacío para mantener la actual"
+          />
+        </div>
+
+        <!-- Campos adicionales para cliente -->
+        <div id="edit-client-fields" style="display: none;">
+          <div class="form-group">
+            <label for="edit-u-full-name">Nombre Completo</label>
+            <input
+              type="text"
+              id="edit-u-full-name"
+              name="full_name"
+              placeholder="Nombre y apellidos completos"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="edit-u-dob">Fecha de Nacimiento</label>
+            <input
+              type="date"
+              id="edit-u-dob"
+              name="dob"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="edit-u-phone">Teléfono</label>
+            <input
+              type="tel"
+              id="edit-u-phone"
+              name="phone"
+              placeholder="+1234567890"
+            />
+          </div>
+          <div class="form-group">
+            <label for="edit-u-address">Dirección</label>
+            <input
+              type="text"
+              id="edit-u-address"
+              name="address"
+              placeholder="Dirección completa"
+            />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="cancel-edit-user" class="btn btn-secondary">
+            <i class="fas fa-times"></i> Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Actualizar
           </button>
         </div>
       </form>
