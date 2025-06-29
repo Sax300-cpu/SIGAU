@@ -123,29 +123,16 @@
                   </div>
                   <div class="mensaje-exito" style="color: #388e3c; margin-top: 10px; font-weight: 500;">¡Tu seguro está vigente y protegido!</div>
                 {% else %}
-                  <span class="document-status-label">Pendiente de Documentación</span>
+                  <span class="document-status-label" style="background:#1976d2;color:#fff;">Pendiente de Documentación</span>
                   <h3>{{ c.name }}</h3>
-                  <div class="seguro-aviso" style="background:#ffeaea; color:#d32f2f; border:1px solid #f8bbbb; border-radius:5px; padding:5px 8px; margin-bottom:6px; font-size:0.89em;">
-                    {% if c.status == 'cancelled' %}
-                      Este seguro fue desactivado por el agente. Por favor, comuníquese con su agente.
-                    {% elif c.status == 'expired' %}
-                      Este seguro está expirado.
-                    {% else %}
-                      Estado: {{ c.status|capitalize }}
-                    {% endif %}
+                  <div class="seguro-aviso" style="background:#fff3cd; color:#b28704; border:1px solid #ffe082; border-radius:5px; padding:5px 8px; margin-bottom:6px; font-size:0.95em;">
+                    Estado: Pendiente
                   </div>
-                  <button class="status-toggle-btn status pending"
-                          data-contract-id="{{ c.id }}"
-                          data-status="pending">
-                    <i class="fas fa-exclamation-circle"></i>Pendiente
-                  </button>
                   <div class="details">
                     <p><strong>N.º de contrato:</strong> {{ c.id }}</p>
                     <p><strong>Pago {{ c.freq|lower }}:</strong> ${{ c.amount }}</p>
                   </div>
-                  <button 
-                    class="btn-completar-docs" 
-                    data-contract-id="{{ c.id }}">
+                  <button class="btn-completar-docs" data-contract-id="{{ c.id }}">
                     <i class="fas fa-file-upload"></i>Completar documentos
                   </button>
                 {% endif %}
