@@ -147,6 +147,45 @@ CREATE TABLE IF NOT EXISTS `policies` (
   COLLATE = utf8mb4_unicode_ci;
 
 
+-- -----------------------------------------------------
+-- Table `client_policies`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `client_policies` ;
+
+CREATE TABLE IF NOT EXISTS `client_policies` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `client_id` INT NOT NULL,
+  `policy_id` INT NOT NULL,
+  `agent_id` INT NOT NULL,
+  `premium_amount` DECIMAL(12,2) NOT NULL,
+  `payment_frequency` VARCHAR(20) NOT NULL DEFAULT 'Mensual',
+  `start_date` DATE NOT NULL,
+  `end_date` DATE NOT NULL,
+  `status` ENUM('active', 'pending', 'cancelled', 'expired') NOT NULL DEFAULT 'pending',
+  `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `client_id` (`client_id` ASC) VISIBLE,
+  INDEX `policy_id` (`policy_id` ASC) VISIBLE,
+  INDEX `agent_id` (`agent_id` ASC) VISIBLE,
+  CONSTRAINT `client_policies_ibfk_1`
+    FOREIGN KEY (`client_id`)
+    REFERENCES `clients` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `client_policies_ibfk_2`
+    FOREIGN KEY (`policy_id`)
+    REFERENCES `policies` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `client_policies_ibfk_3`
+    FOREIGN KEY (`agent_id`)
+    REFERENCES `users` (`id`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
+) ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_unicode_ci;
+
 
 -- -----------------------------------------------------
 -- Table `beneficiaries`
@@ -155,15 +194,19 @@ DROP TABLE IF EXISTS `beneficiaries` ;
 
 CREATE TABLE IF NOT EXISTS `beneficiaries` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `policy_id` INT NOT NULL,
+  `contract_id` INT NOT NULL,
   `name` VARCHAR(100) NOT NULL,
+  `last_name` VARCHAR(100) NULL DEFAULT NULL,
   `relationship` VARCHAR(50) NULL DEFAULT NULL,
   `percentage` DECIMAL(5,2) NOT NULL,
+  `phone` VARCHAR(20) NULL DEFAULT NULL,
+  `identification_number` VARCHAR(20) NULL DEFAULT NULL,
+  `address` VARCHAR(200) NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  INDEX `policy_id` (`policy_id` ASC) VISIBLE,
+  INDEX `contract_id` (`contract_id` ASC) VISIBLE,
   CONSTRAINT `beneficiaries_ibfk_1`
-    FOREIGN KEY (`policy_id`)
-    REFERENCES `policies` (`id`)
+    FOREIGN KEY (`contract_id`)
+    REFERENCES `client_policies` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB
@@ -203,18 +246,44 @@ DROP TABLE IF EXISTS `documents` ;
 
 CREATE TABLE IF NOT EXISTS `documents` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `policy_id` INT NOT NULL,
-  `doc_type` VARCHAR(100) NULL DEFAULT NULL,
+  `contract_id` INT NOT NULL,
   `file_path` VARCHAR(255) NOT NULL,
-  `uploaded_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  `uploaded_by` VARCHAR(50) NULL DEFAULT NULL,
+  `upload_date` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  `status` ENUM('pending', 'approved', 'rejected') NULL DEFAULT 'pending',
+  `reviewed_by` VARCHAR(50) NULL DEFAULT NULL,
+  `review_date` DATETIME NULL DEFAULT NULL,
+  `review_comment` TEXT NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  INDEX `policy_id` (`policy_id` ASC) VISIBLE,
+  INDEX `contract_id` (`contract_id` ASC) VISIBLE,
   CONSTRAINT `documents_ibfk_1`
-    FOREIGN KEY (`policy_id`)
-    REFERENCES `policies` (`id`)
+    FOREIGN KEY (`contract_id`)
+    REFERENCES `client_policies` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_unicode_ci;
+
+
+-- -----------------------------------------------------
+-- Table `client_policy_extra_data`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `client_policy_extra_data` ;
+
+CREATE TABLE IF NOT EXISTS `client_policy_extra_data` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `contract_id` INT NOT NULL,
+  `field_name` VARCHAR(100) NOT NULL,
+  `field_value` TEXT NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `contract_id` (`contract_id` ASC) VISIBLE,
+  CONSTRAINT `client_policy_extra_data_ibfk_1`
+    FOREIGN KEY (`contract_id`)
+    REFERENCES `client_policies` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+) ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_unicode_ci;
 
@@ -226,16 +295,16 @@ DROP TABLE IF EXISTS `payments` ;
 
 CREATE TABLE IF NOT EXISTS `payments` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `policy_id` INT NOT NULL,
+  `contract_id` INT NOT NULL,
   `amount` DECIMAL(12,2) NOT NULL,
   `payment_date` DATE NOT NULL,
   `method` VARCHAR(30) NULL DEFAULT NULL,
   `status` ENUM('paid', 'due', 'failed') NULL DEFAULT 'due',
   PRIMARY KEY (`id`),
-  INDEX `policy_id` (`policy_id` ASC) VISIBLE,
+  INDEX `contract_id` (`contract_id` ASC) VISIBLE,
   CONSTRAINT `payments_ibfk_1`
-    FOREIGN KEY (`policy_id`)
-    REFERENCES `policies` (`id`)
+    FOREIGN KEY (`contract_id`)
+    REFERENCES `client_policies` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB
@@ -250,7 +319,7 @@ DROP TABLE IF EXISTS `refunds`;
 
 CREATE TABLE IF NOT EXISTS `refunds` (
   `id` CHAR(36) PRIMARY KEY DEFAULT (UUID()), -- Usamos UUID en lugar de AUTO_INCREMENT
-  `policy_id` INT NOT NULL,
+  `contract_id` INT NOT NULL,
   `client_id` INT NOT NULL,
   `agent_id` INT NOT NULL,
   `request_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -267,15 +336,15 @@ CREATE TABLE IF NOT EXISTS `refunds` (
   `processed_by` INT NULL COMMENT 'Usuario que procesó la solicitud',
   
   -- Índices para mejorar el rendimiento en búsquedas comunes
-  INDEX `idx_refund_policy` (`policy_id`),
+  INDEX `idx_refund_contract` (`contract_id`),
   INDEX `idx_refund_client` (`client_id`),
   INDEX `idx_refund_status` (`status`),
   INDEX `idx_refund_dates` (`request_date`, `processed_date`),
   
   -- Relaciones con otras tablas
-  CONSTRAINT `fk_refund_policy`
-    FOREIGN KEY (`policy_id`)
-    REFERENCES `policies` (`id`)
+  CONSTRAINT `fk_refund_contract`
+    FOREIGN KEY (`contract_id`)
+    REFERENCES `client_policies` (`id`)
     ON DELETE RESTRICT
     ON UPDATE CASCADE,
     
@@ -308,7 +377,7 @@ COLLATE = utf8mb4_unicode_ci;
 
 SELECT 
   r.id AS refund_id,
-  p.id AS policy_id,
+  cp.id AS contract_id,
   p.name AS policy_name,
   CONCAT(c.first_name, ' ', c.last_name) AS client_name,
   u.email AS client_email,
@@ -316,11 +385,13 @@ SELECT
   r.request_date,
   r.status,
   pt.name AS policy_type,
-  DATEDIFF(CURRENT_DATE, p.start_date) AS days_active
+  DATEDIFF(CURRENT_DATE, cp.start_date) AS days_active
 FROM 
   refunds r
 JOIN 
-  policies p ON r.policy_id = p.id
+  client_policies cp ON r.contract_id = cp.id
+JOIN 
+  policies p ON cp.policy_id = p.id
 JOIN 
   clients c ON r.client_id = c.id
 JOIN
@@ -329,7 +400,7 @@ JOIN
   policy_types pt ON p.type_id = pt.id
 WHERE 
   r.status = 'pending'
-  AND p.status = 'active'
+  AND cp.status = 'active'
 ORDER BY 
   r.request_date DESC;
 

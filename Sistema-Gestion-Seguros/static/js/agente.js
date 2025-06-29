@@ -1645,6 +1645,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (infoSolicitudes) {
         infoSolicitudes.remove();
       }
+      // Restaurar texto original del botón
+      if (btnProcesarReembolso) {
+        btnProcesarReembolso.textContent = 'Procesar';
+      }
+    });
+  }
+
+  // Event listener para cambiar el texto del botón según el estado seleccionado
+  const estadoReembolsoSelect = document.getElementById('estado-reembolso');
+  if (estadoReembolsoSelect && btnProcesarReembolso) {
+    estadoReembolsoSelect.addEventListener('change', () => {
+      const estadoSeleccionado = estadoReembolsoSelect.value;
+      if (estadoSeleccionado === 'rejected') {
+        btnProcesarReembolso.textContent = 'Solicitar nuevo reembolso';
+      } else {
+        btnProcesarReembolso.textContent = 'Procesar';
+      }
     });
   }
 

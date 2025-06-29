@@ -162,9 +162,23 @@
           <div style="display: flex; flex-direction: column; gap: 24px; margin-top: 40px;">
             {% for c in active_contracts %}
               <div style="position: relative; border: 1.5px solid #e3e8f0; border-radius: 10px; padding: 22px 24px 18px 24px; background: #f9fbfd; box-shadow: 0 2px 8px rgba(30,42,60,0.06);">
-                <button style="position: absolute; top: 18px; right: 18px; background: #1976d2; color: #fff; border: none; border-radius: 4px; padding: 7px 18px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background 0.2s;">
-                  Solicitar Reembolso
-                </button>
+                {% if c.refund_status == 'rejected' %}
+                  <button id="btn-solicitar-reembolso-{{ c.id }}" data-contract-id="{{ c.id }}" style="position: absolute; top: 18px; right: 18px; background: #ff9800; color: #fff; border: none; border-radius: 4px; padding: 7px 18px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                    Solicitar de nuevo
+                  </button>
+                {% elif c.refund_status == 'pending' %}
+                  <button id="btn-solicitar-reembolso-{{ c.id }}" data-contract-id="{{ c.id }}" style="position: absolute; top: 18px; right: 18px; background: #9e9e9e; color: #fff; border: none; border-radius: 4px; padding: 7px 18px; font-size: 1rem; font-weight: 500; cursor: not-allowed; transition: all 0.2s;" disabled>
+                    Enviado
+                  </button>
+                {% elif c.refund_status == 'approved' %}
+                  <button id="btn-solicitar-reembolso-{{ c.id }}" data-contract-id="{{ c.id }}" style="position: absolute; top: 18px; right: 18px; background: #4caf50; color: #fff; border: none; border-radius: 4px; padding: 7px 18px; font-size: 1rem; font-weight: 500; cursor: not-allowed; transition: all 0.2s;" disabled>
+                    Aprobado
+                  </button>
+                {% else %}
+                  <button id="btn-solicitar-reembolso-{{ c.id }}" data-contract-id="{{ c.id }}" style="position: absolute; top: 18px; right: 18px; background: #1976d2; color: #fff; border: none; border-radius: 4px; padding: 7px 18px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                    Solicitar Reembolso
+                  </button>
+                {% endif %}
                 <div style="font-size: 1.2rem; font-weight: 600; color: #1e2a3c; margin-bottom: 6px;">{{ c.name }}</div>
                 <div style="font-size: 1rem; color: #444; margin-bottom: 2px;"><strong>N.º de contrato:</strong> {{ c.id }}</div>
                 <div style="font-size: 1rem; color: #444; margin-bottom: 2px;"><strong>Prima:</strong> ${{ c.amount }}</div>
@@ -285,8 +299,8 @@
           let refundButtonProcessing = false;
           
           document.addEventListener('click', function(e) {
-            // Botón "Solicitar Reembolso"
-            if (e.target.textContent.trim() === 'Solicitar Reembolso') {
+            // Botón "Solicitar Reembolso" o "Solicitar de nuevo"
+            if (e.target.textContent.trim() === 'Solicitar Reembolso' || e.target.textContent.trim() === 'Solicitar de nuevo') {
               // Prevenir múltiples clicks
               if (refundButtonProcessing) {
                 console.log('Botón ya en procesamiento, ignorando click');
@@ -294,42 +308,20 @@
               }
               refundButtonProcessing = true;
               
-              console.log('Botón Solicitar Reembolso clickeado');
+              console.log('Botón Solicitar Reembolso/Solicitar de nuevo clickeado');
               
-              // Obtener el contract_id del seguro seleccionado de manera más eficiente
-              var insuranceCard = e.target.closest('div[style*="position: relative"]');
-              console.log('Insurance card encontrado:', insuranceCard);
+              // Obtener el contract_id del botón directamente
+              const contractId = e.target.getAttribute('data-contract-id');
+              console.log('Contract ID capturado:', contractId);
               
-              if (!insuranceCard) {
-                console.error('No se pudo encontrar la tarjeta de seguro');
-                refundButtonProcessing = false;
-                return;
-              }
-              
-              // Buscar el elemento que contiene "N.º de contrato:" de manera más directa
-              var contractIdElement = insuranceCard.querySelector('div[style*="font-size: 1rem; color: #444;"]');
-              console.log('Contract ID element encontrado:', contractIdElement);
-              
-              if (contractIdElement && contractIdElement.textContent.includes('N.º de contrato:')) {
-                var contractIdText = contractIdElement.textContent;
-                console.log('Contract ID text completo:', contractIdText);
-                selectedContractId = contractIdText.split(':')[1].trim();
-                console.log('Contract ID capturado:', selectedContractId);
-                
-                // Validar que el contract ID es un número
-                if (!selectedContractId || isNaN(selectedContractId)) {
-                  console.error('Contract ID inválido:', selectedContractId);
-                  alert('Error: No se pudo identificar la póliza. Por favor, intente nuevamente.');
-                  refundButtonProcessing = false;
-                  return;
-                }
-              } else {
-                console.error('No se pudo encontrar el contract ID');
-                console.log('Elementos div encontrados:', insuranceCard.querySelectorAll('div'));
+              if (!contractId || isNaN(contractId)) {
+                console.error('Contract ID inválido:', contractId);
                 alert('Error: No se pudo identificar la póliza. Por favor, intente nuevamente.');
                 refundButtonProcessing = false;
                 return;
               }
+              
+              selectedContractId = contractId;
               
               // Mostrar modal inmediatamente sin operaciones adicionales
               document.getElementById('modal-cancelar-contrato').classList.remove('hidden');
@@ -435,6 +427,18 @@
                   document.getElementById('notificacion-mensaje').textContent = data.message;
                   document.getElementById('modal-notificacion').classList.remove('hidden');
                   
+                  // Actualizar el botón "Solicitar Reembolso" a "Enviado"
+                  if (selectedContractId) {
+                    const btnSolicitar = document.getElementById(`btn-solicitar-reembolso-${selectedContractId}`);
+                    if (btnSolicitar) {
+                      btnSolicitar.textContent = 'Enviado';
+                      btnSolicitar.style.background = '#9e9e9e';
+                      btnSolicitar.style.color = '#fff';
+                      btnSolicitar.style.cursor = 'not-allowed';
+                      btnSolicitar.disabled = true;
+                    }
+                  }
+                  
                   // Limpiar formulario y variables
                   form.reset();
                   selectedContractId = null;
@@ -485,6 +489,59 @@
           });
         });
         
+        // Función para actualizar botones de solicitar reembolso basándose en el estado de los reembolsos
+        function actualizarBotonesReembolso(reembolsos) {
+          // Agrupar reembolsos por policy_id para obtener el estado más reciente de cada póliza
+          const reembolsosPorPolitica = {};
+          reembolsos.forEach(reembolso => {
+            if (!reembolsosPorPolitica[reembolso.policy_id]) {
+              reembolsosPorPolitica[reembolso.policy_id] = [];
+            }
+            reembolsosPorPolitica[reembolso.policy_id].push(reembolso);
+          });
+          
+          // Para cada póliza, obtener el reembolso más reciente
+          Object.keys(reembolsosPorPolitica).forEach(policyId => {
+            const reembolsosDeEstaPolitica = reembolsosPorPolitica[policyId];
+            
+            // Ordenar por fecha de solicitud (más reciente primero)
+            reembolsosDeEstaPolitica.sort((a, b) => new Date(b.request_date) - new Date(a.request_date));
+            
+            const reembolsoMasReciente = reembolsosDeEstaPolitica[0];
+            
+            // Buscar el botón correspondiente a esta póliza
+            // Necesitamos mapear policy_id a contract_id
+            // Por ahora, asumimos que el policy_id en reembolsos corresponde al contract_id
+            const contractId = reembolsoMasReciente.policy_id;
+            const btnSolicitar = document.getElementById(`btn-solicitar-reembolso-${contractId}`);
+            
+            if (btnSolicitar) {
+              if (reembolsoMasReciente.status === 'rejected') {
+                // Si fue rechazado, cambiar a "Solicitar de nuevo"
+                btnSolicitar.textContent = 'Solicitar de nuevo';
+                btnSolicitar.style.background = '#ff9800';
+                btnSolicitar.style.color = '#fff';
+                btnSolicitar.style.cursor = 'pointer';
+                btnSolicitar.disabled = false;
+              } else if (reembolsoMasReciente.status === 'pending') {
+                // Si está pendiente, cambiar a "Enviado"
+                btnSolicitar.textContent = 'Enviado';
+                btnSolicitar.style.background = '#9e9e9e';
+                btnSolicitar.style.color = '#fff';
+                btnSolicitar.style.cursor = 'not-allowed';
+                btnSolicitar.disabled = true;
+              } else if (reembolsoMasReciente.status === 'approved') {
+                // Si fue aprobado, cambiar a "Aprobado"
+                btnSolicitar.textContent = 'Aprobado';
+                btnSolicitar.style.background = '#4caf50';
+                btnSolicitar.style.color = '#fff';
+                btnSolicitar.style.cursor = 'not-allowed';
+                btnSolicitar.disabled = true;
+              }
+            }
+          });
+        }
+        
         // Función para cargar el historial de reembolsos
         async function cargarHistorialReembolsos() {
           try {
@@ -505,6 +562,18 @@
               `;
               return;
             }
+            
+            // Actualizar botones de solicitar reembolso basándose en el estado de los reembolsos
+            actualizarBotonesReembolso(reembolsos);
+            
+            // Agrupar reembolsos por policy_id para controlar duplicados y numerar solicitudes
+            const reembolsosPorPolitica = {};
+            reembolsos.forEach(reembolso => {
+              if (!reembolsosPorPolitica[reembolso.policy_id]) {
+                reembolsosPorPolitica[reembolso.policy_id] = [];
+              }
+              reembolsosPorPolitica[reembolso.policy_id].push(reembolso);
+            });
             
             // Usar DocumentFragment para mejorar performance
             const fragment = document.createDocumentFragment();
@@ -531,7 +600,18 @@
               'other': 'Otro'
             };
             
-            reembolsos.forEach(reembolso => {
+            // Procesar cada grupo de reembolsos por póliza
+            Object.keys(reembolsosPorPolitica).forEach(policyId => {
+              const reembolsosDeEstaPolitica = reembolsosPorPolitica[policyId];
+              
+              // Ordenar por fecha de solicitud (más reciente primero)
+              reembolsosDeEstaPolitica.sort((a, b) => new Date(b.request_date) - new Date(a.request_date));
+              
+              // Mostrar solo el reembolso más reciente de cada póliza
+              const reembolso = reembolsosDeEstaPolitica[0];
+              const numeroSolicitud = reembolsosDeEstaPolitica.length;
+              const esNuevaSolicitud = numeroSolicitud > 1;
+              
               const card = document.createElement('div');
               card.style.cssText = `
                 border: 1.5px solid #e3e8f0;
@@ -565,7 +645,14 @@
               const fecha = new Date(reembolso.request_date).toLocaleDateString('es-ES');
               const monto = parseFloat(reembolso.amount).toFixed(2);
               
+              // Indicador de número de solicitud si es más de una
+              const indicadorSolicitud = esNuevaSolicitud ? 
+                `<div style="background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; margin-bottom: 8px; border: 1px solid #ffeaa7; display: inline-block;">
+                  <i class="fas fa-redo" style="margin-right: 4px;"></i>Solicitud #${numeroSolicitud}
+                </div>` : '';
+              
               card.innerHTML = `
+                ${indicadorSolicitud}
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
                   <div>
                     <h3 style="margin: 0 0 8px 0; font-size: 1.1rem; color: #1e2a3c;">${reembolso.policy_name}</h3>
@@ -613,20 +700,8 @@
                       <strong style="color: #d32f2f;">Rechazado</strong>
                     </div>
                     <p style="color: #d32f2f; margin: 0; font-size: 0.9rem;">
-                      Su solicitud de reembolso ha sido rechazada. <strong>Haga clic para ver más detalles.</strong>
+                      Su solicitud de reembolso ha sido rechazada por nuestro equipo de revisión.
                     </p>
-                    <button class="btn-nuevo-reembolso" data-policy-id="${reembolso.policy_id}" data-policy-name="${reembolso.policy_name}" style="
-                      background: #1976d2;
-                      color: #fff;
-                      border: none;
-                      border-radius: 4px;
-                      padding: 8px 16px;
-                      font-size: 0.9rem;
-                      font-weight: 500;
-                      cursor: pointer;
-                      margin-top: 10px;
-                      transition: background 0.2s;
-                    ">Solicitar Nuevo Reembolso</button>
                   </div>
                 ` : ''}
                 
@@ -655,38 +730,6 @@
             // Limpiar contenedor y agregar fragmento de una vez
             historialContainer.innerHTML = '';
             historialContainer.appendChild(fragment);
-            
-            // Agregar event listeners a los botones de nuevo reembolso de manera eficiente
-            document.querySelectorAll('.btn-nuevo-reembolso').forEach(btn => {
-              // Debounce para evitar múltiples clicks
-              let isProcessing = false;
-              
-              btn.addEventListener('click', (e) => {
-                // Prevenir múltiples clicks
-                if (isProcessing) {
-                  console.log('Botón Nuevo Reembolso ya en procesamiento, ignorando click');
-                  return;
-                }
-                isProcessing = true;
-                
-                e.stopPropagation(); // Evitar que se active el click de la tarjeta
-                const policyId = btn.getAttribute('data-policy-id');
-                const policyName = btn.getAttribute('data-policy-name');
-                
-                if (!policyId || !policyName) {
-                  console.error('Policy ID o Policy Name no encontrados');
-                  isProcessing = false;
-                  return;
-                }
-                
-                solicitarNuevoReembolso(policyId, policyName);
-                
-                // Resetear el flag después de un breve delay
-                setTimeout(() => {
-                  isProcessing = false;
-                }, 1000);
-              });
-            });
             
           } catch (error) {
             console.error('Error al cargar historial de reembolsos:', error);
@@ -800,42 +843,6 @@
             overlay.addEventListener('click', () => {
               modalDetalleReembolso.classList.add('hidden');
             });
-          }
-        }
-
-        // Función para solicitar nuevo reembolso
-        let solicitarNuevoReembolsoProcessing = false;
-        
-        function solicitarNuevoReembolso(policyId, policyName) {
-          // Prevenir múltiples llamadas
-          if (solicitarNuevoReembolsoProcessing) {
-            console.log('Función solicitarNuevoReembolso ya en procesamiento');
-            return;
-          }
-          solicitarNuevoReembolsoProcessing = true;
-          
-          try {
-            selectedPolicyId = policyId;
-            selectedPolicyName = policyName;
-            
-            // Actualizar el título del modal
-            const modalTitle = document.querySelector('#modal-razones-cancelacion h2');
-            const modalDescription = document.querySelector('#modal-razones-cancelacion p');
-            
-            if (modalTitle) modalTitle.textContent = 'Nueva Solicitud de Reembolso';
-            if (modalDescription) modalDescription.textContent = 
-              `Por favor, indique las razones por las que desea solicitar un nuevo reembolso para la póliza "${policyName}":`;
-            
-            // Mostrar el modal
-            document.getElementById('modal-razones-cancelacion').classList.remove('hidden');
-            
-          } catch (error) {
-            console.error('Error en solicitarNuevoReembolso:', error);
-          } finally {
-            // Resetear el flag después de un breve delay
-            setTimeout(() => {
-              solicitarNuevoReembolsoProcessing = false;
-            }, 500);
           }
         }
       </script>
