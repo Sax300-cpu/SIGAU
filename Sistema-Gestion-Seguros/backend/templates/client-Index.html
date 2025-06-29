@@ -119,13 +119,11 @@
                     <p><strong>N.º de contrato:</strong> {{ c.id }}</p>
                     <p><strong>Pago {{ c.freq|lower }}:</strong> ${{ c.amount }}</p>
                   </div>
-                  <div class="mensaje-rechazo" style="color: #d32f2f; margin-top: 10px; background: #fff3f3; border-radius: 6px; padding: 10px 14px; border: 1px solid #f8bbbb;">
-                    <i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>
-                    <strong>Motivo del rechazo:</strong> {{ firmado.review_comment or 'No especificado' }}
+                  <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button class="btn-ver-motivo" data-contract-id="{{ c.id }}" data-motivo="{{ firmado.review_comment or 'No especificado' }}" style="background:#d32f2f; color:#fff; border:none; border-radius:4px; padding:6px 12px; font-size:0.9rem; cursor:pointer; transition:background 0.2s;">
+                      <i class="fas fa-eye"></i> Ver motivo
+                    </button>
                   </div>
-                  <button class="btn-completar-docs" data-contract-id="{{ c.id }}" style="margin-top:12px;">
-                    <i class="fas fa-file-upload"></i>Volver a subir documento
-                  </button>
                 {% elif c.status == 'activo' %}
                   <span class="document-status-label" style="background:#388e3c;color:#fff;">Seguro Activo</span>
                   <h3>{{ c.name }}</h3>
@@ -973,6 +971,29 @@
       
       <div style="display:flex; justify-content:flex-end; margin-top:20px;">
         <button id="btn-cerrar-detalle-reembolso" style="background:#1976d2; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para mostrar motivo del rechazo de documento -->
+  <div id="modal-motivo-rechazo" class="modal hidden">
+    <div class="modal-overlay" style="background:rgba(30,42,60,0.18);"></div>
+    <div class="modal-content" style="max-width: 500px; border-radius: 14px; box-shadow: 0 8px 32px rgba(30,42,60,0.18); padding: 28px 24px 18px 24px; position: relative; background: #fff; border: 1.5px solid #e3e8f0;">
+      <button id="btn-close-motivo-modal" type="button" aria-label="Cerrar" style="position:absolute;top:12px;right:16px;font-size:1.3rem;background:none;border:none;cursor:pointer;color:#1976d2;">&times;</button>
+      <div style="display: flex; align-items: center; margin-bottom: 20px;">
+        <i class="fas fa-times-circle" style="color: #d32f2f; font-size: 1.5rem; margin-right: 12px;"></i>
+        <h2 style="margin:0; font-size:1.3rem; font-weight:700; color:#d32f2f; letter-spacing:-1px;">Documento Rechazado</h2>
+      </div>
+      
+      <div style="background: #ffebee; border: 1px solid #ffcdd2; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+        <h3 style="margin:0 0 12px 0; color:#d32f2f; font-size:1.1rem;">Motivo del rechazo:</h3>
+        <p id="motivo-rechazo-text" style="margin:0; color:#d32f2f; font-size:1rem; line-height:1.5;">
+          <!-- Se llenará dinámicamente -->
+        </p>
+      </div>
+      
+      <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+        <button id="btn-cerrar-motivo-rechazo" style="background:#1976d2; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Entendido</button>
       </div>
     </div>
   </div>

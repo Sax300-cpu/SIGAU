@@ -68,12 +68,14 @@ document.addEventListener('DOMContentLoaded', function() {
               try {
                 const res = await fetch(`/contracts/${id}`);
                 const data = await res.json();
-                const existeFirmado = (data.documents || []).some(doc => doc.filename === 'documento_firmado.pdf');
+                const firmado = (data.documents || []).find(doc => doc.filename === 'documento_firmado.pdf');
+                let existeFirmado = !!firmado;
+                let esRechazado = firmado && firmado.status === 'rechazado';
                 
-                return { btn, existeFirmado };
+                return { btn, existeFirmado, esRechazado };
               } catch (error) {
                 console.error('Error checking contract:', id, error);
-                return { btn, existeFirmado: false };
+                return { btn, existeFirmado: false, esRechazado: false };
               }
             });
             
@@ -81,17 +83,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const results = await Promise.all(promises);
             
             // Actualizar UI para el lote
-            results.forEach(({ btn, existeFirmado }) => {
+            results.forEach(({ btn, existeFirmado, esRechazado }) => {
               if (!btn) return;
               
-              if (existeFirmado) {
+              if (existeFirmado && !esRechazado) {
+                // Solo si está firmado y NO rechazado, deshabilita el botón
                 btn.textContent = 'Pendiente de confirmación';
                 btn.classList.add('disabled');
                 btn.disabled = true;
                 btn.style.cursor = 'not-allowed';
                 btn.title = 'Ya enviaste tus documentos, espera confirmación del agente.';
               } else {
-                btn.textContent = 'Completar documentos';
+                // Si está rechazado o no hay firmado, permite subir
+                btn.textContent = esRechazado ? 'Volver a subir' : 'Completar documentos';
                 btn.classList.remove('disabled');
                 btn.disabled = false;
                 btn.style.cursor = '';
@@ -296,4 +300,38 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // === (9) Botón "Ver motivo" para documentos rechazados ===
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('btn-ver-motivo') || e.target.closest('.btn-ver-motivo')) {
+            const btn = e.target.classList.contains('btn-ver-motivo') ? e.target : e.target.closest('.btn-ver-motivo');
+            const motivo = btn.getAttribute('data-motivo');
+            const contractId = btn.getAttribute('data-contract-id');
+            
+            // Mostrar el motivo en el modal
+            document.getElementById('motivo-rechazo-text').textContent = motivo;
+            document.getElementById('modal-motivo-rechazo').classList.remove('hidden');
+        }
+        
+        // Cerrar modal de motivo con botón X
+        if (e.target.id === 'btn-close-motivo-modal') {
+            document.getElementById('modal-motivo-rechazo').classList.add('hidden');
+        }
+        
+        // Cerrar modal de motivo con botón "Entendido"
+        if (e.target.id === 'btn-cerrar-motivo-rechazo') {
+            document.getElementById('modal-motivo-rechazo').classList.add('hidden');
+        }
+    });
+    
+    // Cerrar modal de motivo con overlay
+    const modalMotivoRechazo = document.getElementById('modal-motivo-rechazo');
+    if (modalMotivoRechazo) {
+        const overlay = modalMotivoRechazo.querySelector('.modal-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', () => {
+                modalMotivoRechazo.classList.add('hidden');
+            });
+        }
+    }
 });
