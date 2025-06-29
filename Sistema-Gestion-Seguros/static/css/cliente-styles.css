@@ -617,5 +617,44 @@ header {
 }
 
 #mis-polizas-section .insurance-card .details p {
-    margin: 2px 0 0 0;
+    margin: 5px 0;
+    color: #666;
+}
+
+/* Logout section */
+.logout-section {
+    margin-top: auto;
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 12px 16px;
+    background-color: #e74c3c;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.logout-btn:hover {
+    background-color: #c0392b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+}
+
+.logout-btn i {
+    margin-right: 10px;
+    font-size: 1rem;
+}
+
+.logout-btn span {
+    font-size: 0.95rem;
 }

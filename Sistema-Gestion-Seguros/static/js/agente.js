@@ -60,6 +60,58 @@ document.addEventListener('DOMContentLoaded', () => {
   const beneficiariosContainer = document.getElementById('beneficiarios-container');
   const btnAgregarBeneficiario = document.getElementById('btn-agregar-beneficiario');
 
+  // ---------- 2) Navegación entre secciones ----------
+  const inicioLink = document.getElementById('inicio-link');
+  const reembolsosLink = document.getElementById('reembolsos-link');
+  const reportesLink = document.getElementById('reportes-link');
+  const inicioSection = document.getElementById('inicio-section');
+  const reembolsosSection = document.getElementById('reembolsos-section');
+  const reportesSection = document.getElementById('reportes-section');
+
+  // Función para ocultar todas las secciones
+  function ocultarTodasLasSecciones() {
+    document.querySelectorAll('.content-section').forEach(section => {
+      section.style.display = 'none';
+    });
+  }
+
+  // Función para actualizar menú activo
+  function actualizarMenuActivo(linkActivo) {
+    document.querySelectorAll('.menu li').forEach(li => li.classList.remove('active'));
+    if (linkActivo && linkActivo.parentElement) {
+      linkActivo.parentElement.classList.add('active');
+    }
+  }
+
+  // Event listeners para navegación
+  if (inicioLink && inicioSection) {
+    inicioLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      ocultarTodasLasSecciones();
+      inicioSection.style.display = 'block';
+      actualizarMenuActivo(inicioLink);
+    });
+  }
+
+  if (reembolsosLink && reembolsosSection) {
+    reembolsosLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      ocultarTodasLasSecciones();
+      reembolsosSection.style.display = 'block';
+      actualizarMenuActivo(reembolsosLink);
+      cargarReembolsos();
+    });
+  }
+
+  if (reportesLink && reportesSection) {
+    reportesLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      ocultarTodasLasSecciones();
+      reportesSection.style.display = 'block';
+      actualizarMenuActivo(reportesLink);
+    });
+  }
+
   if (btnAgregarBeneficiario && beneficiariosContainer) {
     // Función para crear HTML de beneficiario
     const crearBeneficiarioHTML = (index) => `
@@ -1283,4 +1335,171 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
+
+  // ==========================
+  //  GESTIÓN DE REEMBOLSOS
+  // ==========================
+  
+  // Referencias a elementos de reembolsos
+  const tablaReembolsosBody = document.querySelector('#tabla-reembolsos tbody');
+  const btnRefrescarReembolsos = document.getElementById('btn-refrescar-reembolsos');
+  const modalProcesarReembolso = document.getElementById('modal-procesar-reembolso');
+  const btnCancelarReembolso = document.getElementById('btn-cancelar-reembolso');
+  const btnProcesarReembolso = document.getElementById('btn-procesar-reembolso');
+
+  // Función para cargar reembolsos
+  async function cargarReembolsos() {
+    try {
+      const resp = await fetch('/refunds');
+      if (!resp.ok) throw new Error('Error al obtener lista de reembolsos');
+      const reembolsos = await resp.json();
+      
+      tablaReembolsosBody.innerHTML = '';
+      
+      if (reembolsos.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="8" style="text-align: center; padding: 20px; color: #666;">No hay solicitudes de reembolso pendientes</td>';
+        tablaReembolsosBody.appendChild(tr);
+        return;
+      }
+      
+      reembolsos.forEach(reembolso => {
+        const tr = document.createElement('tr');
+        
+        // Mapear motivos a español
+        const motivosMap = {
+          'cambio_circunstancias': 'Cambio en circunstancias',
+          'insatisfaccion_servicio': 'Insatisfacción con servicio',
+          'problemas_economicos': 'Problemas económicos',
+          'encontre_mejor_opcion': 'Encontró mejor opción',
+          'duplicacion_cobertura': 'Duplicación de cobertura',
+          'otro': 'Otro motivo',
+          'cancelation': 'Cancelación'
+        };
+        
+        const motivo = motivosMap[reembolso.reason] || reembolso.reason;
+        const fecha = new Date(reembolso.request_date).toLocaleDateString('es-ES');
+        const monto = parseFloat(reembolso.amount).toFixed(2);
+        
+        // Estado con badge
+        const estadoBadge = `<span class="status-badge status-${reembolso.status}">${reembolso.status}</span>`;
+        
+        // Botón de procesar solo si está pendiente
+        const botonProcesar = reembolso.status === 'pending' 
+          ? `<button class="btn-process" data-refund-id="${reembolso.refund_id}">Procesar</button>`
+          : '<span style="color: #666;">Procesado</span>';
+        
+        tr.innerHTML = `
+          <td>${reembolso.client_name}</td>
+          <td>${reembolso.client_email}</td>
+          <td>${reembolso.policy_type}</td>
+          <td>${reembolso.contract_id}</td>
+          <td>$${monto}</td>
+          <td>${fecha}</td>
+          <td>${estadoBadge}</td>
+          <td>${botonProcesar}</td>
+        `;
+        
+        tablaReembolsosBody.appendChild(tr);
+      });
+      
+      // Agregar event listeners a los botones de procesar
+      document.querySelectorAll('.btn-process').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const refundId = btn.getAttribute('data-refund-id');
+          mostrarModalProcesarReembolso(refundId, reembolsos);
+        });
+      });
+      
+    } catch (err) {
+      console.error('Error al cargar reembolsos:', err);
+      showNotification('error', 'Error al cargar la lista de reembolsos');
+    }
+  }
+
+  // Función para mostrar modal de procesar reembolso
+  function mostrarModalProcesarReembolso(refundId, reembolsos) {
+    const reembolso = reembolsos.find(r => r.refund_id == refundId);
+    if (!reembolso) return;
+    
+    // Llenar información en el modal
+    document.getElementById('detalle-cliente-reembolso').textContent = reembolso.client_name;
+    document.getElementById('detalle-tipo-seguro-reembolso').textContent = reembolso.policy_type;
+    document.getElementById('detalle-contrato-reembolso').textContent = reembolso.contract_id;
+    document.getElementById('detalle-monto-reembolso').textContent = parseFloat(reembolso.amount).toFixed(2);
+    document.getElementById('detalle-fecha-reembolso').textContent = new Date(reembolso.request_date).toLocaleDateString('es-ES');
+    document.getElementById('detalle-motivo-reembolso').textContent = reembolso.reason_description || 'No especificado';
+    document.getElementById('detalle-razones-cliente').textContent = reembolso.reason_description || 'No se proporcionaron razones específicas';
+    
+    // Mostrar modal
+    modalProcesarReembolso.classList.remove('hidden');
+    
+    // Guardar refund_id para el procesamiento
+    modalProcesarReembolso.setAttribute('data-refund-id', refundId);
+  }
+
+  // Event listeners para el modal de procesar reembolso
+  if (btnCancelarReembolso) {
+    btnCancelarReembolso.addEventListener('click', () => {
+      modalProcesarReembolso.classList.add('hidden');
+    });
+  }
+
+  if (btnProcesarReembolso) {
+    btnProcesarReembolso.addEventListener('click', async () => {
+      const refundId = modalProcesarReembolso.getAttribute('data-refund-id');
+      const estado = document.getElementById('estado-reembolso').value;
+      const notas = document.getElementById('notas-reembolso').value;
+      
+      if (!estado) {
+        showNotification('error', 'Debe seleccionar un estado');
+        return;
+      }
+      
+      try {
+        const resp = await fetch(`/refunds/${refundId}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: estado,
+            notes: notas
+          })
+        });
+        
+        if (resp.ok) {
+          const data = await resp.json();
+          showNotification('success', data.message);
+          modalProcesarReembolso.classList.add('hidden');
+          
+          // Limpiar formulario
+          document.getElementById('estado-reembolso').value = '';
+          document.getElementById('notas-reembolso').value = '';
+          
+          // Recargar lista de reembolsos
+          cargarReembolsos();
+        } else {
+          const error = await resp.json();
+          showNotification('error', error.error || 'Error al procesar el reembolso');
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        showNotification('error', 'Error de conexión');
+      }
+    });
+  }
+
+  // Botón refrescar reembolsos
+  if (btnRefrescarReembolsos) {
+    btnRefrescarReembolsos.addEventListener('click', cargarReembolsos);
+  }
+
+  // Cerrar modal con overlay
+  if (modalProcesarReembolso) {
+    const overlay = modalProcesarReembolso.querySelector('.modal-overlay');
+    if (overlay) {
+      overlay.addEventListener('click', () => {
+        modalProcesarReembolso.classList.add('hidden');
+      });
+    }
+  }
 });
