@@ -234,13 +234,26 @@ def client_panel():
                 }
                 for d in cur.fetchall()
             ]
+            
+            # Obtener el estado del reembolso más reciente para este contrato
+            cur.execute("""
+                SELECT status 
+                FROM refunds 
+                WHERE policy_id = %s 
+                ORDER BY request_date DESC 
+                LIMIT 1
+            """, (contract_id,))
+            refund_status_row = cur.fetchone()
+            refund_status = refund_status_row[0] if refund_status_row else None
+            
             contracts.append({
                 'id':    r[0],
                 'name':  r[1],
                 'amount': float(r[2]),
                 'freq':  r[3],
                 'status': r[4],
-                'documents': documentos
+                'documents': documentos,
+                'refund_status': refund_status
             })
     cur.close()
     return render_template('client-Index.html', contracts=contracts)
@@ -1200,12 +1213,12 @@ def create_refund_request():
         
         if contract_id:
             print(f"DEBUG: Procesando contract_id: {contract_id}")
-            # Como client_policies no existe, vamos a buscar directamente en policies
-            # usando el contract_id como policy_id (ya que en la práctica son lo mismo)
+            # Buscar en client_policies para obtener el policy_id y otros datos
             cur.execute("""
-                SELECT p.id, p.client_id, p.agent_id, p.premium_amount, p.name
-                FROM policies p
-                WHERE p.id = %s AND p.client_id = (
+                SELECT cp.policy_id, cp.client_id, cp.agent_id, cp.premium_amount, p.name
+                FROM client_policies cp
+                JOIN policies p ON cp.policy_id = p.id
+                WHERE cp.id = %s AND cp.client_id = (
                     SELECT id FROM clients WHERE user_id = %s
                 )
             """, (contract_id, session['user_id']))
@@ -1223,11 +1236,12 @@ def create_refund_request():
             
         elif policy_id:
             print(f"DEBUG: Procesando policy_id: {policy_id}")
-            # Obtener información de la póliza y verificar que pertenece al cliente
+            # Obtener información de la póliza desde client_policies y verificar que pertenece al cliente
             cur.execute("""
-                SELECT p.id, p.client_id, p.agent_id, p.premium_amount, p.name
-                FROM policies p
-                WHERE p.id = %s AND p.client_id = (
+                SELECT cp.policy_id, cp.client_id, cp.agent_id, cp.premium_amount, p.name
+                FROM client_policies cp
+                JOIN policies p ON cp.policy_id = p.id
+                WHERE cp.policy_id = %s AND cp.client_id = (
                     SELECT id FROM clients WHERE user_id = %s
                 )
             """, (policy_id, session['user_id']))
@@ -1300,7 +1314,8 @@ def list_refunds():
                     CONCAT(c.first_name, ' ', c.last_name) AS client_name,
                     u.email AS client_email
                 FROM refunds r
-                JOIN policies p ON r.policy_id = p.id
+                JOIN client_policies cp ON r.policy_id = cp.policy_id
+                JOIN policies p ON cp.policy_id = p.id
                 JOIN clients c ON r.client_id = c.id
                 JOIN users u ON c.user_id = u.id
                 WHERE r.agent_id = %s
@@ -1322,7 +1337,8 @@ def list_refunds():
                     CONCAT(c.first_name, ' ', c.last_name) AS client_name,
                     u.email AS client_email
                 FROM refunds r
-                JOIN policies p ON r.policy_id = p.id
+                JOIN client_policies cp ON r.policy_id = cp.policy_id
+                JOIN policies p ON cp.policy_id = p.id
                 JOIN clients c ON r.client_id = c.id
                 JOIN users u ON c.user_id = u.id
                 ORDER BY r.request_date DESC
@@ -1341,7 +1357,8 @@ def list_refunds():
                     r.reason_description,
                     p.name AS policy_name
                 FROM refunds r
-                JOIN policies p ON r.policy_id = p.id
+                JOIN client_policies cp ON r.policy_id = cp.policy_id
+                JOIN policies p ON cp.policy_id = p.id
                 WHERE r.client_id = (
                     SELECT id FROM clients WHERE user_id = %s
                 )
