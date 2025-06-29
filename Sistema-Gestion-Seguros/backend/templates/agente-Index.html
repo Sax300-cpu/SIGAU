@@ -27,13 +27,7 @@ rel="stylesheet"
 href="{{ url_for('static', filename='css/agente-styles.css') }}"
 >
 <!-- FontAwesome para íconos -->
-<link
-rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
-integrity="sha512-Fo3rlrZj/k7ujTTXTOmsxRrB5U5zN50q5X0M8Ay+Wtlxl+57eI4PGmgi+7olb5XRS/cvULmMTV+YZ4nF8aQ8JQ=="
-crossorigin="anonymous"
-referrerpolicy="no-referrer"
-/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.2/css/all.min.css" />
 </head>
 <body>
   <div class="container">
@@ -92,6 +86,9 @@ referrerpolicy="no-referrer"
 <th>Nombre</th>
 <th>Correo Electrónico</th>
 <th>Estado</th>
+<th>Información del Cliente</th>
+<th>Contratación</th>
+<th>Documentos</th>
 <th>Acciones</th>
 </tr>
 </thead>
@@ -150,7 +147,6 @@ referrerpolicy="no-referrer"
 <div class="form-group">
 <label for="input-client-name">Cliente:</label>
 <input type="text" id="input-client-name" readonly>
-<button type="button" id="btn-seleccionar-cliente" class="btn-small">Seleccionar Cliente</button>
 </div>
 
         <div class="form-group">
