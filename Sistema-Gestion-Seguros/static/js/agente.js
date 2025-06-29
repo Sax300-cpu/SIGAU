@@ -193,11 +193,39 @@ document.addEventListener('DOMContentLoaded', () => {
       tablaClientesBody.innerHTML = '';
       clientes.forEach(cliente => {
         const tr = document.createElement('tr');
+        // Nombre
         const tdName = document.createElement('td');
         tdName.textContent = cliente.name;
+        // Correo Electrónico
         const tdEmail = document.createElement('td');
         tdEmail.textContent = cliente.email;
-        // --- Columna Estado con dropdown ---
+        // Información del Cliente (botón Ver)
+        const tdInfo = document.createElement('td');
+        const btnInfo = document.createElement('button');
+        btnInfo.innerHTML = '<i class="fa-solid fa-eye" style="margin-right:6px;"></i>Ver';
+        btnInfo.className = 'btn-ver-info btn-info-cliente';
+        btnInfo.onclick = () => mostrarInformacionCliente(cliente.id);
+        tdInfo.appendChild(btnInfo);
+        // Contratación (botón Nuevo Contrato)
+        const tdContrato = document.createElement('td');
+        const btnContrato = document.createElement('button');
+        btnContrato.textContent = 'Nuevo Contrato';
+        btnContrato.className = 'btn-nuevo-contrato btn-nuevo-contrato';
+        btnContrato.onclick = () => mostrarModalConfirmacion('¿Desea iniciar una contratación de seguro?', () => {
+          document.getElementById('input-client-id').value = cliente.id;
+          document.getElementById('input-client-name').value = `${cliente.name} (${cliente.email})`;
+          if (modal) modal.classList.remove('hidden');
+        });
+        tdContrato.appendChild(btnContrato);
+        // Documentos (botón con ícono)
+        const tdDocs = document.createElement('td');
+        const btnDocs = document.createElement('button');
+        btnDocs.className = 'btn-docs-cliente btn-docs-cliente';
+        btnDocs.title = 'Ver documentos del contrato';
+        btnDocs.innerHTML = '<i class="fa-solid fa-file icon-doc"></i>';
+        btnDocs.onclick = () => verDocumentosContrato(cliente.id);
+        tdDocs.appendChild(btnDocs);
+        // Estado (igual que ahora)
         const tdEstado = document.createElement('td');
         tdEstado.style.textAlign = 'center';
         const selectEstado = document.createElement('select');
@@ -215,7 +243,6 @@ document.addEventListener('DOMContentLoaded', () => {
           option.style.color = opt.value === 'active' ? '#2ecc71' : '#e74c3c';
           selectEstado.appendChild(option);
         });
-        // Aplicar color al select según valor
         function actualizarColorEstado(sel) {
           if (sel.value === 'active') {
             sel.style.background = '#eafaf1';
@@ -232,42 +259,36 @@ document.addEventListener('DOMContentLoaded', () => {
           actualizarColorEstado(this);
         });
         tdEstado.appendChild(selectEstado);
-        // --- Fin columna Estado ---
-        // --- Columna Acciones con dropdown tipo select ---
+        // Acciones (dropdown)
         const tdAcciones = document.createElement('td');
         tdAcciones.style.textAlign = 'center';
         const accionesSelect = document.createElement('select');
         accionesSelect.className = 'acciones-dropdown';
         accionesSelect.innerHTML = `
           <option value="">Elegir...</option>
-          <option value="contratar">Contratar Seguro</option>
-          <option value="mostrar">Mostrar datos adicionales del Cliente</option>
-          <option value="ver_documentos">Ver documentos del contrato</option>
           <option value="editar">Editar Cliente</option>
+          <option value="desactivar">Desactivar</option>
         `;
         accionesSelect.addEventListener('change', function() {
-          if (this.value === 'contratar') {
-            mostrarModalConfirmacion('¿Desea iniciar una contratación de seguro?', () => {
-              document.getElementById('input-client-id').value = cliente.id;
-              document.getElementById('input-client-name').value = `${cliente.name} (${cliente.email})`;
-              if (modal) modal.classList.remove('hidden');
-            });
-          } else if (this.value === 'mostrar') {
-            mostrarInformacionCliente(cliente.id);
-          } else if (this.value === 'ver_documentos') {
-            verDocumentosContrato(cliente.id);
-          } else if (this.value === 'editar') {
+          if (this.value === 'editar') {
             mostrarModalConfirmacion('¿Desea editar los datos del Cliente?', () => {
               alert('Funcionalidad de edición por implementar.');
+            });
+          } else if (this.value === 'desactivar') {
+            mostrarModalConfirmacion('¿Desea desactivar este cliente?', () => {
+              alert('Funcionalidad de desactivación por implementar.');
             });
           }
           this.value = '';
         });
         tdAcciones.appendChild(accionesSelect);
-        // --- Fin columna Acciones ---
+        // Agregar todas las celdas en el orden correcto
         tr.appendChild(tdName);
         tr.appendChild(tdEmail);
         tr.appendChild(tdEstado);
+        tr.appendChild(tdInfo);
+        tr.appendChild(tdContrato);
+        tr.appendChild(tdDocs);
         tr.appendChild(tdAcciones);
         tablaClientesBody.appendChild(tr);
       });
@@ -647,6 +668,9 @@ document.addEventListener('DOMContentLoaded', () => {
         tr.appendChild(tdName);
         tr.appendChild(tdEmail);
         tr.appendChild(tdEstado);
+        tr.appendChild(tdInfo);
+        tr.appendChild(tdContrato);
+        tr.appendChild(tdDocs);
         tr.appendChild(tdAcciones);
         tablaClientesBody.appendChild(tr);
       });
@@ -983,7 +1007,6 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.innerHTML = `
           <div class="modal-overlay"></div>
           <div class="modal-content">
-            <button id="btn-cerrar-info-cliente-x" class="close-x" title="Cerrar">&times;</button>
             <h3>Información adicional del cliente</h3>
             <div id="info-cliente-detalle"></div>
             <button id="btn-cerrar-info-cliente" class="close-btn">Cerrar</button>
@@ -1130,25 +1153,11 @@ document.addEventListener('DOMContentLoaded', () => {
       modal.classList.remove('hidden');
       
       // Asignar eventos de cierre usando onclick para evitar duplicados
-      const btnCerrarX = modal.querySelector('#btn-cerrar-info-cliente-x');
       const btnCerrar = modal.querySelector('#btn-cerrar-info-cliente');
       const modalOverlay = modal.querySelector('.modal-overlay');
       
-      console.log('Modal creado:', modal);
-      console.log('Botón X encontrado:', btnCerrarX);
-      console.log('Botón Cerrar encontrado:', btnCerrar);
-      
-      if (btnCerrarX) {
-        btnCerrarX.onclick = function() {
-          console.log('Botón X clickeado');
-          modal.classList.add('hidden');
-          modal.style.display = 'none';
-        };
-      }
-      
       if (btnCerrar) {
         btnCerrar.onclick = function() {
-          console.log('Botón Cerrar clickeado');
           modal.classList.add('hidden');
           modal.style.display = 'none';
         };
@@ -1156,7 +1165,6 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (modalOverlay) {
         modalOverlay.onclick = function() {
-          console.log('Overlay clickeado');
           modal.classList.add('hidden');
           modal.style.display = 'none';
         };
@@ -1193,7 +1201,6 @@ document.addEventListener('DOMContentLoaded', () => {
       modal.innerHTML = `
         <div class="modal-overlay"></div>
         <div class="modal-content" style="max-width:700px;">
-          <button id="btn-cerrar-documentos-contrato-x" class="close-x" title="Cerrar">&times;</button>
           <h3>Documentos del contrato</h3>
           <div id="documentos-contrato-detalle">
             <p>Cargando documentos...</p>
@@ -1207,10 +1214,8 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.classList.remove('hidden');
     modal.style.display = 'flex';
     // Asignar eventos de cierre
-    const btnCerrarX = modal.querySelector('#btn-cerrar-documentos-contrato-x');
     const btnCerrar = modal.querySelector('#btn-cerrar-documentos-contrato');
     const modalOverlay = modal.querySelector('.modal-overlay');
-    if (btnCerrarX) btnCerrarX.onclick = () => { modal.classList.add('hidden'); modal.style.display = 'none'; };
     if (btnCerrar) btnCerrar.onclick = () => { modal.classList.add('hidden'); modal.style.display = 'none'; };
     if (modalOverlay) modalOverlay.onclick = () => { modal.classList.add('hidden'); modal.style.display = 'none'; };
 
