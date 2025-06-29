@@ -1294,6 +1294,44 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
+  // === MODAL ELEGANTE PARA MOTIVO DE RECHAZO ===
+  function mostrarModalMotivoRechazo(onConfirm, onCancel) {
+    const modalExistente = document.getElementById('modal-motivo-rechazo');
+    if (modalExistente) modalExistente.remove();
+    const modal = document.createElement('div');
+    modal.id = 'modal-motivo-rechazo';
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-overlay"></div>
+      <div class="modal-content" style="max-width:400px;text-align:center;">
+        <h3>Motivo del rechazo</h3>
+        <textarea id="input-motivo-rechazo" rows="4" style="width:90%;margin:12px auto;resize:vertical;" placeholder="Escriba el motivo para el cliente"></textarea>
+        <div style="margin-top:18px;display:flex;justify-content:center;gap:16px;">
+          <button id="btn-cancelar-motivo-rechazo" class="btn-cancel">Cancelar</button>
+          <button id="btn-confirmar-motivo-rechazo" class="btn-save">Confirmar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    document.getElementById('btn-cancelar-motivo-rechazo').onclick = function() {
+      modal.remove();
+      if (typeof onCancel === 'function') onCancel();
+    };
+    document.getElementById('btn-confirmar-motivo-rechazo').onclick = function() {
+      const motivo = document.getElementById('input-motivo-rechazo').value.trim();
+      if (!motivo) {
+        alert('Debe ingresar un motivo para el rechazo.');
+        return;
+      }
+      modal.remove();
+      if (typeof onConfirm === 'function') onConfirm(motivo);
+    };
+    modal.querySelector('.modal-overlay').onclick = function() {
+      modal.remove();
+      if (typeof onCancel === 'function') onCancel();
+    };
+  }
+
   // Delegación de eventos para los botones de aprobar/rechazar documento en el modal de documentos del contrato
   // Esto se coloca al final del DOMContentLoaded o fuera para asegurar que siempre esté activo
 
@@ -1303,27 +1341,45 @@ document.addEventListener('DOMContentLoaded', () => {
       const contratoId = e.target.getAttribute('data-contrato');
       const accion = e.target.classList.contains('doc-approve') ? 'aprobado' : 'rechazado';
 
-      let comentario = '';
       if (accion === 'rechazado') {
-        comentario = prompt('¿Por qué rechazas este documento? (motivo para el cliente)');
-        if (comentario === null) return; // Cancelado
-      }
+        mostrarModalMotivoRechazo(async function(comentario) {
+          try {
+            const resp = await fetch(`/documents/${docId}/review`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                status: accion,
+                comment: comentario
+              })
+            });
 
+            if (resp.ok) {
+              showNotification('success', 'Documento rechazado correctamente.');
+              if (typeof verDocumentosContrato === 'function') {
+                verDocumentosContrato(contratoId);
+              }
+            } else {
+              showNotification('error', 'Error al procesar la acción.');
+            }
+          } catch (err) {
+            showNotification('error', 'Error de red o del servidor.');
+          }
+        });
+        return; // Importante: para que no siga el flujo normal
+      }
+      // ... lógica de aprobación sigue igual ...
       try {
         const resp = await fetch(`/documents/${docId}/review`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             status: accion,
-            comment: comentario
+            comment: ''
           })
         });
 
         if (resp.ok) {
-          // Notificación elegante
-          const msg = accion === 'aprobado' ? 'Documento aprobado correctamente.' : 'Documento rechazado correctamente.';
-          showNotification('success', msg);
-          // Refresca la vista de documentos del contrato
+          showNotification('success', 'Documento aprobado correctamente.');
           if (typeof verDocumentosContrato === 'function') {
             verDocumentosContrato(contratoId);
           }

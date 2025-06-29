@@ -210,7 +210,6 @@ def client_panel():
     row = cur.fetchone()
     client_id = row[0] if row else None
 
-    # 2. Traigo sus contratos (sin filtrar por estado)
     contracts = []
     if client_id:
         cur.execute("""
@@ -220,17 +219,30 @@ def client_panel():
             WHERE cp.client_id = %s
             ORDER BY cp.created_at DESC
         """, (client_id,))
-        contracts = [
-            {
-              'id':    r[0],
-              'name':  r[1],
-              'amount': float(r[2]),
-              'freq':  r[3],
-              'status': r[4]
-            } for r in cur.fetchall()
-        ]
+        for r in cur.fetchall():
+            contract_id = r[0]
+            # Traer documentos de este contrato, incluyendo status y review_comment
+            cur.execute("SELECT id, file_path, uploaded_by, upload_date, status, review_comment FROM documents WHERE contract_id = %s", (contract_id,))
+            documentos = [
+                {
+                    'id': d[0],
+                    'filename': d[1],
+                    'uploaded_by': d[2],
+                    'upload_date': d[3].isoformat() if d[3] else None,
+                    'status': d[4],
+                    'review_comment': d[5]
+                }
+                for d in cur.fetchall()
+            ]
+            contracts.append({
+                'id':    r[0],
+                'name':  r[1],
+                'amount': float(r[2]),
+                'freq':  r[3],
+                'status': r[4],
+                'documents': documentos
+            })
     cur.close()
-
     return render_template('client-Index.html', contracts=contracts)
 
 # ===================================
