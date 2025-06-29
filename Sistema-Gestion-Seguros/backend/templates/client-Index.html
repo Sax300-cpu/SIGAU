@@ -110,8 +110,26 @@
         <div class="insurance-cards" style="margin-top:32px;">
           {% if contracts %}
             {% for c in contracts %}
+              {% set firmado = c.documents | selectattr('filename', 'equalto', 'documento_firmado.pdf') | list | first %}
               <div class="insurance-card">
-                {% if c.status == 'activo' %}
+                {% if firmado and firmado.status == 'rechazado' %}
+                  <span class="document-status-label" style="background:#d32f2f;color:#fff;">Documento Rechazado</span>
+                  <h3>{{ c.name }}</h3>
+                  <div class="seguro-aviso" style="background:#ffeaea; color:#d32f2f; border:1px solid #f8bbbb; border-radius:5px; padding:5px 8px; margin-bottom:6px; font-size:0.95em;">
+                    Estado: Rechazado
+                  </div>
+                  <div class="details">
+                    <p><strong>N.º de contrato:</strong> {{ c.id }}</p>
+                    <p><strong>Pago {{ c.freq|lower }}:</strong> ${{ c.amount }}</p>
+                  </div>
+                  <div class="mensaje-rechazo" style="color: #d32f2f; margin-top: 10px; background: #fff3f3; border-radius: 6px; padding: 10px 14px; border: 1px solid #f8bbbb;">
+                    <i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>
+                    <strong>Motivo del rechazo:</strong> {{ firmado.review_comment or 'No especificado' }}
+                  </div>
+                  <button class="btn-completar-docs" data-contract-id="{{ c.id }}" style="margin-top:12px;">
+                    <i class="fas fa-file-upload"></i>Volver a subir documento
+                  </button>
+                {% elif c.status == 'activo' %}
                   <span class="document-status-label" style="background:#388e3c;color:#fff;">Seguro Activo</span>
                   <h3>{{ c.name }}</h3>
                   <div class="seguro-aviso" style="background:#e8f5e9; color:#388e3c; border:1px solid #b2dfdb; border-radius:5px; padding:5px 8px; margin-bottom:6px; font-size:0.95em;">
