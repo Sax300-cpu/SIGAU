@@ -1241,4 +1241,46 @@ document.addEventListener('DOMContentLoaded', () => {
         detalleDiv.innerHTML = '<p style="color:red;">Error al cargar documentos.</p>';
       });
   }
+
+  // Delegación de eventos para los botones de aprobar/rechazar documento en el modal de documentos del contrato
+  // Esto se coloca al final del DOMContentLoaded o fuera para asegurar que siempre esté activo
+
+  document.body.addEventListener('click', async function(e) {
+    if (e.target.classList.contains('doc-approve') || e.target.classList.contains('doc-reject')) {
+      const docId = e.target.getAttribute('data-docid');
+      const contratoId = e.target.getAttribute('data-contrato');
+      const accion = e.target.classList.contains('doc-approve') ? 'aprobado' : 'rechazado';
+
+      let comentario = '';
+      if (accion === 'rechazado') {
+        comentario = prompt('¿Por qué rechazas este documento? (motivo para el cliente)');
+        if (comentario === null) return; // Cancelado
+      }
+
+      try {
+        const resp = await fetch(`/documents/${docId}/review`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: accion,
+            comment: comentario
+          })
+        });
+
+        if (resp.ok) {
+          // Notificación elegante
+          const msg = accion === 'aprobado' ? 'Documento aprobado correctamente.' : 'Documento rechazado correctamente.';
+          showNotification('success', msg);
+          // Refresca la vista de documentos del contrato
+          if (typeof verDocumentosContrato === 'function') {
+            verDocumentosContrato(contratoId);
+          }
+        } else {
+          showNotification('error', 'Error al procesar la acción.');
+        }
+      } catch (err) {
+        showNotification('error', 'Error de red o del servidor.');
+      }
+    }
+  });
 });

@@ -111,9 +111,20 @@
           {% if contracts %}
             {% for c in contracts %}
               <div class="insurance-card">
-                <span class="document-status-label">Pendiente de Documentación</span>
-                <h3>{{ c.name }}</h3>
-                {% if c.status != 'active' %}
+                {% if c.status == 'activo' %}
+                  <span class="document-status-label" style="background:#388e3c;color:#fff;">Seguro Activo</span>
+                  <h3>{{ c.name }}</h3>
+                  <div class="seguro-aviso" style="background:#e8f5e9; color:#388e3c; border:1px solid #b2dfdb; border-radius:5px; padding:5px 8px; margin-bottom:6px; font-size:0.95em;">
+                    Estado: Activo
+                  </div>
+                  <div class="details">
+                    <p><strong>N.º de contrato:</strong> {{ c.id }}</p>
+                    <p><strong>Pago {{ c.freq|lower }}:</strong> ${{ c.amount }}</p>
+                  </div>
+                  <div class="mensaje-exito" style="color: #388e3c; margin-top: 10px; font-weight: 500;">¡Tu seguro está vigente y protegido!</div>
+                {% else %}
+                  <span class="document-status-label">Pendiente de Documentación</span>
+                  <h3>{{ c.name }}</h3>
                   <div class="seguro-aviso" style="background:#ffeaea; color:#d32f2f; border:1px solid #f8bbbb; border-radius:5px; padding:5px 8px; margin-bottom:6px; font-size:0.89em;">
                     {% if c.status == 'cancelled' %}
                       Este seguro fue desactivado por el agente. Por favor, comuníquese con su agente.
@@ -123,21 +134,21 @@
                       Estado: {{ c.status|capitalize }}
                     {% endif %}
                   </div>
+                  <button class="status-toggle-btn status pending"
+                          data-contract-id="{{ c.id }}"
+                          data-status="pending">
+                    <i class="fas fa-exclamation-circle"></i>Pendiente
+                  </button>
+                  <div class="details">
+                    <p><strong>N.º de contrato:</strong> {{ c.id }}</p>
+                    <p><strong>Pago {{ c.freq|lower }}:</strong> ${{ c.amount }}</p>
+                  </div>
+                  <button 
+                    class="btn-completar-docs" 
+                    data-contract-id="{{ c.id }}">
+                    <i class="fas fa-file-upload"></i>Completar documentos
+                  </button>
                 {% endif %}
-                <button class="status-toggle-btn status pending"
-                        data-contract-id="{{ c.id }}"
-                        data-status="pending">
-                  <i class="fas fa-exclamation-circle"></i>Pendiente
-                </button>
-                <div class="details">
-                  <p><strong>N.º de contrato:</strong> {{ c.id }}</p>
-                  <p><strong>Pago {{ c.freq|lower }}:</strong> ${{ c.amount }}</p>
-                </div>
-                <button 
-                  class="btn-completar-docs" 
-                  data-contract-id="{{ c.id }}">
-                  <i class="fas fa-file-upload"></i>Completar documentos
-                </button>
               </div>
             {% endfor %}
           {% else %}
@@ -296,12 +307,6 @@
             
             // Botón cancelar
             if (e.target.id === 'btn-cancelar-cancelar') {
-              document.getElementById('modal-cancelar-contrato').classList.add('hidden');
-              selectedContractId = null;
-            }
-            
-            // Botón aceptar
-            if (e.target.id === 'btn-aceptar-cancelar') {
               console.log('Botón aceptar clickeado');
               console.log('selectedContractId:', selectedContractId);
               

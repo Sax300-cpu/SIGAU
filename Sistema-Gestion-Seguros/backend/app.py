@@ -17,6 +17,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
 from PIL import Image
+from datetime import datetime
 
 # ===================================
 # Carga de configuración y BD 
@@ -1434,6 +1435,36 @@ def get_client_contracts(client_id):
         })
     cur.close()
     return jsonify(resultado)
+
+@app.route('/documents/<int:doc_id>/review', methods=['POST'])
+def review_document(doc_id):
+    data = request.get_json()
+    status = data.get('status')  # 'aprobado' o 'rechazado'
+    comment = data.get('comment', '')
+    reviewed_by = session.get('user_id', 'agente')  # O el nombre del agente
+
+    cur = mysql.connection.cursor()
+    # 1. Actualizar el documento (corregido: review_comment)
+    cur.execute("""
+        UPDATE documents
+        SET status = %s, reviewed_by = %s, review_date = NOW(), review_comment = %s
+        WHERE id = %s
+    """, (status, reviewed_by, comment, doc_id))
+    # 2. Obtener el contract_id para actualizar el contrato
+    cur.execute("SELECT contract_id FROM documents WHERE id = %s", (doc_id,))
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        return jsonify({'error': 'Documento no encontrado'}), 404
+    contract_id = row[0]
+    # 3. Actualizar el estado del contrato según la acción
+    if status == 'aprobado':
+        cur.execute("UPDATE client_policies SET status = 'activo' WHERE id = %s", (contract_id,))
+    elif status == 'rechazado':
+        cur.execute("UPDATE client_policies SET status = 'pendiente' WHERE id = %s", (contract_id,))
+    mysql.connection.commit()
+    cur.close()
+    return jsonify({'success': True})
 
 if __name__ == "__main__":
     app.run(debug=True)
