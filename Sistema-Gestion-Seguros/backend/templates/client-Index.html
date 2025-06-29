@@ -51,15 +51,7 @@
             <a href="#" id="vida-link"><i class="fas fa-user"></i><span>Seguro de Vida</span></a>
           </li>
           <li>
-            <a href="#" id="pagos-link"><i class="fas fa-credit-card"></i><span>Pagos</span></a>
-          </li>
-          <li>
             <a href="#" id="reembolso-link"><i class="fas fa-money-bill-wave"></i><span>Reembolso</span></a>
-          </li>
-          <li>
-            <a href="{{ url_for('logout') }}">
-              <i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span>
-            </a>
           </li>
         </ul>
       </nav>
@@ -69,6 +61,11 @@
           <span class="name">{{ session.get('username','Cliente') }}</span>
           <span class="role">Cliente</span>
         </div>
+      </div>
+      <div class="logout-section">
+        <a href="{{ url_for('logout') }}" class="logout-btn">
+          <i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span>
+        </a>
       </div>
     </div>
 
@@ -161,15 +158,11 @@
           {% endif %}
         </div>
       </div>
-      <div class="content" id="pagos-section" style="display:none;">
-        <div style="text-align:center; margin-top:40px;">
-          <div style="font-size:2rem; color:#111; font-weight:700;">Todavía no ha pagado nada</div>
-        </div>
-      </div>
-      <div class="content" id="reembolso-section" style="display:none;" data-has-contracts="{% if contracts and contracts|length > 0 %}true{% else %}false{% endif %}">
-        {% if contracts and contracts|length > 0 %}
+      <div class="content" id="reembolso-section" style="display:none;" data-has-contracts="{% if contracts and contracts|selectattr('status', 'equalto', 'activo')|list|length > 0 %}true{% else %}false{% endif %}">
+        {% set active_contracts = contracts|selectattr('status', 'equalto', 'activo')|list %}
+        {% if active_contracts and active_contracts|length > 0 %}
           <div style="display: flex; flex-direction: column; gap: 24px; margin-top: 40px;">
-            {% for c in contracts %}
+            {% for c in active_contracts %}
               <div style="position: relative; border: 1.5px solid #e3e8f0; border-radius: 10px; padding: 22px 24px 18px 24px; background: #f9fbfd; box-shadow: 0 2px 8px rgba(30,42,60,0.06);">
                 <button style="position: absolute; top: 18px; right: 18px; background: #1976d2; color: #fff; border: none; border-radius: 4px; padding: 7px 18px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background 0.2s;">
                   Solicitar Reembolso
@@ -200,8 +193,6 @@
           var vidaSection = document.getElementById('vida-section');
           var saludLink = document.getElementById('salud-link');
           var saludSection = document.getElementById('salud-section');
-          var pagosLink = document.getElementById('pagos-link');
-          var pagosSection = document.getElementById('pagos-section');
           var reembolsoLink = document.getElementById('reembolso-link');
           var reembolsoSection = document.getElementById('reembolso-section');
           var mainTitle = document.getElementById('main-title');
@@ -222,7 +213,6 @@
             if (polizasSection) polizasSection.style.display = 'none';
             if (vidaSection) vidaSection.style.display = 'none';
             if (saludSection) saludSection.style.display = 'none';
-            if (pagosSection) pagosSection.style.display = 'none';
             if (reembolsoSection) reembolsoSection.style.display = 'none';
           }
           mostrarInicio();
@@ -232,7 +222,6 @@
             if (polizasSection) polizasSection.style.display = 'none';
             if (vidaSection) vidaSection.style.display = 'none';
             if (saludSection) saludSection.style.display = 'none';
-            if (pagosSection) pagosSection.style.display = 'none';
             if (reembolsoSection) reembolsoSection.style.display = 'none';
           }
           
@@ -268,14 +257,6 @@
               if (mainTitle) mainTitle.textContent = 'Seguros de Salud';
             });
           }
-          if (pagosLink && pagosSection) {
-            pagosLink.addEventListener('click', function(e) {
-              e.preventDefault();
-              ocultarTodo();
-              pagosSection.style.display = 'block';
-              if (mainTitle) mainTitle.textContent = 'Pagos';
-            });
-          }
           if (reembolsoLink && reembolsoSection && hasContracts) {
             reembolsoLink.addEventListener('click', function(e) {
               e.preventDefault();
@@ -293,13 +274,22 @@
               
               // Obtener el contract_id del seguro seleccionado
               var insuranceCard = e.target.closest('div[style*="position: relative"]');
-              var contractIdElement = insuranceCard.querySelector('div[style*="N.º de contrato"]');
+              console.log('Insurance card encontrado:', insuranceCard);
+              
+              // Buscar el elemento que contiene "N.º de contrato:" en su texto
+              var contractIdElement = Array.from(insuranceCard.querySelectorAll('div')).find(div => 
+                div.textContent.includes('N.º de contrato:')
+              );
+              console.log('Contract ID element encontrado:', contractIdElement);
+              
               if (contractIdElement) {
                 var contractIdText = contractIdElement.textContent;
+                console.log('Contract ID text completo:', contractIdText);
                 selectedContractId = contractIdText.split(':')[1].trim();
                 console.log('Contract ID capturado:', selectedContractId);
               } else {
                 console.log('No se pudo encontrar el contract ID');
+                console.log('Elementos div encontrados:', insuranceCard.querySelectorAll('div'));
               }
               document.getElementById('modal-cancelar-contrato').classList.remove('hidden');
             }
@@ -312,51 +302,91 @@
             
             // Botón cancelar
             if (e.target.id === 'btn-cancelar-cancelar') {
-              console.log('Botón aceptar clickeado');
-              console.log('selectedContractId:', selectedContractId);
+              document.getElementById('modal-cancelar-contrato').classList.add('hidden');
+              selectedContractId = null;
+            }
+            
+            // Botón aceptar (ahora abre el modal de razones)
+            if (e.target.id === 'btn-aceptar-cancelar') {
+              document.getElementById('modal-cancelar-contrato').classList.add('hidden');
+              document.getElementById('modal-razones-cancelacion').classList.remove('hidden');
+            }
+            
+            // Botón cerrar modal de razones (X)
+            if (e.target.id === 'btn-close-razones-modal') {
+              document.getElementById('modal-razones-cancelacion').classList.add('hidden');
+              selectedContractId = null;
+            }
+            
+            // Botón cancelar en modal de razones
+            if (e.target.id === 'btn-cancelar-razones') {
+              document.getElementById('modal-razones-cancelacion').classList.add('hidden');
+              selectedContractId = null;
+            }
+            
+            // Botón enviar razones (submit del formulario)
+            if (e.target.id === 'btn-enviar-razones') {
+              e.preventDefault();
               
-              if (selectedContractId) {
-                console.log('Enviando solicitud de reembolso...');
-                fetch('/refunds', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    contract_id: selectedContractId
-                  })
-                })
-                .then(response => {
-                  console.log('Respuesta recibida:', response);
-                  return response.json();
-                })
-                .then(data => {
-                  console.log('Datos recibidos:', data);
-                  if (data.success) {
-                    // Mostrar notificación de éxito
-                    document.getElementById('notificacion-titulo').textContent = '¡Solicitud Enviada!';
-                    document.getElementById('notificacion-mensaje').textContent = data.message;
-                    document.getElementById('modal-notificacion').classList.remove('hidden');
-                  } else {
-                    // Mostrar notificación de error
-                    document.getElementById('notificacion-titulo').textContent = 'Error';
-                    document.getElementById('notificacion-mensaje').textContent = data.error || 'Error al enviar la solicitud';
-                    document.getElementById('modal-notificacion').classList.remove('hidden');
-                  }
-                  document.getElementById('modal-cancelar-contrato').classList.add('hidden');
-                  selectedContractId = null;
-                })
-                .catch(error => {
-                  console.error('Error:', error);
-                  document.getElementById('notificacion-titulo').textContent = 'Error';
-                  document.getElementById('notificacion-mensaje').textContent = 'Error de conexión';
-                  document.getElementById('modal-notificacion').classList.remove('hidden');
-                  document.getElementById('modal-cancelar-contrato').classList.add('hidden');
-                  selectedContractId = null;
-                });
-              } else {
-                console.log('No hay contract_id seleccionado');
+              const form = document.getElementById('form-razones-cancelacion');
+              const formData = new FormData(form);
+              const razon = formData.get('razon');
+              const descripcion = formData.get('descripcion');
+              
+              if (!razon || !descripcion) {
+                alert('Por favor complete todos los campos requeridos.');
+                return;
               }
+              
+              if (!selectedContractId) {
+                alert('Error: No se pudo identificar el contrato. Por favor, intente nuevamente.');
+                return;
+              }
+              
+              console.log('Enviando solicitud de reembolso con razones...');
+              console.log('Contract ID a enviar:', selectedContractId);
+              fetch('/refunds', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  contract_id: selectedContractId,
+                  reason: razon,
+                  reason_description: descripcion
+                })
+              })
+              .then(response => {
+                console.log('Respuesta recibida:', response);
+                return response.json();
+              })
+              .then(data => {
+                console.log('Datos recibidos:', data);
+                if (data.success) {
+                  // Mostrar notificación de éxito
+                  document.getElementById('notificacion-titulo').textContent = '¡Solicitud Enviada!';
+                  document.getElementById('notificacion-mensaje').textContent = data.message;
+                  document.getElementById('modal-notificacion').classList.remove('hidden');
+                  
+                  // Limpiar formulario
+                  form.reset();
+                } else {
+                  // Mostrar notificación de error
+                  document.getElementById('notificacion-titulo').textContent = 'Error';
+                  document.getElementById('notificacion-mensaje').textContent = data.error || 'Error al enviar la solicitud';
+                  document.getElementById('modal-notificacion').classList.remove('hidden');
+                }
+                document.getElementById('modal-razones-cancelacion').classList.add('hidden');
+                selectedContractId = null;
+              })
+              .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('notificacion-titulo').textContent = 'Error';
+                document.getElementById('notificacion-mensaje').textContent = 'Error de conexión';
+                document.getElementById('modal-notificacion').classList.remove('hidden');
+                document.getElementById('modal-razones-cancelacion').classList.add('hidden');
+                selectedContractId = null;
+              });
             }
             
             // Botón cerrar notificación
@@ -458,6 +488,40 @@
         <button id="btn-cancelar-cancelar" style="background:#e3e8f0; color:#1e2a3c; border:1px solid #b0b8c1; border-radius:4px; padding:7px 18px; font-size:1rem; cursor:pointer;">Cancelar</button>
         <button id="btn-aceptar-cancelar" style="background:#d32f2f; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Aceptar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal para ingresar razones de cancelación -->
+  <div id="modal-razones-cancelacion" class="modal hidden">
+    <div class="modal-content" style="max-width: 500px; border-radius: 14px; box-shadow: 0 8px 32px rgba(30,42,60,0.18); padding: 28px 24px 18px 24px; position: relative; background: #fff; border: 1.5px solid #e3e8f0;">
+      <button id="btn-close-razones-modal" type="button" aria-label="Cerrar" style="position:absolute;top:12px;right:16px;font-size:1.3rem;background:none;border:none;cursor:pointer;color:#1976d2;">&times;</button>
+      <h2 style="margin-top:0; margin-bottom:14px; font-size:1.2rem; font-weight:700; color:#1e2a3c; letter-spacing:-1px;">Razones de Cancelación</h2>
+      <p style="margin-bottom:16px; color:#666;">Por favor, indique las razones por las que desea cancelar su contrato y solicitar el reembolso:</p>
+      
+      <form id="form-razones-cancelacion">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="razon-cancelacion" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Motivo principal:</label>
+          <select id="razon-cancelacion" name="razon" required style="width:100%; padding:8px 12px; border:1px solid #e3e8f0; border-radius:4px; font-size:1rem;">
+            <option value="">Seleccione un motivo</option>
+            <option value="cambio_circunstancias">Cambio en mis circunstancias personales</option>
+            <option value="insatisfaccion_servicio">Insatisfacción con el servicio</option>
+            <option value="problemas_economicos">Problemas económicos</option>
+            <option value="encontre_mejor_opcion">Encontré una mejor opción</option>
+            <option value="duplicacion_cobertura">Duplicación de cobertura</option>
+            <option value="otro">Otro motivo</option>
+          </select>
+        </div>
+        
+        <div class="form-group" style="margin-bottom:18px;">
+          <label for="descripcion-razon" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Descripción detallada:</label>
+          <textarea id="descripcion-razon" name="descripcion" rows="4" required placeholder="Explique detalladamente las razones de su cancelación..." style="width:100%; padding:8px 12px; border:1px solid #e3e8f0; border-radius:4px; font-size:1rem; resize:vertical;"></textarea>
+        </div>
+        
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" id="btn-cancelar-razones" style="background:#e3e8f0; color:#1e2a3c; border:1px solid #b0b8c1; border-radius:4px; padding:7px 18px; font-size:1rem; cursor:pointer;">Cancelar</button>
+          <button type="submit" id="btn-enviar-razones" style="background:#d32f2f; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Enviar Solicitud</button>
+        </div>
+      </form>
     </div>
   </div>
 

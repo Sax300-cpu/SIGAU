@@ -1172,6 +1172,8 @@ def create_refund_request():
         
         data = request.get_json()
         contract_id = data.get('contract_id')
+        reason = data.get('reason', 'cancelation')
+        reason_description = data.get('reason_description', 'Solicitud de cancelación y reembolso del cliente')
         
         if not contract_id:
             return jsonify({'error': 'ID de contrato requerido'}), 400
@@ -1180,7 +1182,7 @@ def create_refund_request():
         
         # Obtener información del contrato y verificar que pertenece al cliente
         cur.execute("""
-            SELECT cp.id, cp.client_id, cp.agent_id, cp.premium_amount, p.name
+            SELECT cp.id, cp.client_id, cp.agent_id, cp.premium_amount, cp.policy_id, p.name
             FROM client_policies cp
             JOIN policies p ON cp.policy_id = p.id
             WHERE cp.id = %s AND cp.client_id = (
@@ -1193,21 +1195,21 @@ def create_refund_request():
             cur.close()
             return jsonify({'error': 'Contrato no encontrado o no autorizado'}), 404
         
-        contract_id, client_id, agent_id, premium_amount, policy_name = contract_data
+        contract_id, client_id, agent_id, premium_amount, policy_id, policy_name = contract_data
         
         # Crear la solicitud de reembolso
         cur.execute("""
             INSERT INTO refunds 
             (policy_id, client_id, agent_id, amount, reason, reason_description, status, created_by)
-            VALUES (%s, %s, %s, %s, 'cancelation', 'Solicitud de cancelación y reembolso del cliente', 'pending', %s)
-        """, (contract_id, client_id, agent_id, premium_amount, session['user_id']))
+            VALUES (%s, %s, %s, %s, %s, %s, 'pending', %s)
+        """, (policy_id, client_id, agent_id, premium_amount, reason, reason_description, session['user_id']))
         
         mysql.connection.commit()
         cur.close()
         
         return jsonify({
             'success': True,
-            'message': f'Solicitud de reembolso creada para {policy_name}',
+            'message': f'Solicitud de reembolso creada para {policy_name}. Su solicitud será revisada por nuestro equipo.',
             'refund_id': cur.lastrowid
         }), 201
         
@@ -1230,18 +1232,20 @@ def list_refunds():
                     r.id AS refund_id,
                     r.policy_id,
                     p.name AS policy_name,
+                    p.type AS policy_type,
                     CONCAT(c.first_name, ' ', c.last_name) AS client_name,
                     u.email AS client_email,
                     r.amount,
                     r.request_date,
                     r.status,
                     r.reason,
-                    r.reason_description
+                    r.reason_description,
+                    cp.id AS contract_id
                 FROM refunds r
-                JOIN client_policies cp ON r.policy_id = cp.id
-                JOIN policies p ON cp.policy_id = p.id
+                JOIN policies p ON r.policy_id = p.id
                 JOIN clients c ON r.client_id = c.id
                 JOIN users u ON c.user_id = u.id
+                JOIN client_policies cp ON cp.policy_id = r.policy_id AND cp.client_id = r.client_id
                 WHERE r.agent_id = %s
                 ORDER BY r.request_date DESC
             """, (session['user_id'],))
@@ -1253,18 +1257,20 @@ def list_refunds():
                     r.id AS refund_id,
                     r.policy_id,
                     p.name AS policy_name,
+                    p.type AS policy_type,
                     CONCAT(c.first_name, ' ', c.last_name) AS client_name,
                     u.email AS client_email,
                     r.amount,
                     r.request_date,
                     r.status,
                     r.reason,
-                    r.reason_description
+                    r.reason_description,
+                    cp.id AS contract_id
                 FROM refunds r
-                JOIN client_policies cp ON r.policy_id = cp.id
-                JOIN policies p ON cp.policy_id = p.id
+                JOIN policies p ON r.policy_id = p.id
                 JOIN clients c ON r.client_id = c.id
                 JOIN users u ON c.user_id = u.id
+                JOIN client_policies cp ON cp.policy_id = r.policy_id AND cp.client_id = r.client_id
                 ORDER BY r.request_date DESC
             """)
             
@@ -1281,8 +1287,7 @@ def list_refunds():
                     r.reason,
                     r.reason_description
                 FROM refunds r
-                JOIN client_policies cp ON r.policy_id = cp.id
-                JOIN policies p ON cp.policy_id = p.id
+                JOIN policies p ON r.policy_id = p.id
                 WHERE r.client_id = (
                     SELECT id FROM clients WHERE user_id = %s
                 )
@@ -1307,13 +1312,15 @@ def list_refunds():
                     'refund_id': row[0],
                     'policy_id': row[1],
                     'policy_name': row[2],
-                    'client_name': row[3],
-                    'client_email': row[4],
-                    'amount': float(row[5]),
-                    'request_date': row[6].isoformat() if row[6] else None,
-                    'status': row[7],
-                    'reason': row[8],
-                    'reason_description': row[9]
+                    'policy_type': row[3],
+                    'client_name': row[4],
+                    'client_email': row[5],
+                    'amount': float(row[6]),
+                    'request_date': row[7].isoformat() if row[7] else None,
+                    'status': row[8],
+                    'reason': row[9],
+                    'reason_description': row[10],
+                    'contract_id': row[11]
                 })
         
         cur.close()
