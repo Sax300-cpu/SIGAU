@@ -54,24 +54,54 @@ document.addEventListener('DOMContentLoaded', function() {
         // Función para bloquear el botón si ya existe documento firmado
         async function controlarBotonCompletarDocs() {
           const btnsCompletar = document.querySelectorAll('.btn-completar-docs');
-          for (const btn of btnsCompletar) {
-            const id = btn.dataset.contractId;
-            // Consultar los documentos del contrato
-            const res = await fetch(`/contracts/${id}`);
-            const data = await res.json();
-            const existeFirmado = (data.documents || []).some(doc => doc.filename === 'documento_firmado.pdf');
-            if (existeFirmado) {
-              btn.textContent = 'Pendiente de confirmación';
-              btn.classList.add('disabled');
-              btn.disabled = true;
-              btn.style.cursor = 'not-allowed';
-              btn.title = 'Ya enviaste tus documentos, espera confirmación del agente.';
-            } else {
-              btn.textContent = 'Completar documentos';
-              btn.classList.remove('disabled');
-              btn.disabled = false;
-              btn.style.cursor = '';
-              btn.title = '';
+          
+          // Procesar botones en lotes para mejorar performance
+          const batchSize = 3;
+          for (let i = 0; i < btnsCompletar.length; i += batchSize) {
+            const batch = Array.from(btnsCompletar).slice(i, i + batchSize);
+            
+            // Procesar lote en paralelo
+            const promises = batch.map(async (btn) => {
+              const id = btn.dataset.contractId;
+              if (!id) return;
+              
+              try {
+                const res = await fetch(`/contracts/${id}`);
+                const data = await res.json();
+                const existeFirmado = (data.documents || []).some(doc => doc.filename === 'documento_firmado.pdf');
+                
+                return { btn, existeFirmado };
+              } catch (error) {
+                console.error('Error checking contract:', id, error);
+                return { btn, existeFirmado: false };
+              }
+            });
+            
+            // Esperar a que se complete el lote
+            const results = await Promise.all(promises);
+            
+            // Actualizar UI para el lote
+            results.forEach(({ btn, existeFirmado }) => {
+              if (!btn) return;
+              
+              if (existeFirmado) {
+                btn.textContent = 'Pendiente de confirmación';
+                btn.classList.add('disabled');
+                btn.disabled = true;
+                btn.style.cursor = 'not-allowed';
+                btn.title = 'Ya enviaste tus documentos, espera confirmación del agente.';
+              } else {
+                btn.textContent = 'Completar documentos';
+                btn.classList.remove('disabled');
+                btn.disabled = false;
+                btn.style.cursor = '';
+                btn.title = '';
+              }
+            });
+            
+            // Pequeña pausa entre lotes para no sobrecargar el navegador
+            if (i + batchSize < btnsCompletar.length) {
+              await new Promise(resolve => setTimeout(resolve, 50));
             }
           }
         }
@@ -80,36 +110,84 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Abrir modal al click en cualquier "Completar documentos"
         document.querySelectorAll('.btn-completar-docs').forEach(btn => {
+          // Debounce para evitar múltiples clicks
+          let isProcessing = false;
+          
           btn.addEventListener('click', async () => {
-            // Si el botón está deshabilitado, no hacer nada
-            if (btn.disabled || btn.classList.contains('disabled')) {
-              // Opcional: mostrar un modal o notificación
-              const modalNotificacion = document.getElementById('modal-notificacion');
-              const notificacionTitulo = document.getElementById('notificacion-titulo');
-              const notificacionMensaje = document.getElementById('notificacion-mensaje');
-              const btnCerrarNotificacion = document.getElementById('btn-cerrar-notificacion');
-              notificacionTitulo.textContent = 'Pendiente de confirmación';
-              notificacionMensaje.textContent = 'Ya enviaste tus documentos, espera confirmación del agente.';
-              modalNotificacion.classList.remove('hidden');
-              btnCerrarNotificacion.onclick = function() {
-                modalNotificacion.classList.add('hidden');
+            // Prevenir múltiples clicks
+            if (isProcessing) return;
+            isProcessing = true;
+            
+            try {
+              // Si el botón está deshabilitado, no hacer nada
+              if (btn.disabled || btn.classList.contains('disabled')) {
+                // Opcional: mostrar un modal o notificación
+                const modalNotificacion = document.getElementById('modal-notificacion');
+                const notificacionTitulo = document.getElementById('notificacion-titulo');
+                const notificacionMensaje = document.getElementById('notificacion-mensaje');
+                const btnCerrarNotificacion = document.getElementById('btn-cerrar-notificacion');
+                notificacionTitulo.textContent = 'Pendiente de confirmación';
+                notificacionMensaje.textContent = 'Ya enviaste tus documentos, espera confirmación del agente.';
+                modalNotificacion.classList.remove('hidden');
+                btnCerrarNotificacion.onclick = function() {
+                  modalNotificacion.classList.add('hidden');
+                };
+                return;
+              }
+              
+              const id = btn.dataset.contractId;
+              if (!id) {
+                console.error('No contract ID found');
+                return;
+              }
+              
+              // Mostrar indicador de carga
+              const originalText = btn.textContent;
+              btn.textContent = 'Cargando...';
+              btn.disabled = true;
+              
+              const res = await fetch(`/contracts/${id}`);
+              if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+              }
+              
+              const data = await res.json();
+              
+              // Actualizar elementos del modal de manera eficiente
+              const elements = {
+                'detalle-cliente': data.client_name ?? '-',
+                'detalle-seguro': data.policy_name ?? '-',
+                'detalle-prima': (data.premium_amount !== undefined && data.premium_amount !== null) ? `$${data.premium_amount}` : '-',
+                'detalle-frecuencia': data.payment_frequency ?? '-',
+                'detalle-estado': data.status ?? '-'
               };
-              return;
+              
+              Object.entries(elements).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = value;
+              });
+              
+              // Actualizar documentos
+              const detalleDocumentos = document.getElementById('detalle-documentos');
+              if (detalleDocumentos) {
+                detalleDocumentos.innerHTML = (data.documents && data.documents.length)
+                  ? data.documents.map(d=>`<a href="${d.url||'#'}" target="_blank">${d.filename||d.path||''}</a>`).join(', ')
+                  : '<span style="color:#888">Ninguno</span>';
+              }
+              
+              inputCid.value = id;
+              if (signature) signature.clear();
+              modalCompletar.classList.remove('hidden');
+              
+            } catch (error) {
+              console.error('Error loading contract data:', error);
+              alert('Error al cargar los datos del contrato. Por favor, intente nuevamente.');
+            } finally {
+              // Restaurar botón
+              btn.textContent = originalText;
+              btn.disabled = false;
+              isProcessing = false;
             }
-            const id = btn.dataset.contractId;
-            const res = await fetch(`/contracts/${id}`);
-            const data = await res.json();
-            document.getElementById('detalle-cliente').textContent = data.client_name ?? '-';
-            document.getElementById('detalle-seguro').textContent = data.policy_name ?? '-';
-            document.getElementById('detalle-prima').textContent = (data.premium_amount !== undefined && data.premium_amount !== null) ? `$${data.premium_amount}` : '-';
-            document.getElementById('detalle-frecuencia').textContent = data.payment_frequency ?? '-';
-            document.getElementById('detalle-estado').textContent = data.status ?? '-';
-            document.getElementById('detalle-documentos').innerHTML = (data.documents && data.documents.length)
-              ? data.documents.map(d=>`<a href="${d.url||'#'}" target="_blank">${d.filename||d.path||''}</a>`).join(', ')
-              : '<span style="color:#888">Ninguno</span>';
-            inputCid.value = id;
-            if (signature) signature.clear();
-            modalCompletar.classList.remove('hidden');
           });
         });
         // Cerrar modal con botón cancelar

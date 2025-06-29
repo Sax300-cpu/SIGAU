@@ -1358,13 +1358,27 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (reembolsos.length === 0) {
         const tr = document.createElement('tr');
-        tr.innerHTML = '<td colspan="8" style="text-align: center; padding: 20px; color: #666;">No hay solicitudes de reembolso pendientes</td>';
+        tr.innerHTML = '<td colspan="7" style="text-align: center; padding: 20px; color: #666;">No hay solicitudes de reembolso pendientes</td>';
         tablaReembolsosBody.appendChild(tr);
         return;
       }
       
+      // Agrupar reembolsos por policy_id para mostrar el número de solicitud
+      const reembolsosPorPolitica = {};
+      reembolsos.forEach(reembolso => {
+        if (!reembolsosPorPolitica[reembolso.policy_id]) {
+          reembolsosPorPolitica[reembolso.policy_id] = [];
+        }
+        reembolsosPorPolitica[reembolso.policy_id].push(reembolso);
+      });
+      
       reembolsos.forEach(reembolso => {
         const tr = document.createElement('tr');
+        
+        // Determinar el número de solicitud para esta póliza
+        const reembolsosDeEstaPolitica = reembolsosPorPolitica[reembolso.policy_id];
+        const numeroSolicitud = reembolsosDeEstaPolitica.findIndex(r => r.refund_id === reembolso.refund_id) + 1;
+        const esNuevaSolicitud = reembolsosDeEstaPolitica.length > 1;
         
         // Mapear motivos a español
         const motivosMap = {
@@ -1374,7 +1388,10 @@ document.addEventListener('DOMContentLoaded', () => {
           'encontre_mejor_opcion': 'Encontró mejor opción',
           'duplicacion_cobertura': 'Duplicación de cobertura',
           'otro': 'Otro motivo',
-          'cancelation': 'Cancelación'
+          'cancelation': 'Cancelación',
+          'overpayment': 'Pago excesivo',
+          'adjustment': 'Ajuste',
+          'other': 'Otro'
         };
         
         const motivo = motivosMap[reembolso.reason] || reembolso.reason;
@@ -1384,20 +1401,37 @@ document.addEventListener('DOMContentLoaded', () => {
         // Estado con badge
         const estadoBadge = `<span class="status-badge status-${reembolso.status}">${reembolso.status}</span>`;
         
+        // Botón para ver razones
+        const botonRazones = reembolso.reason_description 
+          ? `<button class="btn-ver-razones" data-refund-id="${reembolso.refund_id}" data-reason="${reembolso.reason}" data-description="${reembolso.reason_description}">Ver Razones</button>`
+          : '<span style="color: #666;">Sin razones</span>';
+        
         // Botón de procesar solo si está pendiente
         const botonProcesar = reembolso.status === 'pending' 
           ? `<button class="btn-process" data-refund-id="${reembolso.refund_id}">Procesar</button>`
           : '<span style="color: #666;">Procesado</span>';
         
+        // Mostrar indicador de nueva solicitud si es necesario
+        const indicadorNuevaSolicitud = esNuevaSolicitud ? 
+          `<div style="background: #fff3cd; color: #856404; padding: 2px 6px; border-radius: 3px; font-size: 0.8rem; margin-bottom: 4px; border: 1px solid #ffeaa7;">
+            <i class="fas fa-redo" style="margin-right: 4px;"></i>Solicitud #${numeroSolicitud}
+          </div>` : '';
+        
         tr.innerHTML = `
-          <td>${reembolso.client_name}</td>
+          <td>
+            ${indicadorNuevaSolicitud}
+            ${reembolso.client_name}
+          </td>
           <td>${reembolso.client_email}</td>
-          <td>${reembolso.policy_type}</td>
-          <td>${reembolso.contract_id}</td>
+          <td>${reembolso.policy_name}</td>
           <td>$${monto}</td>
           <td>${fecha}</td>
           <td>${estadoBadge}</td>
-          <td>${botonProcesar}</td>
+          <td>
+            ${botonRazones}
+            <br><br>
+            ${botonProcesar}
+          </td>
         `;
         
         tablaReembolsosBody.appendChild(tr);
@@ -1411,10 +1445,66 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
       
+      // Agregar event listeners a los botones de ver razones
+      document.querySelectorAll('.btn-ver-razones').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const refundId = btn.getAttribute('data-refund-id');
+          const reason = btn.getAttribute('data-reason');
+          const description = btn.getAttribute('data-description');
+          mostrarModalRazones(refundId, reason, description);
+        });
+      });
+      
     } catch (err) {
       console.error('Error al cargar reembolsos:', err);
       showNotification('error', 'Error al cargar la lista de reembolsos');
     }
+  }
+
+  // Función para mostrar modal de razones
+  function mostrarModalRazones(refundId, reason, description) {
+    const motivosMap = {
+      'cambio_circunstancias': 'Cambio en circunstancias',
+      'insatisfaccion_servicio': 'Insatisfacción con servicio',
+      'problemas_economicos': 'Problemas económicos',
+      'encontre_mejor_opcion': 'Encontró mejor opción',
+      'duplicacion_cobertura': 'Duplicación de cobertura',
+      'otro': 'Otro motivo',
+      'cancelation': 'Cancelación',
+      'overpayment': 'Pago excesivo',
+      'adjustment': 'Ajuste',
+      'other': 'Otro'
+    };
+    
+    const motivoTraducido = motivosMap[reason] || reason;
+    
+    // Crear modal dinámico
+    const modalHTML = `
+      <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; justify-content: center; align-items: center;">
+        <div class="modal-content" style="background: white; padding: 30px; border-radius: 10px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #333;">Razones del Reembolso</h3>
+            <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">&times;</button>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <strong>Motivo:</strong>
+            <p style="margin: 5px 0; padding: 10px; background: #f5f5f5; border-radius: 5px;">${motivoTraducido}</p>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <strong>Descripción:</strong>
+            <p style="margin: 5px 0; padding: 10px; background: #f5f5f5; border-radius: 5px; white-space: pre-wrap;">${description || 'No se proporcionó descripción adicional'}</p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 20px;">
+            <button onclick="this.closest('.modal-overlay').remove()" style="background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
   }
 
   // Función para mostrar modal de procesar reembolso
@@ -1422,14 +1512,63 @@ document.addEventListener('DOMContentLoaded', () => {
     const reembolso = reembolsos.find(r => r.refund_id == refundId);
     if (!reembolso) return;
     
-    // Llenar información en el modal
+    // Contar cuántos reembolsos tiene esta póliza
+    const reembolsosDeEstaPolitica = reembolsos.filter(r => r.policy_id === reembolso.policy_id);
+    const numeroSolicitud = reembolsosDeEstaPolitica.findIndex(r => r.refund_id === reembolso.refund_id) + 1;
+    const esNuevaSolicitud = reembolsosDeEstaPolitica.length > 1;
+    
+    // Llenar información en el modal con los campos disponibles
     document.getElementById('detalle-cliente-reembolso').textContent = reembolso.client_name;
-    document.getElementById('detalle-tipo-seguro-reembolso').textContent = reembolso.policy_type;
-    document.getElementById('detalle-contrato-reembolso').textContent = reembolso.contract_id;
+    document.getElementById('detalle-tipo-seguro-reembolso').textContent = reembolso.policy_name;
+    document.getElementById('detalle-contrato-reembolso').textContent = reembolso.policy_id;
     document.getElementById('detalle-monto-reembolso').textContent = parseFloat(reembolso.amount).toFixed(2);
     document.getElementById('detalle-fecha-reembolso').textContent = new Date(reembolso.request_date).toLocaleDateString('es-ES');
-    document.getElementById('detalle-motivo-reembolso').textContent = reembolso.reason_description || 'No especificado';
+    
+    // Mapear motivo a español
+    const motivosMap = {
+      'cambio_circunstancias': 'Cambio en circunstancias',
+      'insatisfaccion_servicio': 'Insatisfacción con servicio',
+      'problemas_economicos': 'Problemas económicos',
+      'encontre_mejor_opcion': 'Encontró mejor opción',
+      'duplicacion_cobertura': 'Duplicación de cobertura',
+      'otro': 'Otro motivo',
+      'cancelation': 'Cancelación',
+      'overpayment': 'Pago excesivo',
+      'adjustment': 'Ajuste',
+      'other': 'Otro'
+    };
+    
+    const motivoTraducido = motivosMap[reembolso.reason] || reembolso.reason;
+    document.getElementById('detalle-motivo-reembolso').textContent = motivoTraducido;
     document.getElementById('detalle-razones-cliente').textContent = reembolso.reason_description || 'No se proporcionaron razones específicas';
+    
+    // Mostrar información sobre solicitudes múltiples si aplica
+    if (esNuevaSolicitud) {
+      const infoSolicitudes = document.createElement('div');
+      infoSolicitudes.style.cssText = `
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 15px;
+        color: #856404;
+      `;
+      infoSolicitudes.innerHTML = `
+        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+          <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
+          <strong>Nueva Solicitud de Reembolso</strong>
+        </div>
+        <p style="margin: 0; font-size: 0.9rem;">
+          Esta es la solicitud #${numeroSolicitud} para esta póliza. 
+          El cliente ha solicitado un nuevo reembolso después de que la solicitud anterior fuera rechazada.
+        </p>
+      `;
+      
+      // Insertar al inicio del modal
+      const modalContent = document.querySelector('#modal-procesar-reembolso .modal-content');
+      const detalleReembolso = document.getElementById('detalle-reembolso');
+      modalContent.insertBefore(infoSolicitudes, detalleReembolso);
+    }
     
     // Mostrar modal
     modalProcesarReembolso.classList.remove('hidden');
@@ -1442,6 +1581,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCancelarReembolso) {
     btnCancelarReembolso.addEventListener('click', () => {
       modalProcesarReembolso.classList.add('hidden');
+      // Limpiar información de solicitudes múltiples
+      const infoSolicitudes = modalProcesarReembolso.querySelector('div[style*="background: #fff3cd"]');
+      if (infoSolicitudes) {
+        infoSolicitudes.remove();
+      }
     });
   }
 
@@ -1471,6 +1615,12 @@ document.addEventListener('DOMContentLoaded', () => {
           showNotification('success', data.message);
           modalProcesarReembolso.classList.add('hidden');
           
+          // Limpiar información de solicitudes múltiples
+          const infoSolicitudes = modalProcesarReembolso.querySelector('div[style*="background: #fff3cd"]');
+          if (infoSolicitudes) {
+            infoSolicitudes.remove();
+          }
+          
           // Limpiar formulario
           document.getElementById('estado-reembolso').value = '';
           document.getElementById('notas-reembolso').value = '';
@@ -1499,6 +1649,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (overlay) {
       overlay.addEventListener('click', () => {
         modalProcesarReembolso.classList.add('hidden');
+        // Limpiar información de solicitudes múltiples
+        const infoSolicitudes = modalProcesarReembolso.querySelector('div[style*="background: #fff3cd"]');
+        if (infoSolicitudes) {
+          infoSolicitudes.remove();
+        }
       });
     }
   }

@@ -1171,52 +1171,100 @@ def create_refund_request():
             return jsonify({'error': 'Solo los clientes pueden solicitar reembolsos'}), 403
         
         data = request.get_json()
+        print(f"DEBUG: Datos recibidos en create_refund_request: {data}")
+        
         contract_id = data.get('contract_id')
+        policy_id = data.get('policy_id')
         reason = data.get('reason', 'cancelation')
         reason_description = data.get('reason_description', 'Solicitud de cancelación y reembolso del cliente')
         
-        if not contract_id:
-            return jsonify({'error': 'ID de contrato requerido'}), 400
+        print(f"DEBUG: contract_id={contract_id}, policy_id={policy_id}")
+        
+        if not contract_id and not policy_id:
+            print("DEBUG: Error - No se proporcionó contract_id ni policy_id")
+            return jsonify({'error': 'ID de contrato o póliza requerido'}), 400
         
         cur = mysql.connection.cursor()
         
-        # Obtener información del contrato y verificar que pertenece al cliente
-        cur.execute("""
-            SELECT cp.id, cp.client_id, cp.agent_id, cp.premium_amount, cp.policy_id, p.name
-            FROM client_policies cp
-            JOIN policies p ON cp.policy_id = p.id
-            WHERE cp.id = %s AND cp.client_id = (
-                SELECT id FROM clients WHERE user_id = %s
-            )
-        """, (contract_id, session['user_id']))
+        if contract_id:
+            print(f"DEBUG: Procesando contract_id: {contract_id}")
+            # Como client_policies no existe, vamos a buscar directamente en policies
+            # usando el contract_id como policy_id (ya que en la práctica son lo mismo)
+            cur.execute("""
+                SELECT p.id, p.client_id, p.agent_id, p.premium_amount, p.name
+                FROM policies p
+                WHERE p.id = %s AND p.client_id = (
+                    SELECT id FROM clients WHERE user_id = %s
+                )
+            """, (contract_id, session['user_id']))
+            
+            contract_data = cur.fetchone()
+            print(f"DEBUG: Resultado de búsqueda por contract_id: {contract_data}")
+            
+            if not contract_data:
+                cur.close()
+                print(f"DEBUG: Contrato no encontrado para contract_id={contract_id}, user_id={session['user_id']}")
+                return jsonify({'error': 'Contrato no encontrado o no autorizado'}), 404
+            
+            policy_id, client_id, agent_id, premium_amount, policy_name = contract_data
+            print(f"DEBUG: Datos extraídos - policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, premium_amount={premium_amount}, policy_name={policy_name}")
+            
+        elif policy_id:
+            print(f"DEBUG: Procesando policy_id: {policy_id}")
+            # Obtener información de la póliza y verificar que pertenece al cliente
+            cur.execute("""
+                SELECT p.id, p.client_id, p.agent_id, p.premium_amount, p.name
+                FROM policies p
+                WHERE p.id = %s AND p.client_id = (
+                    SELECT id FROM clients WHERE user_id = %s
+                )
+            """, (policy_id, session['user_id']))
+            
+            policy_data = cur.fetchone()
+            print(f"DEBUG: Resultado de búsqueda por policy_id: {policy_data}")
+            
+            if not policy_data:
+                cur.close()
+                print(f"DEBUG: Póliza no encontrada para policy_id={policy_id}, user_id={session['user_id']}")
+                return jsonify({'error': 'Póliza no encontrada o no autorizada'}), 404
+            
+            policy_id, client_id, agent_id, premium_amount, policy_name = policy_data
+            print(f"DEBUG: Datos extraídos - policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, premium_amount={premium_amount}, policy_name={policy_name}")
         
-        contract_data = cur.fetchone()
-        if not contract_data:
+        # Verificar que tenemos todos los datos necesarios
+        if not all([policy_id, client_id, agent_id, premium_amount, policy_name]):
             cur.close()
-            return jsonify({'error': 'Contrato no encontrado o no autorizado'}), 404
-        
-        contract_id, client_id, agent_id, premium_amount, policy_id, policy_name = contract_data
+            print(f"DEBUG: Datos incompletos - policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, premium_amount={premium_amount}, policy_name={policy_name}")
+            return jsonify({'error': 'Datos de póliza incompletos'}), 400
         
         # Crear la solicitud de reembolso
+        print(f"DEBUG: Insertando refund con datos: policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, amount={premium_amount}, reason={reason}")
+        
         cur.execute("""
             INSERT INTO refunds 
             (policy_id, client_id, agent_id, amount, reason, reason_description, status, created_by)
             VALUES (%s, %s, %s, %s, %s, %s, 'pending', %s)
         """, (policy_id, client_id, agent_id, premium_amount, reason, reason_description, session['user_id']))
         
+        refund_id = cur.lastrowid
         mysql.connection.commit()
         cur.close()
+        
+        print(f"DEBUG: Refund creado exitosamente con ID: {refund_id}")
         
         return jsonify({
             'success': True,
             'message': f'Solicitud de reembolso creada para {policy_name}. Su solicitud será revisada por nuestro equipo.',
-            'refund_id': cur.lastrowid
+            'refund_id': refund_id
         }), 201
         
     except Exception as e:
         mysql.connection.rollback()
-        print("Error al crear solicitud de reembolso:", str(e))
-        return jsonify({'error': str(e)}), 500
+        print(f"ERROR en create_refund_request: {str(e)}")
+        print(f"DEBUG: Tipo de error: {type(e).__name__}")
+        import traceback
+        print(f"DEBUG: Traceback completo: {traceback.format_exc()}")
+        return jsonify({'error': f'Error interno del servidor: {str(e)}'}), 500
 
 @app.route('/refunds', methods=['GET'])
 @login_required
@@ -1231,21 +1279,18 @@ def list_refunds():
                 SELECT 
                     r.id AS refund_id,
                     r.policy_id,
-                    p.name AS policy_name,
-                    p.type AS policy_type,
-                    CONCAT(c.first_name, ' ', c.last_name) AS client_name,
-                    u.email AS client_email,
                     r.amount,
                     r.request_date,
                     r.status,
                     r.reason,
                     r.reason_description,
-                    cp.id AS contract_id
+                    p.name AS policy_name,
+                    CONCAT(c.first_name, ' ', c.last_name) AS client_name,
+                    u.email AS client_email
                 FROM refunds r
                 JOIN policies p ON r.policy_id = p.id
                 JOIN clients c ON r.client_id = c.id
                 JOIN users u ON c.user_id = u.id
-                JOIN client_policies cp ON cp.policy_id = r.policy_id AND cp.client_id = r.client_id
                 WHERE r.agent_id = %s
                 ORDER BY r.request_date DESC
             """, (session['user_id'],))
@@ -1256,21 +1301,18 @@ def list_refunds():
                 SELECT 
                     r.id AS refund_id,
                     r.policy_id,
-                    p.name AS policy_name,
-                    p.type AS policy_type,
-                    CONCAT(c.first_name, ' ', c.last_name) AS client_name,
-                    u.email AS client_email,
                     r.amount,
                     r.request_date,
                     r.status,
                     r.reason,
                     r.reason_description,
-                    cp.id AS contract_id
+                    p.name AS policy_name,
+                    CONCAT(c.first_name, ' ', c.last_name) AS client_name,
+                    u.email AS client_email
                 FROM refunds r
                 JOIN policies p ON r.policy_id = p.id
                 JOIN clients c ON r.client_id = c.id
                 JOIN users u ON c.user_id = u.id
-                JOIN client_policies cp ON cp.policy_id = r.policy_id AND cp.client_id = r.client_id
                 ORDER BY r.request_date DESC
             """)
             
@@ -1280,12 +1322,12 @@ def list_refunds():
                 SELECT 
                     r.id AS refund_id,
                     r.policy_id,
-                    p.name AS policy_name,
                     r.amount,
                     r.request_date,
                     r.status,
                     r.reason,
-                    r.reason_description
+                    r.reason_description,
+                    p.name AS policy_name
                 FROM refunds r
                 JOIN policies p ON r.policy_id = p.id
                 WHERE r.client_id = (
@@ -1300,27 +1342,25 @@ def list_refunds():
                 refunds.append({
                     'refund_id': row[0],
                     'policy_id': row[1],
-                    'policy_name': row[2],
-                    'amount': float(row[3]),
-                    'request_date': row[4].isoformat() if row[4] else None,
-                    'status': row[5],
-                    'reason': row[6],
-                    'reason_description': row[7]
+                    'amount': float(row[2]),
+                    'request_date': row[3].isoformat() if row[3] else None,
+                    'status': row[4],
+                    'reason': row[5],
+                    'reason_description': row[6],
+                    'policy_name': row[7]
                 })
             else:  # Agente o Admin
                 refunds.append({
                     'refund_id': row[0],
                     'policy_id': row[1],
-                    'policy_name': row[2],
-                    'policy_type': row[3],
-                    'client_name': row[4],
-                    'client_email': row[5],
-                    'amount': float(row[6]),
-                    'request_date': row[7].isoformat() if row[7] else None,
-                    'status': row[8],
-                    'reason': row[9],
-                    'reason_description': row[10],
-                    'contract_id': row[11]
+                    'amount': float(row[2]),
+                    'request_date': row[3].isoformat() if row[3] else None,
+                    'status': row[4],
+                    'reason': row[5],
+                    'reason_description': row[6],
+                    'policy_name': row[7],
+                    'client_name': row[8],
+                    'client_email': row[9]
                 })
         
         cur.close()
