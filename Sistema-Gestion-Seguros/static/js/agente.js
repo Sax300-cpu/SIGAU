@@ -857,10 +857,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             console.log("Resultado exitoso:", result);
 
-            showNotification('success', 
-                `Contrato creado exitosamente!<br>
-                 Beneficiarios: ${result.beneficiarios_count}<br>
-                 Documentos: ${result.documentos_count}`);
+            // Mostrar modal de éxito en vez de notificación flotante
+            mostrarModalExitoContrato();
             
             // Resetear formulario
             formContratoMejorado.reset();
@@ -1719,3 +1717,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 });
+
+// Al final del archivo, agrega la función para mostrar el modal de éxito
+function mostrarModalExitoContrato() {
+  // Elimina cualquier modal previo
+  const modalExistente = document.getElementById('modal-exito-contrato');
+  if (modalExistente) modalExistente.remove();
+  // Crea el modal
+  const modal = document.createElement('div');
+  modal.id = 'modal-exito-contrato';
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal-overlay"></div>
+    <div class="modal-content" style="max-width:370px;text-align:center; border-radius:16px; padding:32px 24px 28px 24px;">
+      <h3 style="color:#1976d2; margin-bottom:28px; font-size:1.45em; font-weight:700; letter-spacing:0.5px;">Contrato creado exitosamente</h3>
+      <button id="btn-cerrar-exito-contrato" class="close-btn" style="background:#1976d2;color:#fff;border:none;border-radius:6px;padding:10px 32px;font-size:1.08em;font-weight:500;cursor:pointer;transition:background 0.18s;">Cerrar</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+  // Cerrar modal
+  document.getElementById('btn-cerrar-exito-contrato').onclick = function() {
+    modal.classList.add('hidden');
+    modal.remove();
+  };
+  const overlay = modal.querySelector('.modal-overlay');
+  if (overlay) overlay.onclick = function() {
+    modal.classList.add('hidden');
+    modal.remove();
+  };
+}
