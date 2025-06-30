@@ -213,7 +213,7 @@ def client_panel():
     contracts = []
     if client_id:
         cur.execute("""
-            SELECT cp.id, p.name, cp.premium_amount, cp.payment_frequency, cp.status
+            SELECT cp.id, cp.policy_id, p.name, cp.premium_amount, cp.payment_frequency, cp.status
             FROM client_policies cp
             JOIN policies p ON cp.policy_id = p.id
             WHERE cp.client_id = %s
@@ -221,6 +221,7 @@ def client_panel():
         """, (client_id,))
         for r in cur.fetchall():
             contract_id = r[0]
+            policy_id = r[1]
             # Traer documentos de este contrato, incluyendo status y review_comment
             cur.execute("SELECT id, file_path, uploaded_by, upload_date, status, review_comment FROM documents WHERE contract_id = %s", (contract_id,))
             documentos = [
@@ -234,24 +235,23 @@ def client_panel():
                 }
                 for d in cur.fetchall()
             ]
-            
-            # Obtener el estado del reembolso más reciente para este contrato
+            # Obtener el estado del reembolso más reciente para esta póliza
             cur.execute("""
                 SELECT status 
                 FROM refunds 
                 WHERE policy_id = %s 
                 ORDER BY request_date DESC 
                 LIMIT 1
-            """, (contract_id,))
+            """, (policy_id,))
             refund_status_row = cur.fetchone()
             refund_status = refund_status_row[0] if refund_status_row else None
-            
             contracts.append({
-                'id':    r[0],
-                'name':  r[1],
-                'amount': float(r[2]),
-                'freq':  r[3],
-                'status': r[4],
+                'id':    contract_id,
+                'policy_id': policy_id,
+                'name':  r[2],
+                'amount': float(r[3]),
+                'freq':  r[4],
+                'status': r[5],
                 'documents': documentos,
                 'refund_status': refund_status
             })
@@ -1248,55 +1248,45 @@ def create_refund_request():
                     SELECT id FROM clients WHERE user_id = %s
                 )
             """, (contract_id, session['user_id']))
-            
             contract_data = cur.fetchone()
             print(f"DEBUG: Resultado de búsqueda por contract_id: {contract_data}")
-            
             if not contract_data:
                 cur.close()
                 print(f"DEBUG: Contrato no encontrado para contract_id={contract_id}, user_id={session['user_id']}")
                 return jsonify({'error': 'Contrato no encontrado o no autorizado'}), 404
-            
             policy_id, client_id, agent_id, premium_amount, policy_name = contract_data
             print(f"DEBUG: Datos extraídos - policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, premium_amount={premium_amount}, policy_name={policy_name}")
-            
         elif policy_id:
             print(f"DEBUG: Procesando policy_id: {policy_id}")
             # Obtener información de la póliza desde client_policies y verificar que pertenece al cliente
             cur.execute("""
-                SELECT cp.id, cp.policy_id, cp.client_id, cp.agent_id, cp.premium_amount, p.name
+                SELECT cp.policy_id, cp.client_id, cp.agent_id, cp.premium_amount, p.name
                 FROM client_policies cp
                 JOIN policies p ON cp.policy_id = p.id
                 WHERE cp.policy_id = %s AND cp.client_id = (
                     SELECT id FROM clients WHERE user_id = %s
                 )
             """, (policy_id, session['user_id']))
-            
             policy_data = cur.fetchone()
             print(f"DEBUG: Resultado de búsqueda por policy_id: {policy_data}")
-            
             if not policy_data:
                 cur.close()
                 print(f"DEBUG: Póliza no encontrada para policy_id={policy_id}, user_id={session['user_id']}")
                 return jsonify({'error': 'Póliza no encontrada o no autorizada'}), 404
-            
-            contract_id, policy_id, client_id, agent_id, premium_amount, policy_name = policy_data
-            print(f"DEBUG: Datos extraídos - contract_id={contract_id}, policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, premium_amount={premium_amount}, policy_name={policy_name}")
-        
+            policy_id, client_id, agent_id, premium_amount, policy_name = policy_data
+            print(f"DEBUG: Datos extraídos - policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, premium_amount={premium_amount}, policy_name={policy_name}")
         # Verificar que tenemos todos los datos necesarios
-        if not all([contract_id, client_id, agent_id, premium_amount, policy_name]):
+        if not all([policy_id, client_id, agent_id, premium_amount, policy_name]):
             cur.close()
-            print(f"DEBUG: Datos incompletos - contract_id={contract_id}, client_id={client_id}, agent_id={agent_id}, premium_amount={premium_amount}, policy_name={policy_name}")
+            print(f"DEBUG: Datos incompletos - policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, premium_amount={premium_amount}, policy_name={policy_name}")
             return jsonify({'error': 'Datos de póliza incompletos'}), 400
-        
         # Crear la solicitud de reembolso
-        print(f"DEBUG: Insertando refund con datos: contract_id={contract_id}, client_id={client_id}, agent_id={agent_id}, amount={premium_amount}, reason={reason}")
-        
+        print(f"DEBUG: Insertando refund con datos: policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, amount={premium_amount}, reason={reason}")
         cur.execute("""
             INSERT INTO refunds 
-            (contract_id, client_id, agent_id, amount, reason, reason_description, status, created_by)
+            (policy_id, client_id, agent_id, amount, reason, reason_description, status, created_by)
             VALUES (%s, %s, %s, %s, %s, %s, 'pending', %s)
-        """, (contract_id, client_id, agent_id, premium_amount, reason, reason_description, session['user_id']))
+        """, (policy_id, client_id, agent_id, premium_amount, reason, reason_description, session['user_id']))
         
         refund_id = cur.lastrowid
         mysql.connection.commit()
@@ -1452,16 +1442,28 @@ def update_refund_status(refund_id):
             cur.close()
             return jsonify({'error': 'Solicitud de reembolso no encontrada'}), 404
         
-        # Actualizar estado
+        # Actualizar estado del reembolso
         cur.execute("""
             UPDATE refunds 
             SET status = %s, processed_date = NOW(), processed_by = %s, notes = %s
             WHERE id = %s
         """, (new_status, session['user_id'], notes, refund_id))
-        
+
+        # Si el reembolso fue aprobado, marcar la póliza como inactiva
+        if new_status == 'approved':
+            # Obtener policy_id asociado al reembolso
+            cur.execute("SELECT policy_id FROM refunds WHERE id = %s", (refund_id,))
+            row = cur.fetchone()
+            if row:
+                policy_id = row[0]
+                # Marcar como inactivo en policies
+                cur.execute("UPDATE policies SET status = 'inactivo' WHERE id = %s", (policy_id,))
+                # Marcar como inactivo en client_policies
+                cur.execute("UPDATE client_policies SET status = 'inactivo' WHERE policy_id = %s", (policy_id,))
+
         mysql.connection.commit()
         cur.close()
-        
+
         return jsonify({
             'success': True,
             'message': f'Estado de reembolso actualizado a {new_status}'

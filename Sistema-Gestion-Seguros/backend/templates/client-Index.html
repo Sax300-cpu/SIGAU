@@ -135,6 +135,17 @@
                     <p><strong>Pago {{ c.freq|lower }}:</strong> ${{ c.amount }}</p>
                   </div>
                   <div class="mensaje-exito" style="color: #388e3c; margin-top: 10px; font-weight: 500;">¡Tu seguro está vigente y protegido!</div>
+                {% elif c.status == 'inactivo' %}
+                  <span class="document-status-label" style="background:#757575;color:#fff;">Seguro Inactivo</span>
+                  <h3>{{ c.name }}</h3>
+                  <div class="seguro-aviso" style="background:#f5f5f5; color:#757575; border:1px solid #bdbdbd; border-radius:5px; padding:5px 8px; margin-bottom:6px; font-size:0.95em;">
+                    Estado: Inactivo
+                  </div>
+                  <div class="details">
+                    <p><strong>N.º de contrato:</strong> {{ c.id }}</p>
+                    <p><strong>Pago {{ c.freq|lower }}:</strong> ${{ c.amount }}</p>
+                  </div>
+                  <div class="mensaje-inactivo" style="color: #757575; margin-top: 10px; font-weight: 500;">Este seguro ya no está activo debido a un reembolso aprobado.</div>
                 {% else %}
                   <span class="document-status-label" style="background:#1976d2;color:#fff;">Pendiente de Documentación</span>
                   <h3>{{ c.name }}</h3>
