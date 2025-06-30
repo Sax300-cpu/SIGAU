@@ -105,7 +105,7 @@ ADD CONSTRAINT `payments_ibfk_2`
   ON UPDATE CASCADE;
 
 ALTER TABLE `refunds` 
-ADD INDEX `contract_id` (`contract_id` ASC) VISIBLE,
+ADD INDEX `policy_id` (`policy_id` ASC) VISIBLE,
 ADD CONSTRAINT `refunds_ibfk_2`
   FOREIGN KEY (`contract_id`)
   REFERENCES `client_policies` (`id`)
