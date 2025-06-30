@@ -228,10 +228,66 @@
           let selectedPolicyId = null;
           let selectedPolicyName = null;
           
+          // Variable para controlar si se debe actualizar el historial
+          let shouldUpdateHistory = true;
+          let lastUpdateTime = 0;
+          const UPDATE_COOLDOWN = 5000; // 5 segundos de cooldown entre actualizaciones (aumentado de 2 a 5)
+          
           // Verificar si hay contratos para mostrar/ocultar el enlace de reembolsos
           var hasContracts = reembolsoSection && reembolsoSection.getAttribute('data-has-contracts') === 'true';
           if (!hasContracts && reembolsoLink) {
             reembolsoLink.parentElement.style.display = 'none';
+          }
+          
+          // Cargar historial de reembolsos al inicio para actualizar botones
+          if (hasContracts) {
+            // Cargar inmediatamente para actualizar botones
+            cargarHistorialReembolsos();
+            
+            // También cargar cuando se complete la carga del DOM
+            setTimeout(() => {
+              cargarHistorialReembolsos();
+            }, 1000); // Aumentado a 1 segundo
+            
+            // Y una vez más después de un segundo para asegurar que se actualicen
+            setTimeout(() => {
+              cargarHistorialReembolsos();
+            }, 3000); // Aumentado a 3 segundos
+            
+            // Función para verificar y actualizar botones inmediatamente
+            function verificarYActualizarBotones() {
+              const now = Date.now();
+              if (!shouldUpdateHistory || (now - lastUpdateTime) < UPDATE_COOLDOWN) {
+                console.log('Saltando actualización de botones - cooldown activo o actualización deshabilitada');
+                return;
+              }
+              
+              const botones = document.querySelectorAll('[id^="btn-solicitar-reembolso-"]');
+              if (botones.length > 0) {
+                console.log('Botones encontrados, cargando historial para actualizarlos...');
+                lastUpdateTime = now;
+                cargarHistorialReembolsos();
+              }
+            }
+            
+            // Verificar inmediatamente
+            verificarYActualizarBotones();
+            
+            // Verificar cada 5 segundos durante los primeros 20 segundos (reducido)
+            let verificaciones = 0;
+            const intervalo = setInterval(() => {
+              verificaciones++;
+              verificarYActualizarBotones();
+              if (verificaciones >= 4) { // Reducido de 5 a 4
+                clearInterval(intervalo);
+              }
+            }, 5000); // Aumentado de 2 a 5 segundos
+            
+            // También verificar cuando la página termine de cargar completamente
+            window.addEventListener('load', function() {
+              console.log('Página completamente cargada, verificando botones...');
+              setTimeout(verificarYActualizarBotones, 500); // Aumentado a 500ms
+            });
           }
           
           // Al iniciar sesión, mostrar solo la sección de inicio y el título correspondiente
@@ -259,6 +315,8 @@
               ocultarTodo();
               polizasSection.style.display = 'block';
               if (mainTitle) mainTitle.textContent = 'Mis Pólizas';
+              // Verificar botones después de cambiar de sección
+              setTimeout(verificarYActualizarBotones, 100);
             });
           }
           if (inicioLink && polizasSection && inicioSection) {
@@ -267,6 +325,8 @@
               ocultarTodo();
               inicioSection.style.display = 'block';
               if (mainTitle) mainTitle.textContent = 'Inicio';
+              // Verificar botones después de cambiar de sección
+              setTimeout(verificarYActualizarBotones, 100);
             });
           }
           if (vidaLink && vidaSection) {
@@ -275,6 +335,8 @@
               ocultarTodo();
               vidaSection.style.display = 'block';
               if (mainTitle) mainTitle.textContent = 'Seguros de Vida';
+              // Verificar botones después de cambiar de sección
+              setTimeout(verificarYActualizarBotones, 100);
             });
           }
           if (saludLink && saludSection) {
@@ -283,6 +345,8 @@
               ocultarTodo();
               saludSection.style.display = 'block';
               if (mainTitle) mainTitle.textContent = 'Seguros de Salud';
+              // Verificar botones después de cambiar de sección
+              setTimeout(verificarYActualizarBotones, 100);
             });
           }
           if (reembolsoLink && reembolsoSection && hasContracts) {
@@ -291,6 +355,26 @@
               ocultarTodo();
               reembolsoSection.style.display = 'block';
               if (mainTitle) mainTitle.textContent = 'Reembolso';
+              // Recargar historial cuando se muestra la sección
+              setTimeout(cargarHistorialReembolsos, 100);
+            });
+            
+            // Observer para detectar cuando la sección se hace visible
+            const observer = new MutationObserver(function(mutations) {
+              mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                  const isVisible = reembolsoSection.style.display === 'block';
+                  if (isVisible) {
+                    console.log('Sección de reembolso visible, actualizando botones...');
+                    setTimeout(cargarHistorialReembolsos, 50);
+                  }
+                }
+              });
+            });
+            
+            observer.observe(reembolsoSection, {
+              attributes: true,
+              attributeFilter: ['style']
             });
           }
           
@@ -323,6 +407,10 @@
               
               selectedContractId = contractId;
               
+              // Deshabilitar actualizaciones automáticas temporalmente
+              shouldUpdateHistory = false;
+              console.log('Deshabilitando actualizaciones automáticas al hacer clic en botón...');
+              
               // Mostrar modal inmediatamente sin operaciones adicionales
               document.getElementById('modal-cancelar-contrato').classList.remove('hidden');
               
@@ -336,12 +424,18 @@
             if (e.target.id === 'btn-close-cancelar-modal') {
               document.getElementById('modal-cancelar-contrato').classList.add('hidden');
               selectedContractId = null;
+              // Rehabilitar actualizaciones automáticas
+              shouldUpdateHistory = true;
+              console.log('Rehabilitando actualizaciones automáticas al cerrar modal...');
             }
             
             // Botón cancelar
             if (e.target.id === 'btn-cancelar-cancelar') {
               document.getElementById('modal-cancelar-contrato').classList.add('hidden');
               selectedContractId = null;
+              // Rehabilitar actualizaciones automáticas
+              shouldUpdateHistory = true;
+              console.log('Rehabilitando actualizaciones automáticas al cancelar...');
             }
             
             // Botón aceptar (ahora abre el modal de razones)
@@ -354,6 +448,9 @@
             if (e.target.id === 'btn-close-razones-modal') {
               document.getElementById('modal-razones-cancelacion').classList.add('hidden');
               selectedContractId = null;
+              // Rehabilitar actualizaciones automáticas
+              shouldUpdateHistory = true;
+              console.log('Rehabilitando actualizaciones automáticas al cerrar modal de razones...');
             }
             
             // Botón cancelar en modal de razones
@@ -362,6 +459,9 @@
               selectedContractId = null;
               selectedPolicyId = null;
               selectedPolicyName = null;
+              // Rehabilitar actualizaciones automáticas
+              shouldUpdateHistory = true;
+              console.log('Rehabilitando actualizaciones automáticas al cancelar razones...');
             }
             
             // Botón enviar razones (submit del formulario)
@@ -408,6 +508,10 @@
               btnEnviar.textContent = 'Enviando...';
               btnEnviar.disabled = true;
               
+              // Deshabilitar actualizaciones automáticas temporalmente
+              shouldUpdateHistory = false;
+              console.log('Deshabilitando actualizaciones automáticas durante el envío...');
+              
               fetch('/refunds', {
                 method: 'POST',
                 headers: {
@@ -445,13 +549,21 @@
                   selectedPolicyId = null;
                   selectedPolicyName = null;
                   
-                  // Recargar historial de reembolsos de manera asíncrona
-                  setTimeout(cargarHistorialReembolsos, 100);
+                  // Habilitar actualizaciones automáticas después de un delay
+                  setTimeout(() => {
+                    shouldUpdateHistory = true;
+                    console.log('Rehabilitando actualizaciones automáticas...');
+                    // Recargar historial de reembolsos de manera asíncrona
+                    setTimeout(cargarHistorialReembolsos, 500);
+                  }, 3000); // 3 segundos de delay
                 } else {
                   // Mostrar notificación de error
                   document.getElementById('notificacion-titulo').textContent = 'Error';
                   document.getElementById('notificacion-mensaje').textContent = data.error || 'Error al enviar la solicitud';
                   document.getElementById('modal-notificacion').classList.remove('hidden');
+                  
+                  // Rehabilitar actualizaciones automáticas inmediatamente en caso de error
+                  shouldUpdateHistory = true;
                 }
                 document.getElementById('modal-razones-cancelacion').classList.add('hidden');
               })
@@ -464,6 +576,9 @@
                 selectedContractId = null;
                 selectedPolicyId = null;
                 selectedPolicyName = null;
+                
+                // Rehabilitar actualizaciones automáticas inmediatamente en caso de error
+                shouldUpdateHistory = true;
               })
               .finally(() => {
                 // Restaurar botón
@@ -487,11 +602,204 @@
               document.getElementById('modal-lista-notificaciones').classList.add('hidden');
             }
           });
+          
+          // Observer general para detectar cambios en el DOM que puedan afectar los botones
+          const domObserver = new MutationObserver(function(mutations) {
+            let shouldUpdate = false;
+            mutations.forEach(function(mutation) {
+              if (mutation.type === 'childList') {
+                mutation.addedNodes.forEach(function(node) {
+                  if (node.nodeType === 1 && (node.id && node.id.startsWith('btn-solicitar-reembolso-') || 
+                      node.querySelector && node.querySelector('[id^="btn-solicitar-reembolso-"]'))) {
+                    shouldUpdate = true;
+                  }
+                });
+              }
+            });
+            
+            if (shouldUpdate) {
+              console.log('Cambios detectados en el DOM, actualizando botones...');
+              setTimeout(cargarHistorialReembolsos, 100);
+            }
+          });
+          
+          domObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+          
+          // Verificar botones cuando el usuario haga scroll o interactúe con la página
+          let scrollTimeout;
+          window.addEventListener('scroll', function() {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(verificarYActualizarBotones, 2000); // Aumentado a 2 segundos
+          });
+          
+          // Verificar botones cuando la página vuelva a ser visible
+          document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+              console.log('Página visible nuevamente, verificando botones...');
+              setTimeout(verificarYActualizarBotones, 500); // Aumentado a 500ms
+            }
+          });
+          
+          // Verificar botones cuando el usuario haga clic en cualquier parte de la página
+          // document.addEventListener('click', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // Verificar botones cuando el usuario haga focus en cualquier elemento
+          // document.addEventListener('focusin', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // Verificar botones cuando el usuario mueva el mouse
+          // let mouseTimeout;
+          // document.addEventListener('mousemove', function() {
+          //   clearTimeout(mouseTimeout);
+          //   mouseTimeout = setTimeout(verificarYActualizarBotones, 1000);
+          // });
+          
+          // Verificar botones cuando el usuario presione cualquier tecla
+          // let keyTimeout;
+          // document.addEventListener('keydown', function() {
+          //   clearTimeout(keyTimeout);
+          //   keyTimeout = setTimeout(verificarYActualizarBotones, 500);
+          // });
+          
+          // Verificar botones cuando el usuario cambie el tamaño de la ventana
+          window.addEventListener('resize', function() {
+            setTimeout(verificarYActualizarBotones, 1000); // Aumentado a 1 segundo
+          });
+          
+          // Verificar botones cuando el usuario haga doble clic
+          // document.addEventListener('dblclick', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // Verificar botones cuando el usuario haga clic derecho
+          // document.addEventListener('contextmenu', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // Verificar botones cuando el usuario haga hover sobre cualquier elemento
+          // let hoverTimeout;
+          // document.addEventListener('mouseenter', function() {
+          //   clearTimeout(hoverTimeout);
+          //   hoverTimeout = setTimeout(verificarYActualizarBotones, 500);
+          // });
+          
+          // Verificar botones cuando el usuario haga hover sobre cualquier elemento
+          // document.addEventListener('mouseover', function() {
+          //   clearTimeout(hoverTimeout);
+          //   hoverTimeout = setTimeout(verificarYActualizarBotones, 500);
+          // });
+          
+          // Verificar botones cuando el usuario haga touch en dispositivos móviles
+          // document.addEventListener('touchstart', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // document.addEventListener('touchend', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // document.addEventListener('touchmove', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // Verificar botones cuando el usuario use la rueda del mouse
+          // let wheelTimeout;
+          // document.addEventListener('wheel', function() {
+          //   clearTimeout(wheelTimeout);
+          //   wheelTimeout = setTimeout(verificarYActualizarBotones, 500);
+          // });
+          
+          // Verificar botones cuando el usuario haga drag
+          // document.addEventListener('dragstart', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // document.addEventListener('dragend', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // Verificar botones cuando el usuario seleccione texto
+          // document.addEventListener('selectstart', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // Verificar botones cuando el usuario haga copy
+          // document.addEventListener('copy', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // Verificar botones cuando el usuario haga paste
+          // document.addEventListener('paste', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // Verificar botones cuando el usuario haga cut
+          // document.addEventListener('cut', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // Verificar botones cuando el usuario haga undo
+          // document.addEventListener('undo', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // Verificar botones cuando el usuario haga redo
+          // document.addEventListener('redo', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // Verificar botones cuando el usuario escriba en campos de texto
+          // document.addEventListener('input', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // Verificar botones cuando el usuario cambie el valor de un campo
+          // document.addEventListener('change', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
+          
+          // Verificar botones cuando el usuario haga submit de un formulario
+          // document.addEventListener('submit', function() {
+          //   setTimeout(verificarYActualizarBotones, 100);
+          // });
         });
         
         // Función para actualizar botones de solicitar reembolso basándose en el estado de los reembolsos
         function actualizarBotonesReembolso(reembolsos) {
-          // Agrupar reembolsos por policy_id para obtener el estado más reciente de cada póliza
+          console.log('Actualizando botones de reembolso con datos:', reembolsos);
+          
+          // Buscar todos los botones de solicitar reembolso disponibles
+          const botones = document.querySelectorAll('[id^="btn-solicitar-reembolso-"]');
+          console.log('Botones encontrados en la página:', botones.length);
+          
+          // Si no hay reembolsos, todos los botones deben estar en estado "Solicitar Reembolso"
+          if (!reembolsos || reembolsos.length === 0) {
+            console.log('No hay reembolsos, reseteando todos los botones');
+            botones.forEach(btn => {
+              // Solo resetear si el botón no está en estado "Enviado" o "Aprobado"
+              if (btn.textContent !== 'Enviado' && btn.textContent !== 'Aprobado') {
+                btn.textContent = 'Solicitar Reembolso';
+                btn.style.background = '#1976d2';
+                btn.style.color = '#fff';
+                btn.style.cursor = 'pointer';
+                btn.disabled = false;
+              } else {
+                console.log(`Manteniendo estado del botón ${btn.getAttribute('data-contract-id')}: ${btn.textContent}`);
+              }
+            });
+            return;
+          }
+          
+          // Crear un mapa de estados por contract_id
+          const estadosPorContract = {};
+          
+          // Agrupar reembolsos por policy_id y obtener el estado más reciente
           const reembolsosPorPolitica = {};
           reembolsos.forEach(reembolso => {
             if (!reembolsosPorPolitica[reembolso.policy_id]) {
@@ -503,40 +811,57 @@
           // Para cada póliza, obtener el reembolso más reciente
           Object.keys(reembolsosPorPolitica).forEach(policyId => {
             const reembolsosDeEstaPolitica = reembolsosPorPolitica[policyId];
-            
-            // Ordenar por fecha de solicitud (más reciente primero)
             reembolsosDeEstaPolitica.sort((a, b) => new Date(b.request_date) - new Date(a.request_date));
-            
             const reembolsoMasReciente = reembolsosDeEstaPolitica[0];
-            
-            // Buscar el botón correspondiente a esta póliza
-            // Necesitamos mapear policy_id a contract_id
-            // Por ahora, asumimos que el policy_id en reembolsos corresponde al contract_id
             const contractId = reembolsoMasReciente.policy_id;
-            const btnSolicitar = document.getElementById(`btn-solicitar-reembolso-${contractId}`);
+            estadosPorContract[contractId] = reembolsoMasReciente.status;
+          });
+          
+          // Actualizar todos los botones encontrados
+          botones.forEach(btn => {
+            const contractId = btn.getAttribute('data-contract-id');
+            const estado = estadosPorContract[contractId];
+            const estadoActual = btn.textContent.trim();
             
-            if (btnSolicitar) {
-              if (reembolsoMasReciente.status === 'rejected') {
-                // Si fue rechazado, cambiar a "Solicitar de nuevo"
-                btnSolicitar.textContent = 'Solicitar de nuevo';
-                btnSolicitar.style.background = '#ff9800';
-                btnSolicitar.style.color = '#fff';
-                btnSolicitar.style.cursor = 'pointer';
-                btnSolicitar.disabled = false;
-              } else if (reembolsoMasReciente.status === 'pending') {
-                // Si está pendiente, cambiar a "Enviado"
-                btnSolicitar.textContent = 'Enviado';
-                btnSolicitar.style.background = '#9e9e9e';
-                btnSolicitar.style.color = '#fff';
-                btnSolicitar.style.cursor = 'not-allowed';
-                btnSolicitar.disabled = true;
-              } else if (reembolsoMasReciente.status === 'approved') {
-                // Si fue aprobado, cambiar a "Aprobado"
-                btnSolicitar.textContent = 'Aprobado';
-                btnSolicitar.style.background = '#4caf50';
-                btnSolicitar.style.color = '#fff';
-                btnSolicitar.style.cursor = 'not-allowed';
-                btnSolicitar.disabled = true;
+            console.log(`Botón ${contractId}: estado actual = "${estadoActual}", estado del servidor = "${estado}"`);
+            
+            // Solo actualizar si el estado es diferente o si no hay estado del servidor
+            if (estado === 'rejected') {
+              if (estadoActual !== 'Solicitar de nuevo') {
+                console.log(`Actualizando botón ${contractId} a estado rechazado`);
+                btn.textContent = 'Solicitar de nuevo';
+                btn.style.background = '#ff9800';
+                btn.style.color = '#fff';
+                btn.style.cursor = 'pointer';
+                btn.disabled = false;
+              }
+            } else if (estado === 'pending') {
+              if (estadoActual !== 'Enviado') {
+                console.log(`Actualizando botón ${contractId} a estado pendiente`);
+                btn.textContent = 'Enviado';
+                btn.style.background = '#9e9e9e';
+                btn.style.color = '#fff';
+                btn.style.cursor = 'not-allowed';
+                btn.disabled = true;
+              }
+            } else if (estado === 'approved') {
+              if (estadoActual !== 'Aprobado') {
+                console.log(`Actualizando botón ${contractId} a estado aprobado`);
+                btn.textContent = 'Aprobado';
+                btn.style.background = '#4caf50';
+                btn.style.color = '#fff';
+                btn.style.cursor = 'not-allowed';
+                btn.disabled = true;
+              }
+            } else {
+              // Solo resetear si el botón no está en estado "Enviado" o "Aprobado"
+              if (estadoActual !== 'Solicitar Reembolso' && estadoActual !== 'Enviado' && estadoActual !== 'Aprobado') {
+                console.log(`Reseteando botón ${contractId} a estado inicial`);
+                btn.textContent = 'Solicitar Reembolso';
+                btn.style.background = '#1976d2';
+                btn.style.color = '#fff';
+                btn.style.cursor = 'pointer';
+                btn.disabled = false;
               }
             }
           });
@@ -544,6 +869,7 @@
         
         // Función para cargar el historial de reembolsos
         async function cargarHistorialReembolsos() {
+          console.log('Iniciando carga de historial de reembolsos...');
           try {
             const response = await fetch('/refunds');
             if (!response.ok) {
@@ -551,9 +877,16 @@
             }
             
             const reembolsos = await response.json();
+            console.log('Reembolsos cargados del servidor:', reembolsos);
+            
             const historialContainer = document.getElementById('historial-reembolsos');
             
+            // Siempre actualizar los botones, independientemente de si hay reembolsos o no
+            console.log('Actualizando botones con los reembolsos cargados...');
+            actualizarBotonesReembolso(reembolsos);
+            
             if (reembolsos.length === 0) {
+              console.log('No hay reembolsos, mostrando mensaje vacío');
               historialContainer.innerHTML = `
                 <div style="text-align: center; color: #666; padding: 20px;">
                   <i class="fas fa-info-circle" style="font-size: 1.2rem; margin-right: 8px;"></i>
@@ -562,9 +895,6 @@
               `;
               return;
             }
-            
-            // Actualizar botones de solicitar reembolso basándose en el estado de los reembolsos
-            actualizarBotonesReembolso(reembolsos);
             
             // Agrupar reembolsos por policy_id para controlar duplicados y numerar solicitudes
             const reembolsosPorPolitica = {};
@@ -742,13 +1072,6 @@
             `;
           }
         }
-        
-        // Cargar historial cuando se muestre la sección de reembolso
-        const reembolsoLink = document.getElementById('reembolso-link');
-        reembolsoLink.addEventListener('click', function() {
-          // Cargar historial después de un pequeño delay para asegurar que la sección esté visible
-          setTimeout(cargarHistorialReembolsos, 100);
-        });
         
         // Función para mostrar detalles del reembolso
         function mostrarDetalleReembolso(reembolso) {

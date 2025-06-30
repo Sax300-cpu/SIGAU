@@ -1264,7 +1264,7 @@ def create_refund_request():
             print(f"DEBUG: Procesando policy_id: {policy_id}")
             # Obtener información de la póliza desde client_policies y verificar que pertenece al cliente
             cur.execute("""
-                SELECT cp.policy_id, cp.client_id, cp.agent_id, cp.premium_amount, p.name
+                SELECT cp.id, cp.policy_id, cp.client_id, cp.agent_id, cp.premium_amount, p.name
                 FROM client_policies cp
                 JOIN policies p ON cp.policy_id = p.id
                 WHERE cp.policy_id = %s AND cp.client_id = (
@@ -1280,23 +1280,23 @@ def create_refund_request():
                 print(f"DEBUG: Póliza no encontrada para policy_id={policy_id}, user_id={session['user_id']}")
                 return jsonify({'error': 'Póliza no encontrada o no autorizada'}), 404
             
-            policy_id, client_id, agent_id, premium_amount, policy_name = policy_data
-            print(f"DEBUG: Datos extraídos - policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, premium_amount={premium_amount}, policy_name={policy_name}")
+            contract_id, policy_id, client_id, agent_id, premium_amount, policy_name = policy_data
+            print(f"DEBUG: Datos extraídos - contract_id={contract_id}, policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, premium_amount={premium_amount}, policy_name={policy_name}")
         
         # Verificar que tenemos todos los datos necesarios
-        if not all([policy_id, client_id, agent_id, premium_amount, policy_name]):
+        if not all([contract_id, client_id, agent_id, premium_amount, policy_name]):
             cur.close()
-            print(f"DEBUG: Datos incompletos - policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, premium_amount={premium_amount}, policy_name={policy_name}")
+            print(f"DEBUG: Datos incompletos - contract_id={contract_id}, client_id={client_id}, agent_id={agent_id}, premium_amount={premium_amount}, policy_name={policy_name}")
             return jsonify({'error': 'Datos de póliza incompletos'}), 400
         
         # Crear la solicitud de reembolso
-        print(f"DEBUG: Insertando refund con datos: policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, amount={premium_amount}, reason={reason}")
+        print(f"DEBUG: Insertando refund con datos: contract_id={contract_id}, client_id={client_id}, agent_id={agent_id}, amount={premium_amount}, reason={reason}")
         
         cur.execute("""
             INSERT INTO refunds 
-            (policy_id, client_id, agent_id, amount, reason, reason_description, status, created_by)
+            (contract_id, client_id, agent_id, amount, reason, reason_description, status, created_by)
             VALUES (%s, %s, %s, %s, %s, %s, 'pending', %s)
-        """, (policy_id, client_id, agent_id, premium_amount, reason, reason_description, session['user_id']))
+        """, (contract_id, client_id, agent_id, premium_amount, reason, reason_description, session['user_id']))
         
         refund_id = cur.lastrowid
         mysql.connection.commit()
@@ -1323,25 +1323,24 @@ def create_refund_request():
 def list_refunds():
     """Listar solicitudes de reembolso según el rol del usuario"""
     try:
+        print(f"DEBUG: Usuario ID: {session.get('user_id')}, Rol: {session.get('role_id')}")
         cur = mysql.connection.cursor()
         
         if session.get('role_id') == 2:  # Agente
             # Agentes ven solicitudes de sus clientes
+            print(f"DEBUG: Consultando reembolsos para agente ID: {session['user_id']}")
             cur.execute("""
                 SELECT 
                     r.id AS refund_id,
-                    r.policy_id,
+                    r.client_id,
                     r.amount,
                     r.request_date,
                     r.status,
                     r.reason,
                     r.reason_description,
-                    p.name AS policy_name,
                     CONCAT(c.first_name, ' ', c.last_name) AS client_name,
                     u.email AS client_email
                 FROM refunds r
-                JOIN client_policies cp ON r.policy_id = cp.policy_id
-                JOIN policies p ON cp.policy_id = p.id
                 JOIN clients c ON r.client_id = c.id
                 JOIN users u ON c.user_id = u.id
                 WHERE r.agent_id = %s
@@ -1350,21 +1349,19 @@ def list_refunds():
             
         elif session.get('role_id') == 1:  # Admin
             # Admins ven todas las solicitudes
+            print("DEBUG: Consultando reembolsos para admin")
             cur.execute("""
                 SELECT 
                     r.id AS refund_id,
-                    r.policy_id,
+                    r.client_id,
                     r.amount,
                     r.request_date,
                     r.status,
                     r.reason,
                     r.reason_description,
-                    p.name AS policy_name,
                     CONCAT(c.first_name, ' ', c.last_name) AS client_name,
                     u.email AS client_email
                 FROM refunds r
-                JOIN client_policies cp ON r.policy_id = cp.policy_id
-                JOIN policies p ON cp.policy_id = p.id
                 JOIN clients c ON r.client_id = c.id
                 JOIN users u ON c.user_id = u.id
                 ORDER BY r.request_date DESC
@@ -1372,19 +1369,17 @@ def list_refunds():
             
         else:  # Cliente
             # Clientes ven solo sus solicitudes
+            print(f"DEBUG: Consultando reembolsos para cliente user_id: {session['user_id']}")
             cur.execute("""
                 SELECT 
                     r.id AS refund_id,
-                    r.policy_id,
+                    r.client_id,
                     r.amount,
                     r.request_date,
                     r.status,
                     r.reason,
-                    r.reason_description,
-                    p.name AS policy_name
+                    r.reason_description
                 FROM refunds r
-                JOIN client_policies cp ON r.policy_id = cp.policy_id
-                JOIN policies p ON cp.policy_id = p.id
                 WHERE r.client_id = (
                     SELECT id FROM clients WHERE user_id = %s
                 )
@@ -1392,32 +1387,34 @@ def list_refunds():
             """, (session['user_id'],))
         
         refunds = []
-        for row in cur.fetchall():
+        rows = cur.fetchall()
+        print(f"DEBUG: Se encontraron {len(rows)} reembolsos")
+        
+        for row in rows:
             if session.get('role_id') == 3:  # Cliente
                 refunds.append({
                     'refund_id': row[0],
-                    'policy_id': row[1],
+                    'client_id': row[1],
                     'amount': float(row[2]),
                     'request_date': row[3].isoformat() if row[3] else None,
                     'status': row[4],
                     'reason': row[5],
-                    'reason_description': row[6],
-                    'policy_name': row[7]
+                    'reason_description': row[6]
                 })
             else:  # Agente o Admin
                 refunds.append({
                     'refund_id': row[0],
-                    'policy_id': row[1],
+                    'client_id': row[1],
                     'amount': float(row[2]),
                     'request_date': row[3].isoformat() if row[3] else None,
                     'status': row[4],
                     'reason': row[5],
                     'reason_description': row[6],
-                    'policy_name': row[7],
-                    'client_name': row[8],
-                    'client_email': row[9]
+                    'client_name': row[7],
+                    'client_email': row[8]
                 })
         
+        print(f"DEBUG: Devolviendo {len(refunds)} reembolsos procesados")
         cur.close()
         return jsonify(refunds), 200
         
@@ -1592,6 +1589,77 @@ def update_contract_extra_data(contract_id):
     except Exception as e:
         mysql.connection.rollback()
         cur.close()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/test-refunds', methods=['GET'])
+def test_refunds():
+    """Endpoint de prueba para verificar datos en la tabla refunds"""
+    try:
+        cur = mysql.connection.cursor()
+        
+        # Verificar la estructura de la tabla refunds
+        cur.execute("DESCRIBE refunds")
+        columns = cur.fetchall()
+        print("DEBUG: Estructura de la tabla refunds:")
+        for col in columns:
+            print(f"  - {col[0]}: {col[1]}")
+        
+        # Verificar si la tabla existe y tiene datos
+        cur.execute("SELECT COUNT(*) FROM refunds")
+        total_refunds = cur.fetchone()[0]
+        
+        # Obtener algunos reembolsos de ejemplo (sin usar contract_id por ahora)
+        cur.execute("""
+            SELECT 
+                r.id AS refund_id,
+                r.client_id,
+                r.agent_id,
+                r.amount,
+                r.request_date,
+                r.status,
+                r.reason
+            FROM refunds r
+            LIMIT 5
+        """)
+        
+        sample_refunds = []
+        for row in cur.fetchall():
+            sample_refunds.append({
+                'refund_id': row[0],
+                'client_id': row[1],
+                'agent_id': row[2],
+                'amount': float(row[3]) if row[3] else 0,
+                'request_date': row[4].isoformat() if row[4] else None,
+                'status': row[5],
+                'reason': row[6]
+            })
+        
+        cur.close()
+        
+        return jsonify({
+            'total_refunds': total_refunds,
+            'sample_refunds': sample_refunds,
+            'columns': [col[0] for col in columns],
+            'message': f'Se encontraron {total_refunds} reembolsos en la base de datos'
+        }), 200
+        
+    except Exception as e:
+        print("Error en test-refunds:", str(e))
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/session-info', methods=['GET'])
+def session_info():
+    """Endpoint para verificar información de la sesión"""
+    try:
+        return jsonify({
+            'user_id': session.get('user_id'),
+            'role_id': session.get('role_id'),
+            'username': session.get('username'),
+            'is_authenticated': 'user_id' in session,
+            'session_data': dict(session)
+        }), 200
+    except Exception as e:
+        print("Error en session-info:", str(e))
         return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":

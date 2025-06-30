@@ -101,6 +101,10 @@ document.addEventListener('DOMContentLoaded', () => {
       actualizarMenuActivo(reembolsosLink);
       cargarReembolsos();
     });
+  } else {
+    console.error('DEBUG: No se encontraron elementos de navegación de reembolsos');
+    console.log('reembolsosLink:', !!reembolsosLink);
+    console.log('reembolsosSection:', !!reembolsosSection);
   }
 
   if (reportesLink && reportesSection) {
@@ -1406,13 +1410,90 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCancelarReembolso = document.getElementById('btn-cancelar-reembolso');
   const btnProcesarReembolso = document.getElementById('btn-procesar-reembolso');
 
-  // Función para cargar reembolsos
-  async function cargarReembolsos() {
+  // Verificar que los elementos necesarios estén disponibles
+  console.log('DEBUG: Elementos de reembolsos encontrados:');
+  console.log('- tablaReembolsosBody:', !!tablaReembolsosBody);
+  console.log('- btnRefrescarReembolsos:', !!btnRefrescarReembolsos);
+  console.log('- modalProcesarReembolso:', !!modalProcesarReembolso);
+  console.log('- btnCancelarReembolso:', !!btnCancelarReembolso);
+  console.log('- btnProcesarReembolso:', !!btnProcesarReembolso);
+
+  // Función de prueba para verificar comunicación con backend
+  async function probarConexionBackend() {
     try {
       const resp = await fetch('/refunds');
+      console.log('DEBUG: Respuesta del backend /refunds:', resp.status, resp.statusText);
+      
+      if (resp.ok) {
+        const data = await resp.json();
+        console.log('DEBUG: Reembolsos obtenidos:', data.length);
+      } else {
+        console.error('DEBUG: Error en /refunds:', resp.status);
+      }
+    } catch (err) {
+      console.error('DEBUG: Error de conexión:', err);
+    }
+  }
+
+  // Función de prueba para verificar datos en la tabla refunds
+  async function probarDatosRefunds() {
+    try {
+      const resp = await fetch('/test-refunds');
+      console.log('DEBUG: Respuesta de test-refunds:', resp.status, resp.statusText);
+      
+      if (resp.ok) {
+        const data = await resp.json();
+        console.log('DEBUG: Estructura de tabla refunds:', data.columns);
+        console.log('DEBUG: Total reembolsos en BD:', data.total_refunds);
+      } else {
+        console.error('DEBUG: Error en test-refunds:', resp.status);
+      }
+    } catch (err) {
+      console.error('DEBUG: Error de conexión en test-refunds:', err);
+    }
+  }
+
+  // Función para verificar información de la sesión
+  async function verificarSesion() {
+    try {
+      const resp = await fetch('/session-info');
+      console.log('DEBUG: Respuesta de session-info:', resp.status, resp.statusText);
+      
+      if (resp.ok) {
+        const data = await resp.json();
+        console.log('DEBUG: Usuario autenticado:', data.is_authenticated, 'Rol:', data.role_id);
+      } else {
+        console.error('DEBUG: Error en session-info:', resp.status);
+      }
+    } catch (err) {
+      console.error('DEBUG: Error de conexión en session-info:', err);
+    }
+  }
+
+  // Llamar las funciones de prueba al cargar la página
+  probarConexionBackend();
+  probarDatosRefunds();
+  verificarSesion();
+
+  // Bandera para evitar múltiples llamadas simultáneas
+  let cargandoReembolsos = false;
+
+  // Función para cargar reembolsos
+  async function cargarReembolsos() {
+    // Evitar múltiples llamadas simultáneas
+    if (cargandoReembolsos) {
+      return;
+    }
+    
+    cargandoReembolsos = true;
+    
+    try {
+      const resp = await fetch('/refunds');
+      
       if (!resp.ok) throw new Error('Error al obtener lista de reembolsos');
       const reembolsos = await resp.json();
       
+      // Limpiar completamente la tabla antes de agregar nuevos elementos
       tablaReembolsosBody.innerHTML = '';
       
       if (reembolsos.length === 0) {
@@ -1422,22 +1503,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      // Agrupar reembolsos por policy_id para mostrar el número de solicitud
-      const reembolsosPorPolitica = {};
+      // Agrupar reembolsos por client_id y obtener solo el más reciente de cada cliente
+      const reembolsosUnicos = {};
       reembolsos.forEach(reembolso => {
-        if (!reembolsosPorPolitica[reembolso.policy_id]) {
-          reembolsosPorPolitica[reembolso.policy_id] = [];
+        const clientId = reembolso.client_id;
+        if (!reembolsosUnicos[clientId] || 
+            new Date(reembolso.request_date) > new Date(reembolsosUnicos[clientId].request_date)) {
+          reembolsosUnicos[clientId] = reembolso;
         }
-        reembolsosPorPolitica[reembolso.policy_id].push(reembolso);
       });
       
-      reembolsos.forEach(reembolso => {
+      // Convertir a array y ordenar por fecha de solicitud (más reciente primero)
+      const reembolsosFiltrados = Object.values(reembolsosUnicos)
+        .sort((a, b) => new Date(b.request_date) - new Date(a.request_date));
+      
+      reembolsosFiltrados.forEach(reembolso => {
         const tr = document.createElement('tr');
-        
-        // Determinar el número de solicitud para esta póliza
-        const reembolsosDeEstaPolitica = reembolsosPorPolitica[reembolso.policy_id];
-        const numeroSolicitud = reembolsosDeEstaPolitica.findIndex(r => r.refund_id === reembolso.refund_id) + 1;
-        const esNuevaSolicitud = reembolsosDeEstaPolitica.length > 1;
         
         // Mapear motivos a español
         const motivosMap = {
@@ -1470,19 +1551,10 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `<button class="btn-process" data-refund-id="${reembolso.refund_id}">Procesar</button>`
           : '<span style="color: #666;">Procesado</span>';
         
-        // Mostrar indicador de nueva solicitud si es necesario
-        const indicadorNuevaSolicitud = esNuevaSolicitud ? 
-          `<div style="background: #fff3cd; color: #856404; padding: 2px 6px; border-radius: 3px; font-size: 0.8rem; margin-bottom: 4px; border: 1px solid #ffeaa7;">
-            <i class="fas fa-redo" style="margin-right: 4px;"></i>Solicitud #${numeroSolicitud}
-          </div>` : '';
-        
         tr.innerHTML = `
-          <td>
-            ${indicadorNuevaSolicitud}
-            ${reembolso.client_name}
-          </td>
-          <td>${reembolso.client_email}</td>
-          <td>${reembolso.policy_name}</td>
+          <td>${reembolso.client_name || 'Cliente'}</td>
+          <td>${reembolso.client_email || 'N/A'}</td>
+          <td>Seguro General</td>
           <td>$${monto}</td>
           <td>${fecha}</td>
           <td>${estadoBadge}</td>
@@ -1500,7 +1572,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.btn-process').forEach(btn => {
         btn.addEventListener('click', () => {
           const refundId = btn.getAttribute('data-refund-id');
-          mostrarModalProcesarReembolso(refundId, reembolsos);
+          mostrarModalProcesarReembolso(refundId, reembolsosFiltrados);
         });
       });
       
@@ -1517,6 +1589,19 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       console.error('Error al cargar reembolsos:', err);
       showNotification('error', 'Error al cargar la lista de reembolsos');
+      
+      // Mostrar mensaje de error en la tabla
+      tablaReembolsosBody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 20px; color: #dc3545;">
+            <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
+            Error al cargar los reembolsos. Intente nuevamente.
+          </td>
+        </tr>
+      `;
+    } finally {
+      // Resetear la bandera al finalizar
+      cargandoReembolsos = false;
     }
   }
 
@@ -1571,15 +1656,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const reembolso = reembolsos.find(r => r.refund_id == refundId);
     if (!reembolso) return;
     
-    // Contar cuántos reembolsos tiene esta póliza
-    const reembolsosDeEstaPolitica = reembolsos.filter(r => r.policy_id === reembolso.policy_id);
-    const numeroSolicitud = reembolsosDeEstaPolitica.findIndex(r => r.refund_id === reembolso.refund_id) + 1;
-    const esNuevaSolicitud = reembolsosDeEstaPolitica.length > 1;
-    
     // Llenar información en el modal con los campos disponibles
-    document.getElementById('detalle-cliente-reembolso').textContent = reembolso.client_name;
-    document.getElementById('detalle-tipo-seguro-reembolso').textContent = reembolso.policy_name;
-    document.getElementById('detalle-contrato-reembolso').textContent = reembolso.policy_id;
+    document.getElementById('detalle-cliente-reembolso').textContent = reembolso.client_name || 'Cliente';
+    document.getElementById('detalle-tipo-seguro-reembolso').textContent = 'Seguro General';
+    document.getElementById('detalle-contrato-reembolso').textContent = reembolso.client_id;
     document.getElementById('detalle-monto-reembolso').textContent = parseFloat(reembolso.amount).toFixed(2);
     document.getElementById('detalle-fecha-reembolso').textContent = new Date(reembolso.request_date).toLocaleDateString('es-ES');
     
@@ -1601,34 +1681,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('detalle-motivo-reembolso').textContent = motivoTraducido;
     document.getElementById('detalle-razones-cliente').textContent = reembolso.reason_description || 'No se proporcionaron razones específicas';
     
-    // Mostrar información sobre solicitudes múltiples si aplica
-    if (esNuevaSolicitud) {
-      const infoSolicitudes = document.createElement('div');
-      infoSolicitudes.style.cssText = `
-        background: #fff3cd;
-        border: 1px solid #ffeaa7;
-        border-radius: 6px;
-        padding: 12px;
-        margin-bottom: 15px;
-        color: #856404;
-      `;
-      infoSolicitudes.innerHTML = `
-        <div style="display: flex; align-items: center; margin-bottom: 8px;">
-          <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
-          <strong>Nueva Solicitud de Reembolso</strong>
-        </div>
-        <p style="margin: 0; font-size: 0.9rem;">
-          Esta es la solicitud #${numeroSolicitud} para esta póliza. 
-          El cliente ha solicitado un nuevo reembolso después de que la solicitud anterior fuera rechazada.
-        </p>
-      `;
-      
-      // Insertar al inicio del modal
-      const modalContent = document.querySelector('#modal-procesar-reembolso .modal-content');
-      const detalleReembolso = document.getElementById('detalle-reembolso');
-      modalContent.insertBefore(infoSolicitudes, detalleReembolso);
-    }
-    
     // Mostrar modal
     modalProcesarReembolso.classList.remove('hidden');
     
@@ -1640,11 +1692,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCancelarReembolso) {
     btnCancelarReembolso.addEventListener('click', () => {
       modalProcesarReembolso.classList.add('hidden');
-      // Limpiar información de solicitudes múltiples
-      const infoSolicitudes = modalProcesarReembolso.querySelector('div[style*="background: #fff3cd"]');
-      if (infoSolicitudes) {
-        infoSolicitudes.remove();
-      }
       // Restaurar texto original del botón
       if (btnProcesarReembolso) {
         btnProcesarReembolso.textContent = 'Procesar';
@@ -1658,7 +1705,7 @@ document.addEventListener('DOMContentLoaded', () => {
     estadoReembolsoSelect.addEventListener('change', () => {
       const estadoSeleccionado = estadoReembolsoSelect.value;
       if (estadoSeleccionado === 'rejected') {
-        btnProcesarReembolso.textContent = 'Solicitar nuevo reembolso';
+        btnProcesarReembolso.textContent = 'Rechazar';
       } else {
         btnProcesarReembolso.textContent = 'Procesar';
       }
@@ -1691,12 +1738,6 @@ document.addEventListener('DOMContentLoaded', () => {
           showNotification('success', data.message);
           modalProcesarReembolso.classList.add('hidden');
           
-          // Limpiar información de solicitudes múltiples
-          const infoSolicitudes = modalProcesarReembolso.querySelector('div[style*="background: #fff3cd"]');
-          if (infoSolicitudes) {
-            infoSolicitudes.remove();
-          }
-          
           // Limpiar formulario
           document.getElementById('estado-reembolso').value = '';
           document.getElementById('notas-reembolso').value = '';
@@ -1725,11 +1766,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (overlay) {
       overlay.addEventListener('click', () => {
         modalProcesarReembolso.classList.add('hidden');
-        // Limpiar información de solicitudes múltiples
-        const infoSolicitudes = modalProcesarReembolso.querySelector('div[style*="background: #fff3cd"]');
-        if (infoSolicitudes) {
-          infoSolicitudes.remove();
-        }
       });
     }
   }
