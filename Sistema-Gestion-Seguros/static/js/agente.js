@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
         accionesSelect.addEventListener('change', function() {
           if (this.value === 'editar') {
             mostrarModalConfirmacion('¿Desea editar los datos del Cliente?', () => {
-              alert('Funcionalidad de edición por implementar.');
+              abrirModalEditarCliente(cliente.id);
             });
           } else if (this.value === 'desactivar') {
             mostrarModalConfirmacion('¿Desea desactivar este cliente?', () => {
@@ -658,7 +658,7 @@ document.addEventListener('DOMContentLoaded', () => {
             verDocumentosContrato(cliente.id);
           } else if (this.value === 'editar') {
             mostrarModalConfirmacion('¿Desea editar los datos del Cliente?', () => {
-              alert('Funcionalidad de edición por implementar.');
+              abrirModalEditarCliente(cliente.id);
             });
           }
           this.value = '';
@@ -1733,35 +1733,227 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   }
-});
 
-// Al final del archivo, agrega la función para mostrar el modal de éxito
-function mostrarModalExitoContrato() {
-  // Elimina cualquier modal previo
-  const modalExistente = document.getElementById('modal-exito-contrato');
-  if (modalExistente) modalExistente.remove();
-  // Crea el modal
-  const modal = document.createElement('div');
-  modal.id = 'modal-exito-contrato';
-  modal.className = 'modal';
-  modal.innerHTML = `
-    <div class="modal-overlay"></div>
-    <div class="modal-content" style="max-width:370px;text-align:center; border-radius:16px; padding:32px 24px 28px 24px;">
-      <h3 style="color:#1976d2; margin-bottom:28px; font-size:1.45em; font-weight:700; letter-spacing:0.5px;">Contrato creado exitosamente</h3>
-      <button id="btn-cerrar-exito-contrato" class="close-btn" style="background:#1976d2;color:#fff;border:none;border-radius:6px;padding:10px 32px;font-size:1.08em;font-weight:500;cursor:pointer;transition:background 0.18s;">Cerrar</button>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  modal.classList.remove('hidden');
-  modal.style.display = 'flex';
-  // Cerrar modal
-  document.getElementById('btn-cerrar-exito-contrato').onclick = function() {
-    modal.classList.add('hidden');
-    modal.remove();
-  };
-  const overlay = modal.querySelector('.modal-overlay');
-  if (overlay) overlay.onclick = function() {
-    modal.classList.add('hidden');
-    modal.remove();
-  };
-}
+  // === LÓGICA PARA EDITAR CLIENTE ===
+  const modalEditarCliente = document.getElementById('modal-editar-cliente');
+  const formEditarCliente = document.getElementById('form-editar-cliente');
+  const btnCancelarEditarCliente = document.getElementById('btn-cancelar-editar-cliente');
+  const contratoSelectGroup = document.getElementById('edit-contrato-select-group');
+  const contratoSelect = document.getElementById('edit-contrato-select');
+
+  let contratosClienteGlobal = [];
+  let userIdClienteGlobal = null;
+
+  // Función para renderizar los datos adicionales de un contrato
+  function renderDatosAdicionalesContrato(contrato) {
+    const datosAdicionalesDiv = document.getElementById('edit-datos-adicionales');
+    datosAdicionalesDiv.innerHTML = '';
+    if (contrato && contrato.extra_data) {
+      Object.entries(contrato.extra_data).forEach(([key, value]) => {
+        datosAdicionalesDiv.innerHTML += `
+          <div class="form-group">
+            <label for="edit-extra-${key}">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</label>
+            <input type="text" id="edit-extra-${key}" name="extra_${key}" value="${value || ''}">
+          </div>
+        `;
+      });
+    }
+  }
+
+  // Detectar si el usuario es agente (rol_id == 2)
+  function esAgente() {
+    // Puedes obtener el rol de la sesión si lo tienes en una variable global o en un atributo del body
+    // Aquí asumimos que hay una variable global window.rolUsuario o similar
+    return window.rolUsuario === 2;
+  }
+
+  // Función para abrir el modal de edición y cargar datos
+  async function abrirModalEditarCliente(clienteId) {
+    try {
+      // 1. Obtener datos del cliente
+      const respCliente = await fetch(`/clients/${clienteId}`);
+      if (!respCliente.ok) throw new Error('No se pudo obtener los datos del cliente');
+      const cliente = await respCliente.json();
+      // Obtener user_id del cliente
+      userIdClienteGlobal = cliente.user_id || clienteId;
+      // 2. Obtener contratos del cliente
+      const respContratos = await fetch(`/clients/${clienteId}/contracts`);
+      if (!respContratos.ok) throw new Error('No se pudo obtener los contratos del cliente');
+      const contratos = await respContratos.json();
+      contratosClienteGlobal = contratos; // Guardar global para el select
+      const tieneContrato = Array.isArray(contratos) && contratos.length > 0;
+      // 3. Rellenar campos
+      document.getElementById('edit-client-id').value = cliente.id;
+      document.getElementById('edit-username').value = cliente.username || '';
+      document.getElementById('edit-email').value = cliente.email || '';
+      document.getElementById('edit-password').value = '';
+      document.getElementById('edit-phone').value = cliente.phone || '';
+      document.getElementById('edit-address').value = cliente.address || '';
+      document.getElementById('edit-fullname').value = (cliente.first_name || '') + (cliente.last_name ? ' ' + cliente.last_name : '');
+      document.getElementById('edit-dob').value = cliente.dob || '';
+      // --- NUEVO: Si es agente, deshabilitar todos los campos excepto extra_data ---
+      const esAgenteActual = esAgente();
+      [
+        'edit-username', 'edit-email', 'edit-password', 'edit-phone', 'edit-address', 'edit-fullname', 'edit-dob'
+      ].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.disabled = esAgenteActual;
+      });
+      // 4. Select de contratos y datos adicionales (igual que antes)
+      if (tieneContrato && contratos.length > 1) {
+        contratoSelectGroup.style.display = '';
+        contratoSelect.innerHTML = '';
+        contratos.forEach((contrato, idx) => {
+          const option = document.createElement('option');
+          option.value = contrato.contract_id;
+          option.textContent = `${contrato.policy_name} (${contrato.status})`;
+          contratoSelect.appendChild(option);
+        });
+        renderDatosAdicionalesContrato(contratos[0]);
+        contratoSelect.onchange = function() {
+          const selectedId = this.value;
+          const contrato = contratosClienteGlobal.find(c => c.contract_id == selectedId);
+          renderDatosAdicionalesContrato(contrato);
+        };
+      } else if (tieneContrato && contratos.length === 1) {
+        contratoSelectGroup.style.display = 'none';
+        renderDatosAdicionalesContrato(contratos[0]);
+      } else {
+        contratoSelectGroup.style.display = 'none';
+        document.getElementById('edit-datos-adicionales').innerHTML = '';
+      }
+      modalEditarCliente.classList.remove('hidden');
+    } catch (err) {
+      alert('Error al cargar datos del cliente: ' + err.message);
+    }
+  }
+
+  // Evento para cancelar edición
+  if (btnCancelarEditarCliente && modalEditarCliente) {
+    btnCancelarEditarCliente.onclick = () => {
+      modalEditarCliente.classList.add('hidden');
+      formEditarCliente.reset();
+    };
+  }
+
+  // Evento para guardar cambios
+  if (formEditarCliente) {
+    formEditarCliente.onsubmit = async function(e) {
+      e.preventDefault();
+      const clienteId = document.getElementById('edit-client-id').value;
+      const esAgenteActual = esAgente();
+      // Si es agente, solo actualizar extra_data del contrato seleccionado
+      if (esAgenteActual) {
+        try {
+          const contratosResp = await fetch(`/clients/${clienteId}/contracts`);
+          const contratos = await contratosResp.json();
+          if (Array.isArray(contratos) && contratos.length > 0) {
+            let contratoId = contratos[0].contract_id;
+            if (contratos.length > 1 && contratoSelect && contratoSelect.value) {
+              contratoId = contratoSelect.value;
+            }
+            const extraData = {};
+            const datosAdicionalesDiv = document.getElementById('edit-datos-adicionales');
+            datosAdicionalesDiv.querySelectorAll('input[name^="extra_"]').forEach(input => {
+              const key = input.name.replace('extra_', '');
+              extraData[key] = input.value;
+            });
+            await fetch(`/contracts/${contratoId}/extra_data`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(extraData)
+            });
+          }
+          modalEditarCliente.classList.add('hidden');
+          formEditarCliente.reset();
+          cargarClientes();
+          mostrarModalExitoEdicionCliente();
+        } catch (err) {
+          alert('Error al guardar cambios: ' + err.message);
+        }
+        return;
+      }
+      // Si es admin, lógica anterior (editar todo)
+      const data = {
+        username: document.getElementById('edit-username').value.trim(),
+        email: document.getElementById('edit-email').value.trim(),
+        password: document.getElementById('edit-password').value.trim(),
+        phone: document.getElementById('edit-phone').value.trim(),
+        address: document.getElementById('edit-address').value.trim(),
+      };
+      if (!document.getElementById('edit-fullname').disabled) {
+        const fullName = document.getElementById('edit-fullname').value.trim();
+        const nameParts = fullName.split(' ');
+        data.first_name = nameParts[0] || '';
+        data.last_name = nameParts.slice(1).join(' ') || '';
+        data.dob = document.getElementById('edit-dob').value;
+      }
+      try {
+        const resp = await fetch(`/users/${userIdClienteGlobal}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (!resp.ok) throw new Error('Error al guardar cambios');
+        // Si hay datos adicionales y contrato, actualizarlos SOLO del contrato seleccionado
+        const contratosResp = await fetch(`/clients/${clienteId}/contracts`);
+        const contratos = await contratosResp.json();
+        if (Array.isArray(contratos) && contratos.length > 0) {
+          let contratoId = contratos[0].contract_id;
+          if (contratos.length > 1 && contratoSelect && contratoSelect.value) {
+            contratoId = contratoSelect.value;
+          }
+          const extraData = {};
+          const datosAdicionalesDiv = document.getElementById('edit-datos-adicionales');
+          datosAdicionalesDiv.querySelectorAll('input[name^="extra_"]').forEach(input => {
+            const key = input.name.replace('extra_', '');
+            extraData[key] = input.value;
+          });
+          await fetch(`/contracts/${contratoId}/extra_data`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(extraData)
+          });
+        }
+        modalEditarCliente.classList.add('hidden');
+        formEditarCliente.reset();
+        cargarClientes();
+        mostrarModalExitoEdicionCliente();
+      } catch (err) {
+        alert('Error al guardar cambios: ' + err.message);
+      }
+    };
+  }
+
+  // Modal de éxito para edición
+  function mostrarModalExitoEdicionCliente() {
+    const modalExistente = document.getElementById('modal-exito-editar-cliente');
+    if (modalExistente) modalExistente.remove();
+    const modal = document.createElement('div');
+    modal.id = 'modal-exito-editar-cliente';
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-overlay"></div>
+      <div class="modal-content" style="max-width:350px;text-align:center; border-radius:16px; padding:32px 24px 28px 24px;">
+        <h3 style="color:#1976d2; margin-bottom:28px; font-size:1.25em; font-weight:700; letter-spacing:0.5px;">Cliente editado exitosamente</h3>
+        <button id="btn-cerrar-exito-editar-cliente" class="close-btn" style="background:#1976d2;color:#fff;border:none;border-radius:6px;padding:10px 32px;font-size:1.08em;font-weight:500;cursor:pointer;transition:background 0.18s;">Cerrar</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    document.getElementById('btn-cerrar-exito-editar-cliente').onclick = function() {
+      modal.classList.add('hidden');
+      modal.remove();
+    };
+    const overlay = modal.querySelector('.modal-overlay');
+    if (overlay) overlay.onclick = function() {
+      modal.classList.add('hidden');
+      modal.remove();
+    };
+  }
+
+  // Integrar con el botón de acciones
+  // Reemplaza el alert de 'Funcionalidad de edición por implementar.' por abrirModalEditarCliente(cliente.id)
+  // ... existing code ...
+});

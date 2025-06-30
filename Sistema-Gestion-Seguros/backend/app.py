@@ -529,6 +529,32 @@ def create_client():
     finally:
         cur.close()
 
+@app.route('/clients/<int:client_id>', methods=['GET'])
+@login_required
+def get_client(client_id):
+    cur = mysql.connection.cursor()
+    cur.execute('''
+        SELECT c.id, u.id as user_id, u.username, u.email, c.first_name, c.last_name, c.dob, c.phone, c.address
+        FROM clients c
+        JOIN users u ON u.id = c.user_id
+        WHERE c.id = %s
+    ''', (client_id,))
+    row = cur.fetchone()
+    cur.close()
+    if not row:
+        return jsonify({'error': 'Cliente no encontrado'}), 404
+    return jsonify({
+        'id': row[0],
+        'user_id': row[1],
+        'username': row[2],
+        'email': row[3],
+        'first_name': row[4],
+        'last_name': row[5],
+        'dob': row[6],
+        'phone': row[7],
+        'address': row[8]
+    }), 200
+
 # ===================================
 # API de TIPOS DE PÓLIZA (policy_types)
 # ===================================
@@ -1541,6 +1567,32 @@ def review_document(doc_id):
     mysql.connection.commit()
     cur.close()
     return jsonify({'success': True})
+
+@app.route('/contracts/<int:contract_id>/extra_data', methods=['PUT'])
+@login_required
+def update_contract_extra_data(contract_id):
+    data = request.get_json()
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Datos inválidos'}), 400
+    cur = mysql.connection.cursor()
+    try:
+        for key, value in data.items():
+            # Verificar si ya existe el campo para este contrato
+            cur.execute("SELECT id FROM client_policy_extra_data WHERE contract_id = %s AND field_name = %s", (contract_id, key))
+            row = cur.fetchone()
+            if row:
+                # Actualizar
+                cur.execute("UPDATE client_policy_extra_data SET field_value = %s WHERE id = %s", (value, row[0]))
+            else:
+                # Insertar
+                cur.execute("INSERT INTO client_policy_extra_data (contract_id, field_name, field_value) VALUES (%s, %s, %s)", (contract_id, key, value))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify({'success': True, 'message': 'Datos adicionales actualizados'}), 200
+    except Exception as e:
+        mysql.connection.rollback()
+        cur.close()
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)

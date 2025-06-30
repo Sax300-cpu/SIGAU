@@ -18,6 +18,7 @@ history.replaceState(null, null, location.href);
 window.addEventListener('popstate', function () {
 history.replaceState(null, null, location.href);
 });
+window.rolUsuario = 2;
 </script>
 
 <title>Panel de Agente – Plataforma de Seguros</title>
@@ -292,6 +293,53 @@ Total porcentaje: <span id="total-beneficiarios-porcentaje">0</span>%
       <button type="button" id="btn-cancelar-reembolso" class="btn-cancel">Cancelar</button>
       <button type="button" id="btn-procesar-reembolso" class="btn-save">Procesar</button>
     </div>
+  </div>
+</div>
+
+<!-- Modal para editar cliente -->
+<div id="modal-editar-cliente" class="modal hidden">
+  <div class="modal-content" style="max-width:400px;">
+    <h3>Editar Cliente</h3>
+    <form id="form-editar-cliente">
+      <input type="hidden" id="edit-client-id" name="client_id">
+      <div class="form-group">
+        <label for="edit-username">Usuario</label>
+        <input type="text" id="edit-username" name="username" required placeholder="Nombre de usuario">
+      </div>
+      <div class="form-group">
+        <label for="edit-email">Email</label>
+        <input type="email" id="edit-email" name="email" required placeholder="correo@ejemplo.com">
+      </div>
+      <div class="form-group">
+        <label for="edit-password">Contraseña</label>
+        <input type="password" id="edit-password" name="password" placeholder="Ingrese una nueva contraseña (opcional)">
+      </div>
+      <div class="form-group">
+        <label for="edit-fullname">Nombre Completo</label>
+        <input type="text" id="edit-fullname" name="full_name" required placeholder="Nombre y apellidos completos">
+      </div>
+      <div class="form-group">
+        <label for="edit-dob">Fecha de Nacimiento</label>
+        <input type="date" id="edit-dob" name="dob" required placeholder="dd/mm/aaaa">
+      </div>
+      <div class="form-group">
+        <label for="edit-phone">Teléfono</label>
+        <input type="text" id="edit-phone" name="phone" required placeholder="+1234567890">
+      </div>
+      <div class="form-group">
+        <label for="edit-address">Dirección</label>
+        <input type="text" id="edit-address" name="address" required placeholder="Dirección completa">
+      </div>
+      <div class="form-group" id="edit-contrato-select-group" style="display:none;">
+        <label for="edit-contrato-select">Contrato a editar:</label>
+        <select id="edit-contrato-select"></select>
+      </div>
+      <div id="edit-datos-adicionales"></div>
+      <div class="form-buttons" style="display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" id="btn-cancelar-editar-cliente" class="btn-cancel">Cancelar</button>
+        <button type="submit" class="btn-save">Guardar Cambios</button>
+      </div>
+    </form>
   </div>
 </div>
 
