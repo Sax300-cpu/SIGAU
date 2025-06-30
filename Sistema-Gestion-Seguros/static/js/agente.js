@@ -1992,4 +1992,37 @@ document.addEventListener('DOMContentLoaded', () => {
   // Integrar con el botón de acciones
   // Reemplaza el alert de 'Funcionalidad de edición por implementar.' por abrirModalEditarCliente(cliente.id)
   // ... existing code ...
+
+  // ==========================
+  //  FUNCIÓN MODAL ÉXITO CONTRATO
+  // ==========================
+  function mostrarModalExitoContrato() {
+    // Si ya existe, elimínalo para evitar duplicados
+    const modalExistente = document.getElementById('modal-exito-contrato');
+    if (modalExistente) modalExistente.remove();
+
+    // Crea el modal
+    const modal = document.createElement('div');
+    modal.id = 'modal-exito-contrato';
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-overlay"></div>
+      <div class="modal-content" style="max-width:350px;text-align:center; border-radius:16px; padding:32px 24px 28px 24px;">
+        <h3 style="color:#1976d2; margin-bottom:28px; font-size:1.25em; font-weight:700; letter-spacing:0.5px;">¡Contrato creado exitosamente!</h3>
+        <button id="btn-cerrar-exito-contrato" class="close-btn" style="background:#1976d2;color:#fff;border:none;border-radius:6px;padding:10px 32px;font-size:1.08em;font-weight:500;cursor:pointer;transition:background 0.18s;">Cerrar</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    document.getElementById('btn-cerrar-exito-contrato').onclick = function() {
+      modal.classList.add('hidden');
+      modal.remove();
+    };
+    const overlay = modal.querySelector('.modal-overlay');
+    if (overlay) overlay.onclick = function() {
+      modal.classList.add('hidden');
+      modal.remove();
+    };
+  }
 });
