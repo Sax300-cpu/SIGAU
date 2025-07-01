@@ -879,6 +879,32 @@ document.addEventListener('DOMContentLoaded', () => {
             // Restaurar la lista de clientes
             if (tableContainer) tableContainer.style.display = '';
 
+            // === ACTUALIZACIÓN EN TIEMPO REAL DEL ESTADO DEL CLIENTE ===
+            // Buscar la fila del cliente en la tabla y actualizar el badge de estado a 'activo'
+            if (inputClientIdMejorado && inputClientIdMejorado.value) {
+                const clientId = inputClientIdMejorado.value;
+                // Buscar la fila correspondiente (asumiendo que el email es único y está en la segunda columna)
+                const filas = document.querySelectorAll('#tabla-clientes tbody tr');
+                filas.forEach(tr => {
+                    // El id del cliente no está en la tabla, pero el nombre y email sí
+                    // Buscamos por nombre y email (col 0 y 1)
+                    const nombre = tr.children[0]?.textContent;
+                    const email = tr.children[1]?.textContent;
+                    // Si coincide con el inputClientName (que es 'Nombre (email)')
+                    if (inputClientName && inputClientName.value === `${nombre} (${email})`) {
+                        // El badge de estado está en la tercera columna (índice 2)
+                        const tdEstado = tr.children[2];
+                        if (tdEstado) {
+                            const spanEstado = tdEstado.querySelector('.estado-badge');
+                            if (spanEstado) {
+                                spanEstado.textContent = 'activo';
+                                spanEstado.className = 'estado-badge estado-activo';
+                            }
+                        }
+                    }
+                });
+            }
+
         } catch (err) {
             console.error('Error:', err);
             showNotification('error', err.message);
@@ -2026,11 +2052,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-cerrar-exito-contrato').onclick = function() {
       modal.classList.add('hidden');
       modal.remove();
+      cargarClientes(); // Actualiza la tabla de clientes en tiempo real
     };
     const overlay = modal.querySelector('.modal-overlay');
     if (overlay) overlay.onclick = function() {
       modal.classList.add('hidden');
       modal.remove();
+      cargarClientes(); // También aquí
     };
   }
 });
