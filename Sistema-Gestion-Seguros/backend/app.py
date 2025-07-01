@@ -117,9 +117,18 @@ def login():
             (email,)
         )
         fila = cur.fetchone()
-        cur.close()
 
+        # Verificar contraseña
         if fila and check_password_hash(fila[1], password):
+            # Si es cliente, verificar estado en tabla clients
+            if fila[2] == 3:
+                cur.execute("SELECT status FROM clients WHERE user_id = %s", (fila[0],))
+                estado_cliente = cur.fetchone()
+                if estado_cliente and estado_cliente[0] == 'desactivado':
+                    cur.close()
+                    flash('Este usuario se encuentra desactivado. Por favor contacte al agente que lo registró.', 'danger')
+                    return render_template('login-index.html')
+            cur.close()
             session.clear()
             session['user_id']   = fila[0]
             session['role_id']   = fila[2]
@@ -134,6 +143,7 @@ def login():
                 return redirect(url_for('client_panel'))
             return redirect(url_for('dashboard'))
         else:
+            cur.close()
             flash('Usuario o contraseña incorrectos', 'danger')
 
     return render_template('login-index.html')
@@ -1687,13 +1697,22 @@ def update_client_status(client_id):
         return jsonify({'error': 'No autorizado'}), 403
     data = request.get_json()
     nuevo_estado = data.get('status')
-    if nuevo_estado not in ['activo', 'inactivo', 'desactivado', 'active', 'inactive', 'deactivated']:
-        return jsonify({'error': 'Estado no válido'}), 400
     cur = mysql.connection.cursor()
     try:
-        cur.execute('UPDATE clients SET status = %s WHERE id = %s', (nuevo_estado, client_id))
-        mysql.connection.commit()
-        return jsonify({'success': True, 'message': f'Estado actualizado a {nuevo_estado}'}), 200
+        if nuevo_estado == 'activar':
+            # Verificar si tiene contratos
+            cur.execute('SELECT COUNT(*) FROM client_policies WHERE client_id = %s', (client_id,))
+            tiene_contratos = cur.fetchone()[0] > 0
+            estado_final = 'activo' if tiene_contratos else 'inactivo'
+            cur.execute('UPDATE clients SET status = %s WHERE id = %s', (estado_final, client_id))
+            mysql.connection.commit()
+            return jsonify({'success': True, 'message': f'Cliente activado como {estado_final}', 'status': estado_final}), 200
+        elif nuevo_estado in ['activo', 'inactivo', 'desactivado', 'active', 'inactive', 'deactivated']:
+            cur.execute('UPDATE clients SET status = %s WHERE id = %s', (nuevo_estado, client_id))
+            mysql.connection.commit()
+            return jsonify({'success': True, 'message': f'Estado actualizado a {nuevo_estado}', 'status': nuevo_estado}), 200
+        else:
+            return jsonify({'error': 'Estado no válido'}), 400
     except Exception as e:
         mysql.connection.rollback()
         return jsonify({'error': str(e)}), 500

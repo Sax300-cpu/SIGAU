@@ -265,35 +265,119 @@ document.addEventListener('DOMContentLoaded', () => {
         tdAcciones.style.textAlign = 'center';
         const accionesSelect = document.createElement('select');
         accionesSelect.className = 'acciones-dropdown';
-        accionesSelect.innerHTML = `
-          <option value="">Elegir...</option>
-          <option value="editar">Editar Cliente</option>
-          <option value="desactivar">Desactivar</option>
-        `;
+        let accionesOptions = `<option value="">Elegir...</option><option value="editar">Editar Cliente</option>`;
+        if (estadoTexto === 'desactivado') {
+          accionesOptions += `<option value="activar">Activar</option>`;
+        } else {
+          accionesOptions += `<option value="desactivar">Desactivar</option>`;
+        }
+        accionesSelect.innerHTML = accionesOptions;
         accionesSelect.addEventListener('change', function() {
+          const selectRef = this;
           if (this.value === 'editar') {
             mostrarModalConfirmacion('¿Desea editar los datos del Cliente?', () => {
               abrirModalEditarCliente(cliente.id);
             });
           } else if (this.value === 'desactivar') {
-            mostrarModalConfirmacion('¿Desea desactivar este cliente?', async () => {
-              try {
-                const resp = await fetch(`/clients/${cliente.id}/status`, {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ status: 'desactivado' })
-                });
-                if (resp.ok) {
-                  showNotification('success', 'Cliente desactivado correctamente.');
-                  cargarClientes();
-                } else {
-                  const err = await resp.json();
-                  showNotification('error', err.error || 'Error al desactivar cliente.');
+            mostrarModalConfirmacion(
+              '¿Desea desactivar este cliente?',
+              async () => {
+                try {
+                  const resp = await fetch(`/clients/${cliente.id}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'desactivado' })
+                  });
+                  if (resp.ok) {
+                    showNotification('success', 'Cliente desactivado correctamente.');
+                    // === ACTUALIZACIÓN EN TIEMPO REAL DEL ESTADO ===
+                    const filas = document.querySelectorAll('#tabla-clientes tbody tr');
+                    filas.forEach(tr => {
+                      const nombre = tr.children[0]?.textContent;
+                      const email = tr.children[1]?.textContent;
+                      if (nombre === cliente.name && email === cliente.email) {
+                        const tdEstado = tr.children[2];
+                        if (tdEstado) {
+                          const spanEstado = tdEstado.querySelector('.estado-badge');
+                          if (spanEstado) {
+                            spanEstado.textContent = 'desactivado';
+                            spanEstado.className = 'estado-badge estado-desactivado';
+                            // === ACTUALIZAR EL MENÚ DE ACCIONES ===
+                            const tdAcciones = tr.children[6]; // La columna de acciones es la séptima (índice 6)
+                            if (tdAcciones) {
+                              const accionesSelect = tdAcciones.querySelector('.acciones-dropdown');
+                              if (accionesSelect) {
+                                let accionesOptions = `<option value=\"\">Elegir...</option><option value=\"editar\">Editar Cliente</option><option value=\"activar\">Activar</option>`;
+                                accionesSelect.innerHTML = accionesOptions;
+                              }
+                            }
+                          }
+                        }
+                      }
+                    });
+                  } else {
+                    const err = await resp.json();
+                    showNotification('error', err.error || 'Error al desactivar cliente.');
+                  }
+                } catch (e) {
+                  showNotification('error', 'Error de red o del servidor.');
                 }
-              } catch (e) {
-                showNotification('error', 'Error de red o del servidor.');
-              }
-            });
+              },
+              () => { selectRef.value = ""; }
+            );
+          } else if (this.value === 'activar') {
+            mostrarModalConfirmacion(
+              '¿Está seguro que desea volver a activar este cliente?',
+              async () => {
+                try {
+                  const resp = await fetch(`/clients/${cliente.id}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'activar' })
+                  });
+                  if (resp.ok) {
+                    const data = await resp.json();
+                    showNotification('success', 'Cliente activado correctamente.');
+                    // === ACTUALIZACIÓN EN TIEMPO REAL DEL ESTADO ===
+                    const filas = document.querySelectorAll('#tabla-clientes tbody tr');
+                    filas.forEach(tr => {
+                      const nombre = tr.children[0]?.textContent;
+                      const email = tr.children[1]?.textContent;
+                      if (nombre === cliente.name && email === cliente.email) {
+                        const tdEstado = tr.children[2];
+                        if (tdEstado) {
+                          const spanEstado = tdEstado.querySelector('.estado-badge');
+                          if (spanEstado) {
+                            spanEstado.textContent = data.status;
+                            spanEstado.className = 'estado-badge ' + (data.status === 'activo' ? 'estado-activo' : (data.status === 'inactivo' ? 'estado-inactivo' : ''));
+                            // === ACTUALIZAR EL MENÚ DE ACCIONES ===
+                            const tdAcciones = tr.children[6];
+                            if (tdAcciones) {
+                              const accionesSelect = tdAcciones.querySelector('.acciones-dropdown');
+                              if (accionesSelect) {
+                                let accionesOptions = `<option value=\"\">Elegir...</option><option value=\"editar\">Editar Cliente</option>`;
+                                if (data.status === 'desactivado') {
+                                  accionesOptions += `<option value=\"activar\">Activar</option>`;
+                                } else {
+                                  accionesOptions += `<option value=\"desactivar\">Desactivar</option>`;
+                                }
+                                accionesSelect.innerHTML = accionesOptions;
+                              }
+                            }
+                          }
+                        }
+                      }
+                    });
+                  } else {
+                    const err = await resp.json();
+                    showNotification('error', err.error || 'Error al activar cliente.');
+                  }
+                } catch (e) {
+                  showNotification('error', 'Error de red o del servidor.');
+                }
+              },
+              () => { selectRef.value = ""; }
+            );
           }
           this.value = '';
         });
@@ -348,7 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       // Función para mostrar modal elegante de confirmación con callback
-      function mostrarModalConfirmacion(mensaje, onConfirm) {
+      function mostrarModalConfirmacion(mensaje, onConfirm, onCancel) {
         let modal = document.getElementById('modal-confirmacion-accion');
         if (!modal) {
           modal = document.createElement('div');
@@ -366,10 +450,13 @@ document.addEventListener('DOMContentLoaded', () => {
           `;
           document.body.appendChild(modal);
         } else {
-          document.getElementById('modal-confirmacion-mensaje').textContent = mensaje;
+          document.getElementById('modal-confirmacion-mensaje').innerHTML = mensaje;
         }
         modal.classList.remove('hidden');
-        document.getElementById('btn-cancelar-modal').onclick = () => modal.classList.add('hidden');
+        document.getElementById('btn-cancelar-modal').onclick = () => {
+          modal.classList.add('hidden');
+          if (typeof onCancel === 'function') onCancel();
+        };
         document.getElementById('btn-confirmar-modal').onclick = () => {
           modal.classList.add('hidden');
           if (typeof onConfirm === 'function') onConfirm();

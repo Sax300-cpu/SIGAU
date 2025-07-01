@@ -1084,6 +1084,5 @@ input:checked + .slider:before {
 .estado-badge.estado-desactivado {
   background: #e57373;
   color: #fff;
-  text-decoration: line-through;
   opacity: 0.85;
 }
