@@ -276,8 +276,23 @@ document.addEventListener('DOMContentLoaded', () => {
               abrirModalEditarCliente(cliente.id);
             });
           } else if (this.value === 'desactivar') {
-            mostrarModalConfirmacion('¿Desea desactivar este cliente?', () => {
-              alert('Funcionalidad de desactivación por implementar.');
+            mostrarModalConfirmacion('¿Desea desactivar este cliente?', async () => {
+              try {
+                const resp = await fetch(`/clients/${cliente.id}/status`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ status: 'desactivado' })
+                });
+                if (resp.ok) {
+                  showNotification('success', 'Cliente desactivado correctamente.');
+                  cargarClientes();
+                } else {
+                  const err = await resp.json();
+                  showNotification('error', err.error || 'Error al desactivar cliente.');
+                }
+              } catch (e) {
+                showNotification('error', 'Error de red o del servidor.');
+              }
             });
           }
           this.value = '';

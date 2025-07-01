@@ -443,7 +443,8 @@ def list_clients():
             SELECT
               c.id AS id,
               u.username AS username,
-              u.email AS email
+              u.email AS email,
+              c.status AS status
             FROM clients c
             JOIN users u ON u.id = c.user_id
             WHERE u.role_id = 3 AND c.agent_id = %s
@@ -454,7 +455,8 @@ def list_clients():
             SELECT
               c.id AS id,
               u.username AS username,
-              u.email AS email
+              u.email AS email,
+              c.status AS status
             FROM clients c
             JOIN users u ON u.id = c.user_id
             WHERE u.role_id = 3
@@ -464,7 +466,7 @@ def list_clients():
     cur.close()
 
     clientes = [
-        {"id": r[0], "name": r[1], "email": r[2]}
+        {"id": r[0], "name": r[1], "email": r[2], "status": r[3]}
         for r in rows
     ]
     return jsonify(clientes), 200
@@ -943,6 +945,19 @@ def create_contract():
         
         contract_id = cur.lastrowid
         mysql.connection.commit()  # Commit tras crear el contrato y obtener el ID
+
+        # === ACTUALIZAR ESTADO DEL CLIENTE A 'activo' SI NO ESTÁ DESACTIVADO ===
+        cur.execute("SELECT status FROM clients WHERE id = %s", (client_id,))
+        current_status = cur.fetchone()
+        print("DEBUG client_id:", client_id)
+        print("DEBUG current_status:", current_status)
+        if current_status and current_status[0] not in ('desactivado', 'deactivated'):
+            cur.execute("UPDATE clients SET status = 'activo' WHERE id = %s", (client_id,))
+            mysql.connection.commit()
+            print("DEBUG: Estado actualizado a 'activo' para el cliente", client_id)
+        else:
+            print("DEBUG: No se actualizó el estado para el cliente", client_id)
+        # === FIN ACTUALIZAR ESTADO ===
 
         # === INSERTAR BENEFICIARIOS ===
         import re
@@ -1663,6 +1678,27 @@ def session_info():
     except Exception as e:
         print("Error en session-info:", str(e))
         return jsonify({'error': str(e)}), 500
+
+@app.route('/clients/<int:client_id>/status', methods=['PUT'])
+@login_required
+def update_client_status(client_id):
+    # Solo admin o agente pueden cambiar el estado
+    if session.get('role_id') not in (1, 2):
+        return jsonify({'error': 'No autorizado'}), 403
+    data = request.get_json()
+    nuevo_estado = data.get('status')
+    if nuevo_estado not in ['activo', 'inactivo', 'desactivado', 'active', 'inactive', 'deactivated']:
+        return jsonify({'error': 'Estado no válido'}), 400
+    cur = mysql.connection.cursor()
+    try:
+        cur.execute('UPDATE clients SET status = %s WHERE id = %s', (nuevo_estado, client_id))
+        mysql.connection.commit()
+        return jsonify({'success': True, 'message': f'Estado actualizado a {nuevo_estado}'}), 200
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
