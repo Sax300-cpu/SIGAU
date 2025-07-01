@@ -289,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ status: 'desactivado' })
                   });
                   if (resp.ok) {
-                    showNotification('success', 'Cliente desactivado correctamente.');
+                    mostrarModalExitoAccionCliente('Cliente desactivado correctamente.');
                     // === ACTUALIZACIÓN EN TIEMPO REAL DEL ESTADO ===
                     const filas = document.querySelectorAll('#tabla-clientes tbody tr');
                     filas.forEach(tr => {
@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   });
                   if (resp.ok) {
                     const data = await resp.json();
-                    showNotification('success', 'Cliente activado correctamente.');
+                    mostrarModalExitoAccionCliente('Cliente activado correctamente.');
                     // === ACTUALIZACIÓN EN TIEMPO REAL DEL ESTADO ===
                     const filas = document.querySelectorAll('#tabla-clientes tbody tr');
                     filas.forEach(tr => {
@@ -349,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
                           const spanEstado = tdEstado.querySelector('.estado-badge');
                           if (spanEstado) {
                             spanEstado.textContent = data.status;
-                            spanEstado.className = 'estado-badge ' + (data.status === 'activo' ? 'estado-activo' : (data.status === 'inactivo' ? 'estado-inactivo' : ''));
+                            spanEstado.className = 'estado-badge ' + (data.status === 'activo' ? 'estado-activo' : (data.status === 'inactivo' ? 'estado-inactivo' : (data.status === 'desactivado' ? 'estado-desactivado' : '')));
                             // === ACTUALIZAR EL MENÚ DE ACCIONES ===
                             const tdAcciones = tr.children[6];
                             if (tdAcciones) {
@@ -2148,4 +2148,43 @@ document.addEventListener('DOMContentLoaded', () => {
       cargarClientes(); // También aquí
     };
   }
+
+  // ... función para mostrar modal elegante de éxito ...
+  function mostrarModalExitoAccionCliente(mensaje) {
+    const modalExistente = document.getElementById('modal-exito-accion-cliente');
+    if (modalExistente) modalExistente.remove();
+    const modal = document.createElement('div');
+    modal.id = 'modal-exito-accion-cliente';
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-overlay"></div>
+      <div class="modal-content" style="max-width:350px;text-align:center; border-radius:16px; padding:32px 24px 28px 24px;">
+        <h3 style="color:#1976d2; margin-bottom:28px; font-size:1.25em; font-weight:700; letter-spacing:0.5px;">${mensaje}</h3>
+        <button id="btn-cerrar-exito-accion-cliente" class="close-btn" style="background:#1976d2;color:#fff;border:none;border-radius:6px;padding:10px 32px;font-size:1.08em;font-weight:500;cursor:pointer;transition:background 0.18s;">Cerrar</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    document.getElementById('btn-cerrar-exito-accion-cliente').onclick = function() {
+      modal.classList.add('hidden');
+      modal.remove();
+    };
+    const overlay = modal.querySelector('.modal-overlay');
+    if (overlay) overlay.onclick = function() {
+      modal.classList.add('hidden');
+      modal.remove();
+    };
+  }
+  // ... en la lógica de desactivar ...
+  if (resp.ok) {
+    mostrarModalExitoAccionCliente('Cliente desactivado correctamente.');
+    // ... resto igual ...
+  }
+  // ... en la lógica de activar ...
+  if (resp.ok) {
+    mostrarModalExitoAccionCliente('Cliente activado correctamente.');
+    // ... resto igual ...
+  }
+  // ... elimina cualquier showNotification('success', ...) para estos casos ...
 });
