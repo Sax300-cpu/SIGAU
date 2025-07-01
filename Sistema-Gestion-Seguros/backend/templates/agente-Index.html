@@ -101,30 +101,56 @@ href="{{ url_for('static', filename='css/agente-styles.css') }}"
 </section>
 
 <section class="content-section" id="reembolsos-section" style="display:none;">
-<div class="section-header">
-<h2>Gestión de Reembolsos</h2>
-<button id="btn-refrescar-reembolsos" class="btn-green">
-<i class="fas fa-sync-alt"></i> Actualizar
-</button>
-</div>
-<div class="table-container">
-<table id="tabla-reembolsos">
-<thead>
-<tr>
-<th>Cliente</th>
-<th>Email</th>
-<th>Póliza</th>
-<th>Monto</th>
-<th>Fecha Solicitud</th>
-<th>Estado</th>
-<th>Acciones</th>
-</tr>
-</thead>
-<tbody>
-<!-- Se inyectará dinámicamente la lista de reembolsos -->
-</tbody>
-</table>
-</div>
+  <div class="section-header">
+    <h2>Solicitudes de Reembolso de Clientes</h2>
+    <button id="btn-refrescar-reembolsos" class="btn-green">
+      <i class="fas fa-sync-alt"></i> Actualizar
+    </button>
+  </div>
+  <div class="table-container">
+    <table id="tabla-reembolsos-agente">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Email</th>
+          <th>Fecha</th>
+          <th>Monto</th>
+          <th>Motivo</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Aquí se inyectarán las solicitudes de reembolso -->
+      </tbody>
+    </table>
+  </div>
+  <div id="mensaje-reembolsos-agente" style="margin-top:30px; text-align:center; color:#1976d2;"></div>
+
+  <!-- Modal de detalle y procesamiento de reembolso -->
+  <div id="modal-detalle-reembolso-agente" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content" style="max-width:600px;">
+      <h3>Detalle de Solicitud de Reembolso</h3>
+      <div id="detalle-reembolso-agente-content">
+        <!-- Aquí se inyecta el detalle -->
+      </div>
+      <div id="procesar-reembolso-actions" style="margin-top:20px; display:flex; gap:10px;">
+        <select id="select-accion-reembolso" style="padding:6px 12px;">
+          <option value="">Seleccionar acción</option>
+          <option value="approved">Aprobar</option>
+          <option value="rejected">Rechazar</option>
+        </select>
+        <input type="text" id="input-nota-reembolso" placeholder="Notas (opcional)" style="flex:1; padding:6px 12px;">
+        <button id="btn-guardar-accion-reembolso" class="btn-green">Guardar</button>
+        <button id="btn-cerrar-modal-reembolso" class="btn-cancel">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content-section" id="reportes-section" style="display:none;">
+<!-- ... sección de reportes ... -->
 </section>
 </main>
 <!-- ======== FIN CONTENIDO PRINCIPAL ======== -->

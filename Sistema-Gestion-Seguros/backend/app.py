@@ -1,5 +1,3 @@
-
-
 import os
 import re
 from functools import wraps
@@ -20,6 +18,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
 from PIL import Image
 from datetime import datetime
+import uuid
 
 # ===================================
 # Carga de configuración y BD 
@@ -1239,107 +1238,45 @@ def update_contract_status(contract_id):
 # RUTAS DE REEMBOLSO
 # ===================================
 
-
-import uuid
-
 @app.route('/refunds', methods=['POST'])
 @login_required
-def create_refund_request():
-    """Crear una solicitud de reembolso con todos los campos nuevos"""
+def create_refund():
     try:
         if session.get('role_id') != 3:
             return jsonify({'error': 'Solo los clientes pueden solicitar reembolsos'}), 403
-
         data = request.get_json()
-        print(f"DEBUG: Datos recibidos en create_refund_request: {data}")
-
-        contract_id = data.get('contract_id')
+        # Obtener datos del cliente y póliza
+        client_id = get_client_id_from_session()
+        if not client_id:
+            return jsonify({'error': 'Cliente no encontrado'}), 400
+        # Buscar agente asociado a la póliza (o al cliente)
         policy_id = data.get('policy_id')
-        # Nuevos campos
-        health_institution_name = data.get('health_institution_name')
-        health_institution_type = data.get('health_institution_type')
-        refund_type = data.get('refund_type')
-        refund_type_other = data.get('refund_type_other')
-        event_description = data.get('event_description')
-        event_date = data.get('event_date')
-        payment_method = data.get('payment_method')
-        account_holder_name = data.get('account_holder_name')
-        bank_account_number = data.get('bank_account_number')
-        bank_name = data.get('bank_name')
-        account_type = data.get('account_type')
-        swift_aba_code = data.get('swift_aba_code')
-        payment_method_other = data.get('payment_method_other')
-
-        # Buscar datos de la póliza y cliente
-        cur = mysql.connection.cursor()
-        if contract_id:
-            cur.execute("""
-                SELECT cp.policy_id, cp.client_id, cp.agent_id, cp.premium_amount, p.name
-                FROM client_policies cp
-                JOIN policies p ON cp.policy_id = p.id
-                WHERE cp.id = %s AND cp.client_id = (
-                    SELECT id FROM clients WHERE user_id = %s
-                )
-            """, (contract_id, session['user_id']))
-            contract_data = cur.fetchone()
-            if not contract_data:
-                cur.close()
-                return jsonify({'error': 'Contrato no encontrado o no autorizado'}), 404
-            policy_id, client_id, agent_id, premium_amount, policy_name = contract_data
-        elif policy_id:
-            cur.execute("""
-                SELECT cp.policy_id, cp.client_id, cp.agent_id, cp.premium_amount, p.name
-                FROM client_policies cp
-                JOIN policies p ON cp.policy_id = p.id
-                WHERE cp.policy_id = %s AND cp.client_id = (
-                    SELECT id FROM clients WHERE user_id = %s
-                )
-            """, (policy_id, session['user_id']))
-            policy_data = cur.fetchone()
-            if not policy_data:
-                cur.close()
-                return jsonify({'error': 'Póliza no encontrada o no autorizada'}), 404
-            policy_id, client_id, agent_id, premium_amount, policy_name = policy_data
-        else:
-            cur.close()
-            return jsonify({'error': 'ID de contrato o póliza requerido'}), 400
-
-        # Generar UUID para el reembolso
+        agent_id = get_agent_id_for_policy(policy_id)
+        if not agent_id:
+            return jsonify({'error': 'Agente no encontrado'}), 400
         refund_id = str(uuid.uuid4())
-
-        # Insertar reembolso
+        cur = mysql.connection.cursor()
         cur.execute("""
-            INSERT INTO refunds (
-                id, policy_id, client_id, agent_id, amount,
-                health_institution_name, health_institution_type,
-                refund_type, refund_type_other, event_description, event_date,
-                payment_method, account_holder_name, bank_account_number, bank_name, account_type, swift_aba_code, payment_method_other,
-                status, created_by
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending', %s)
+            INSERT INTO refunds (id, policy_id, client_id, agent_id, request_date, amount, refund_type, refund_type_other, event_description, event_date, status, created_by)
+            VALUES (%s, %s, %s, %s, NOW(), %s, %s, %s, %s, %s, 'pending', %s)
         """, (
-            refund_id, policy_id, client_id, agent_id, premium_amount,
-            health_institution_name, health_institution_type,
-            refund_type, refund_type_other, event_description, event_date,
-            payment_method, account_holder_name, bank_account_number, bank_name, account_type, swift_aba_code, payment_method_other,
+            refund_id,
+            policy_id,
+            client_id,
+            agent_id,
+            data.get('amount'),
+            data.get('refund_type'),
+            data.get('refund_type_other'),
+            data.get('event_description'),
+            data.get('event_date'),
             session['user_id']
         ))
         mysql.connection.commit()
         cur.close()
-
-        print(f"DEBUG: Refund creado exitosamente con ID: {refund_id}")
-
-        return jsonify({
-            'success': True,
-            'message': f'Solicitud de reembolso creada para {policy_name}. Su solicitud será revisada por nuestro equipo.',
-            'refund_id': refund_id
-        }), 201
-
+        return jsonify({'id': refund_id}), 201
     except Exception as e:
         mysql.connection.rollback()
-        print(f"ERROR en create_refund_request: {str(e)}")
-        import traceback
-        print(f"DEBUG: Traceback completo: {traceback.format_exc()}")
-        return jsonify({'error': f'Error interno del servidor: {str(e)}'}), 500
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/refunds', methods=['GET'])
 @login_required
@@ -1348,9 +1285,7 @@ def list_refunds():
     try:
         print(f"DEBUG: Usuario ID: {session.get('user_id')}, Rol: {session.get('role_id')}")
         cur = mysql.connection.cursor()
-        
         if session.get('role_id') == 2:  # Agente
-            # Agentes ven solicitudes de sus clientes (solo si el cliente es suyo)
             print(f"DEBUG: Consultando reembolsos para agente ID: {session['user_id']}")
             cur.execute("""
                 SELECT 
@@ -1382,9 +1317,7 @@ def list_refunds():
                 WHERE r.agent_id = %s
                 ORDER BY r.request_date DESC
             """, (session['user_id'],))
-            
         elif session.get('role_id') == 1:  # Admin
-            # Admins ven todas las solicitudes
             print("DEBUG: Consultando reembolsos para admin")
             cur.execute("""
                 SELECT 
@@ -1402,9 +1335,7 @@ def list_refunds():
                 JOIN users u ON c.user_id = u.id
                 ORDER BY r.request_date DESC
             """)
-            
         else:  # Cliente
-            # Clientes ven solo sus solicitudes
             print(f"DEBUG: Consultando reembolsos para cliente user_id: {session['user_id']}")
             cur.execute("""
                 SELECT 
@@ -1413,7 +1344,8 @@ def list_refunds():
                     r.amount,
                     r.request_date,
                     r.status,
-                    p.name AS policy_name
+                    p.name AS policy_name,
+                    r.policy_id
                 FROM refunds r
                 JOIN policies p ON r.policy_id = p.id
                 WHERE r.client_id = (
@@ -1421,11 +1353,9 @@ def list_refunds():
                 )
                 ORDER BY r.request_date DESC
             """, (session['user_id'],))
-        
         refunds = []
         rows = cur.fetchall()
-        print(f"DEBUG: Se encontraron {len(rows)} reembolsos")
-        
+        print(f"DEBUG: Se encontraron {len(rows)} reembolsos para rol {session.get('role_id')}")
         for row in rows:
             if session.get('role_id') == 3:  # Cliente
                 refunds.append({
@@ -1434,7 +1364,8 @@ def list_refunds():
                     'amount': float(row[2]),
                     'request_date': row[3].isoformat() if row[3] else None,
                     'status': row[4],
-                    'policy_name': row[5]
+                    'policy_name': row[5],
+                    'policy_id': row[6]  # Para el frontend cliente
                 })
             elif session.get('role_id') == 2:  # Agente
                 refunds.append({
@@ -1471,11 +1402,9 @@ def list_refunds():
                     'client_name': row[6],
                     'client_email': row[7]
                 })
-        
-        print(f"DEBUG: Devolviendo {len(refunds)} reembolsos procesados")
+        print(f"DEBUG: Devolviendo {len(refunds)} reembolsos procesados para rol {session.get('role_id')}")
         cur.close()
         return jsonify(refunds), 200
-        
     except Exception as e:
         print("Error al listar reembolsos:", str(e))
         return jsonify({'error': str(e)}), 500
@@ -1540,6 +1469,42 @@ def update_refund_status(refund_id):
     except Exception as e:
         mysql.connection.rollback()
         print("Error al actualizar estado de reembolso:", str(e))
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/refunds/<refund_id>/documents', methods=['GET'])
+@login_required
+def get_refund_documents(refund_id):
+    try:
+        cur = mysql.connection.cursor()
+        # Verificar que el usuario tiene permiso (agente o cliente dueño)
+        cur.execute("SELECT client_id, agent_id FROM refunds WHERE id = %s", (refund_id,))
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify({'error': 'Solicitud de reembolso no encontrada'}), 404
+        client_id, agent_id = row
+        user_id = session.get('user_id')
+        role_id = session.get('role_id')
+        # Permitir solo al agente asignado o al cliente dueño
+        if not ((role_id == 2 and get_agent_id_from_user(user_id) == agent_id) or (role_id == 3 and get_client_id_from_session() == client_id)):
+            cur.close()
+            return jsonify({'error': 'No autorizado'}), 403
+        cur.execute("SELECT id, file_path, uploaded_at, status FROM documents_refunds WHERE invoice_id = %s", (refund_id,))
+        docs = cur.fetchall()
+        result = []
+        for doc in docs:
+            doc_id, fname, uploaded_at, status = doc
+            url = url_for('static', filename=f'../uploads/refunds/{refund_id}/{fname}', _external=True)
+            result.append({
+                'id': doc_id,
+                'filename': fname,
+                'uploaded_at': str(uploaded_at),
+                'status': status,
+                'url': url
+            })
+        cur.close()
+        return jsonify(result)
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 # ===================================
@@ -1759,6 +1724,54 @@ def update_client_status(client_id):
         return jsonify({'error': str(e)}), 500
     finally:
         cur.close()
+
+# --- Configuración de uploads para reembolsos ---
+REFUND_UPLOAD_ROOT = os.path.join(BASE_DIR, 'uploads', 'refunds')
+os.makedirs(REFUND_UPLOAD_ROOT, exist_ok=True)
+
+@app.route('/refunds/<refund_id>/upload_docs', methods=['POST'])
+@login_required
+def upload_refund_docs(refund_id):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT id, client_id FROM refunds WHERE id = %s", (refund_id,))
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify({'error': 'Solicitud de reembolso no encontrada'}), 404
+        client_id = row[1]
+        # Obtener el client_id del usuario autenticado
+        cur.execute("SELECT id FROM clients WHERE user_id = %s", (session['user_id'],))
+        user_client_row = cur.fetchone()
+        user_client_id = user_client_row[0] if user_client_row else None
+        # Solo el cliente dueño puede subir documentos
+        if session.get('role_id') != 3 or client_id != user_client_id:
+            cur.close()
+            return jsonify({'error': 'No autorizado'}), 403
+        folder = os.path.join(REFUND_UPLOAD_ROOT, str(refund_id))
+        os.makedirs(folder, exist_ok=True)
+        files = request.files.getlist('documentos')
+        if not files:
+            cur.close()
+            return jsonify({'error': 'No se enviaron archivos'}), 400
+        now = datetime.now()
+        uploaded_by = 'cliente'
+        for file in files:
+            fname = secure_filename(file.filename)
+            fpath = os.path.join(folder, fname)
+            file.save(fpath)
+            cur.execute("""
+                INSERT INTO documents_refunds (invoice_id, doc_type, file_path, uploaded_at, uploaded_by, upload_date, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (
+                refund_id, None, fname, now, uploaded_by, now, 'pendiente'
+            ))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify({'success': True, 'message': 'Documentos subidos correctamente'}), 201
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

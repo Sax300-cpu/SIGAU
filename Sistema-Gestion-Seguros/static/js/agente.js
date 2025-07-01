@@ -1596,337 +1596,6 @@ document.addEventListener('DOMContentLoaded', () => {
   probarDatosRefunds();
   verificarSesion();
 
-  // Nueva gestión de reembolsos para agentes
-  let cargandoReembolsos = false;
-  async function cargarReembolsos() {
-    if (cargandoReembolsos) return;
-    cargandoReembolsos = true;
-    try {
-      const resp = await fetch('/refunds');
-      if (!resp.ok) throw new Error('Error al obtener lista de reembolsos');
-      let reembolsos = await resp.json();
-      tablaReembolsosBody.innerHTML = '';
-      if (!Array.isArray(reembolsos) || reembolsos.length === 0) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = '<td colspan="7" style="text-align: center; padding: 20px; color: #666;">No hay solicitudes de reembolso pendientes</td>';
-        tablaReembolsosBody.appendChild(tr);
-        cargandoReembolsos = false;
-        return;
-      }
-      // Ordenar por fecha descendente
-      reembolsos.sort((a, b) => {
-        const da = a.request_date ? new Date(a.request_date) : 0;
-        const db = b.request_date ? new Date(b.request_date) : 0;
-        return db - da;
-      });
-      reembolsos.forEach(reembolso => {
-        const tr = document.createElement('tr');
-        const clientName = reembolso.client_name || 'Cliente';
-        const clientEmail = reembolso.client_email || 'N/A';
-        const policyName = reembolso.policy_name || 'Seguro';
-        const monto = reembolso.amount !== undefined && reembolso.amount !== null ? parseFloat(reembolso.amount).toFixed(2) : '0.00';
-        const fecha = reembolso.request_date ? new Date(reembolso.request_date).toLocaleDateString('es-ES') : 'N/A';
-        const estado = reembolso.status || 'pendiente';
-        const estadoBadge = `<span class="status-badge status-${estado}">${estado}</span>`;
-        // Botón para ver detalle completo
-        const botonDetalle = `<button class="btn-detalle-reembolso" data-refund-id="${reembolso.refund_id}" data-client-id="${reembolso.client_id}">Ver Detalle</button>`;
-        // Botón de procesar solo si está pendiente
-        const botonProcesar = estado === 'pending' || estado === 'pendiente'
-          ? `<button class="btn-process" data-refund-id="${reembolso.refund_id}">Procesar</button>`
-          : '<span style="color: #666;">Procesado</span>';
-        tr.innerHTML = `
-          <td>${clientName}</td>
-          <td>${clientEmail}</td>
-          <td>${policyName}</td>
-          <td>$${monto}</td>
-          <td>${fecha}</td>
-          <td>${estadoBadge}</td>
-          <td>
-            ${botonDetalle}
-            <br><br>
-            ${botonProcesar}
-          </td>
-        `;
-        tablaReembolsosBody.appendChild(tr);
-      });
-      // Event listeners para ver detalle
-      document.querySelectorAll('.btn-detalle-reembolso').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const refundId = btn.getAttribute('data-refund-id');
-          const clientId = btn.getAttribute('data-client-id');
-          // Buscar el reembolso seleccionado
-          const reembolso = reembolsos.find(r => String(r.refund_id) === String(refundId));
-          // Traer contratos del cliente
-          let contratos = [];
-          try {
-            const resp = await fetch(`/clients/${clientId}/contracts`);
-            if (resp.ok) contratos = await resp.json();
-          } catch {}
-          mostrarModalDetalleReembolsoAgente(reembolso, contratos);
-        });
-      });
-      // Event listeners para procesar
-      document.querySelectorAll('.btn-process').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const refundId = btn.getAttribute('data-refund-id');
-          mostrarModalProcesarReembolso(refundId, reembolsos);
-        });
-      });
-    } catch (err) {
-      console.error('Error al cargar reembolsos:', err);
-      if (typeof showNotification === 'function') showNotification('error', 'Error al cargar la lista de reembolsos');
-      tablaReembolsosBody.innerHTML = `
-        <tr>
-          <td colspan="7" style="text-align: center; padding: 20px; color: #dc3545;">
-            <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
-            Error al cargar los reembolsos. Intente nuevamente.
-          </td>
-        </tr>
-      `;
-    } finally {
-      cargandoReembolsos = false;
-    }
-  }
-  // Nueva vista de detalle de reembolso para el agente
-  function mostrarModalDetalleReembolsoAgente(reembolso, contratos) {
-    let modal = document.getElementById('modal-detalle-reembolso-agente');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'modal-detalle-reembolso-agente';
-      modal.className = 'modal';
-      modal.innerHTML = `
-        <div class="modal-overlay"></div>
-        <div class="modal-content" style="max-width:700px;">
-          <h3>Detalle de Solicitud de Reembolso</h3>
-          <div id="detalle-reembolso-agente-content"></div>
-          <button id="btn-cerrar-detalle-reembolso-agente" class="close-btn">Cerrar</button>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    }
-    const content = modal.querySelector('#detalle-reembolso-agente-content');
-    let contratosHTML = '';
-    if (Array.isArray(contratos) && contratos.length > 0) {
-      contratosHTML = '<ul style="margin-bottom:10px;">' + contratos.map(c =>
-        `<li><b>${c.policy_name}</b> (${c.status}) - Prima: $${c.premium_amount} (${c.payment_frequency})</li>`
-      ).join('') + '</ul>';
-    } else {
-      contratosHTML = '<div style="color:#888;">El cliente no tiene otros contratos registrados.</div>';
-    }
-    // Mostrar todos los campos relevantes de la solicitud
-    const fecha = reembolso.request_date ? new Date(reembolso.request_date).toLocaleDateString('es-ES') : 'N/A';
-    const monto = reembolso.amount !== undefined && reembolso.amount !== null ? parseFloat(reembolso.amount).toFixed(2) : '0.00';
-    // Mapear tipos y enums
-    const tipoInstitucion = reembolso.health_institution_type === 'publica' ? 'Pública' : (reembolso.health_institution_type === 'privada' ? 'Privada' : 'N/A');
-    const tipoReembolsoMap = {
-      'gastos_medicos': 'Gastos Médicos',
-      'fallecimiento': 'Fallecimiento',
-      'discapacidad': 'Discapacidad',
-      'otros': 'Otros'
-    };
-    const tipoReembolso = tipoReembolsoMap[reembolso.refund_type] || reembolso.refund_type_other || 'N/A';
-    const metodoPagoMap = {
-      'transferencia_bancaria': 'Transferencia Bancaria',
-      'cheque': 'Cheque',
-      'otros': 'Otros'
-    };
-    const metodoPago = metodoPagoMap[reembolso.payment_method] || reembolso.payment_method_other || 'N/A';
-    const fechaEvento = reembolso.event_date ? new Date(reembolso.event_date).toLocaleDateString('es-ES') : 'N/A';
-    content.innerHTML = `
-      <div style="margin-bottom:12px;"><b>Cliente:</b> ${reembolso.client_name || ''} (${reembolso.client_email || ''})</div>
-      <div style="margin-bottom:12px;"><b>Contratos del cliente:</b> ${contratosHTML}</div>
-      <div style="margin-bottom:12px;"><b>Póliza solicitada:</b> ${reembolso.policy_name || ''}</div>
-      <div style="margin-bottom:12px;"><b>Monto solicitado:</b> $${monto}</div>
-      <div style="margin-bottom:12px;"><b>Fecha de solicitud:</b> ${fecha}</div>
-      <div style="margin-bottom:12px;"><b>Institución médica:</b> ${reembolso.health_institution_name || 'N/A'} (${tipoInstitucion})</div>
-      <div style="margin-bottom:12px;"><b>Tipo de reembolso:</b> ${tipoReembolso}</div>
-      <div style="margin-bottom:12px;"><b>Descripción del evento:</b> ${reembolso.event_description || 'N/A'}</div>
-      <div style="margin-bottom:12px;"><b>Fecha del evento:</b> ${fechaEvento}</div>
-      <div style="margin-bottom:12px;"><b>Método de pago solicitado:</b> ${metodoPago}</div>
-      <div style="margin-bottom:12px;"><b>Datos bancarios:</b><br>
-        <ul style="margin:0 0 0 18px;">
-          <li><b>Titular:</b> ${reembolso.account_holder_name || 'N/A'}</li>
-          <li><b>N° de cuenta:</b> ${reembolso.bank_account_number || 'N/A'}</li>
-          <li><b>Banco:</b> ${reembolso.bank_name || 'N/A'}</li>
-          <li><b>Tipo de cuenta:</b> ${reembolso.account_type || 'N/A'}</li>
-          <li><b>SWIFT/ABA:</b> ${reembolso.swift_aba_code || 'N/A'}</li>
-        </ul>
-      </div>
-    `;
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
-    // Cerrar modal
-    const btnCerrar = modal.querySelector('#btn-cerrar-detalle-reembolso-agente');
-    const modalOverlay = modal.querySelector('.modal-overlay');
-    if (btnCerrar) btnCerrar.onclick = () => { modal.classList.add('hidden'); modal.style.display = 'none'; };
-    if (modalOverlay) modalOverlay.onclick = () => { modal.classList.add('hidden'); modal.style.display = 'none'; };
-  }
-
-  // Función para mostrar modal de razones
-  function mostrarModalRazones(refundId, reason, description) {
-    const motivosMap = {
-      'cambio_circunstancias': 'Cambio en circunstancias',
-      'insatisfaccion_servicio': 'Insatisfacción con servicio',
-      'problemas_economicos': 'Problemas económicos',
-      'encontre_mejor_opcion': 'Encontró mejor opción',
-      'duplicacion_cobertura': 'Duplicación de cobertura',
-      'otro': 'Otro motivo',
-      'cancelation': 'Cancelación',
-      'overpayment': 'Pago excesivo',
-      'adjustment': 'Ajuste',
-      'other': 'Otro'
-    };
-    
-    const motivoTraducido = motivosMap[reason] || reason;
-    
-    // Crear modal dinámico
-    const modalHTML = `
-      <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; justify-content: center; align-items: center;">
-        <div class="modal-content" style="background: white; padding: 30px; border-radius: 10px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3 style="margin: 0; color: #333;">Razones del Reembolso</h3>
-            <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">&times;</button>
-          </div>
-          
-          <div style="margin-bottom: 15px;">
-            <strong>Motivo:</strong>
-            <p style="margin: 5px 0; padding: 10px; background: #f5f5f5; border-radius: 5px;">${motivoTraducido}</p>
-          </div>
-          
-          <div style="margin-bottom: 15px;">
-            <strong>Descripción:</strong>
-            <p style="margin: 5px 0; padding: 10px; background: #f5f5f5; border-radius: 5px; white-space: pre-wrap;">${description || 'No se proporcionó descripción adicional'}</p>
-          </div>
-          
-          <div style="text-align: center; margin-top: 20px;">
-            <button onclick="this.closest('.modal-overlay').remove()" style="background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Cerrar</button>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-  }
-
-  // Función para mostrar modal de procesar reembolso
-  function mostrarModalProcesarReembolso(refundId, reembolsos) {
-    const reembolso = reembolsos.find(r => r.refund_id == refundId);
-    if (!reembolso) return;
-    
-    // Llenar información en el modal con los campos disponibles
-    document.getElementById('detalle-cliente-reembolso').textContent = reembolso.client_name || 'Cliente';
-    document.getElementById('detalle-tipo-seguro-reembolso').textContent = 'Seguro General';
-    document.getElementById('detalle-contrato-reembolso').textContent = reembolso.client_id;
-    document.getElementById('detalle-monto-reembolso').textContent = parseFloat(reembolso.amount).toFixed(2);
-    document.getElementById('detalle-fecha-reembolso').textContent = new Date(reembolso.request_date).toLocaleDateString('es-ES');
-    
-    // Mapear motivo a español
-    const motivosMap = {
-      'cambio_circunstancias': 'Cambio en circunstancias',
-      'insatisfaccion_servicio': 'Insatisfacción con servicio',
-      'problemas_economicos': 'Problemas económicos',
-      'encontre_mejor_opcion': 'Encontró mejor opción',
-      'duplicacion_cobertura': 'Duplicación de cobertura',
-      'otro': 'Otro motivo',
-      'cancelation': 'Cancelación',
-      'overpayment': 'Pago excesivo',
-      'adjustment': 'Ajuste',
-      'other': 'Otro'
-    };
-    
-    const motivoTraducido = motivosMap[reembolso.reason] || reembolso.reason;
-    document.getElementById('detalle-motivo-reembolso').textContent = motivoTraducido;
-    document.getElementById('detalle-razones-cliente').textContent = reembolso.reason_description || 'No se proporcionaron razones específicas';
-    
-    // Mostrar modal
-    modalProcesarReembolso.classList.remove('hidden');
-    
-    // Guardar refund_id para el procesamiento
-    modalProcesarReembolso.setAttribute('data-refund-id', refundId);
-  }
-
-  // Event listeners para el modal de procesar reembolso
-  if (btnCancelarReembolso) {
-    btnCancelarReembolso.addEventListener('click', () => {
-      modalProcesarReembolso.classList.add('hidden');
-      // Restaurar texto original del botón
-      if (btnProcesarReembolso) {
-        btnProcesarReembolso.textContent = 'Procesar';
-      }
-    });
-  }
-
-  // Event listener para cambiar el texto del botón según el estado seleccionado
-  const estadoReembolsoSelect = document.getElementById('estado-reembolso');
-  if (estadoReembolsoSelect && btnProcesarReembolso) {
-    estadoReembolsoSelect.addEventListener('change', () => {
-      const estadoSeleccionado = estadoReembolsoSelect.value;
-      if (estadoSeleccionado === 'rejected') {
-        btnProcesarReembolso.textContent = 'Rechazar';
-      } else {
-        btnProcesarReembolso.textContent = 'Procesar';
-      }
-    });
-  }
-
-  if (btnProcesarReembolso) {
-    btnProcesarReembolso.addEventListener('click', async () => {
-      const refundId = modalProcesarReembolso.getAttribute('data-refund-id');
-      const estado = document.getElementById('estado-reembolso').value;
-      const notas = document.getElementById('notas-reembolso').value;
-      
-      if (!estado) {
-        showNotification('error', 'Debe seleccionar un estado');
-        return;
-      }
-      
-      try {
-        const resp = await fetch(`/refunds/${refundId}/status`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            status: estado,
-            notes: notas
-          })
-        });
-        
-        if (resp.ok) {
-          const data = await resp.json();
-          showNotification('success', data.message);
-          modalProcesarReembolso.classList.add('hidden');
-          
-          // Limpiar formulario
-          document.getElementById('estado-reembolso').value = '';
-          document.getElementById('notas-reembolso').value = '';
-          
-          // Recargar lista de reembolsos
-          cargarReembolsos();
-        } else {
-          const error = await resp.json();
-          showNotification('error', error.error || 'Error al procesar el reembolso');
-        }
-      } catch (err) {
-        console.error('Error:', err);
-        showNotification('error', 'Error de conexión');
-      }
-    });
-  }
-
-  // Botón refrescar reembolsos
-  if (btnRefrescarReembolsos) {
-    btnRefrescarReembolsos.addEventListener('click', cargarReembolsos);
-  }
-
-  // Cerrar modal con overlay
-  if (modalProcesarReembolso) {
-    const overlay = modalProcesarReembolso.querySelector('.modal-overlay');
-    if (overlay) {
-      overlay.addEventListener('click', () => {
-        modalProcesarReembolso.classList.add('hidden');
-      });
-    }
-  }
-
   // === LÓGICA PARA EDITAR CLIENTE ===
   const modalEditarCliente = document.getElementById('modal-editar-cliente');
   const formEditarCliente = document.getElementById('form-editar-cliente');
@@ -2224,3 +1893,129 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   // ... elimina cualquier showNotification('success', ...) para estos casos ...
 });
+
+// Stub temporal para evitar error de referencia y mostrar mensaje en la sección
+function cargarReembolsos() {
+  const seccion = document.getElementById('reembolsos-section');
+  if (seccion) {
+    seccion.innerHTML = '<div style="padding:40px; text-align:center; color:#1976d2; font-size:1.3rem;">La gestión de reembolsos estará disponible próximamente.</div>';
+  }
+}
+
+async function cargarReembolsos() {
+  const tablaBody = document.querySelector('#tabla-reembolsos-agente tbody');
+  const mensaje = document.getElementById('mensaje-reembolsos-agente');
+  if (tablaBody) tablaBody.innerHTML = '';
+  if (mensaje) mensaje.textContent = '';
+  try {
+    const resp = await fetch('/refunds');
+    if (!resp.ok) throw new Error('Error al obtener reembolsos');
+    const reembolsos = await resp.json();
+    if (!Array.isArray(reembolsos) || reembolsos.length === 0) {
+      if (mensaje) mensaje.textContent = 'No hay solicitudes de reembolso pendientes.';
+      return;
+    }
+    reembolsos.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.client_name || ''}</td>
+        <td>${r.client_email || ''}</td>
+        <td>${r.request_date ? new Date(r.request_date).toLocaleDateString('es-ES') : ''}</td>
+        <td>$${parseFloat(r.amount).toFixed(2)}</td>
+        <td>${r.refund_type_other || r.refund_type || ''}</td>
+        <td>${r.status || ''}</td>
+        <td><button class="btn-ver-reembolso" data-id="${r.refund_id}">Ver Detalle</button></td>
+      `;
+      tablaBody.appendChild(tr);
+    });
+    document.querySelectorAll('.btn-ver-reembolso').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const refundId = btn.getAttribute('data-id');
+        const reembolso = reembolsos.find(r => r.refund_id === refundId);
+        if (!reembolso) return;
+        // Obtener documentos del cliente (simulación: buscar en /clients/:id/contracts y mostrar links a documentos)
+        let documentosHTML = '<div style="color:#888;">No hay documentos adjuntos.</div>';
+        try {
+          const respDocs = await fetch(`/clients/${reembolso.client_id}/contracts`);
+          if (respDocs.ok) {
+            const contratos = await respDocs.json();
+            const docs = [];
+            contratos.forEach(c => {
+              if (Array.isArray(c.documents)) {
+                c.documents.forEach(d => docs.push({...d, contract_id: c.id}));
+              }
+            });
+            if (docs.length > 0) {
+              documentosHTML = '<ul>' + docs.map(d => `<li><a href="/contracts/${d.contract_id}/docs/${encodeURIComponent(d.filename)}" target="_blank">${d.filename}</a></li>`).join('') + '</ul>';
+            }
+          }
+        } catch {}
+        // Mostrar detalle en el modal
+        const detalle = `
+          <div><b>Cliente:</b> ${reembolso.client_name || ''} (${reembolso.client_email || ''})</div>
+          <div><b>Fecha de solicitud:</b> ${reembolso.request_date ? new Date(reembolso.request_date).toLocaleDateString('es-ES') : ''}</div>
+          <div><b>Monto solicitado:</b> $${parseFloat(reembolso.amount).toFixed(2)}</div>
+          <div><b>Motivo:</b> ${reembolso.refund_type_other || reembolso.refund_type || ''}</div>
+          <div><b>Descripción:</b> ${reembolso.event_description || ''}</div>
+          <div><b>Estado:</b> ${reembolso.status || ''}</div>
+          <div style="margin-top:10px;"><b>Documentos adjuntos:</b> ${documentosHTML}</div>
+        `;
+        document.getElementById('detalle-reembolso-agente-content').innerHTML = detalle;
+        document.getElementById('modal-detalle-reembolso-agente').classList.remove('hidden');
+        document.getElementById('modal-detalle-reembolso-agente').style.display = 'flex';
+        // Guardar id para procesar
+        document.getElementById('btn-guardar-accion-reembolso').setAttribute('data-id', refundId);
+      });
+    });
+  } catch (err) {
+    if (mensaje) mensaje.textContent = 'Error al cargar reembolsos.';
+    console.error(err);
+  }
+}
+// Cerrar modal
+const btnCerrarModal = document.getElementById('btn-cerrar-modal-reembolso');
+if (btnCerrarModal) {
+  btnCerrarModal.onclick = function() {
+    document.getElementById('modal-detalle-reembolso-agente').classList.add('hidden');
+    document.getElementById('modal-detalle-reembolso-agente').style.display = 'none';
+  };
+}
+// Procesar acción (aprobar/rechazar)
+const btnGuardarAccion = document.getElementById('btn-guardar-accion-reembolso');
+if (btnGuardarAccion) {
+  btnGuardarAccion.onclick = async function() {
+    const refundId = btnGuardarAccion.getAttribute('data-id');
+    const accion = document.getElementById('select-accion-reembolso').value;
+    const nota = document.getElementById('input-nota-reembolso').value;
+    if (!accion) {
+      alert('Selecciona una acción');
+      return;
+    }
+    try {
+      const resp = await fetch(`/refunds/${refundId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: accion, notes: nota })
+      });
+      if (resp.ok) {
+        alert('Reembolso procesado correctamente');
+        document.getElementById('modal-detalle-reembolso-agente').classList.add('hidden');
+        document.getElementById('modal-detalle-reembolso-agente').style.display = 'none';
+        cargarReembolsos();
+      } else {
+        alert('Error al procesar el reembolso');
+      }
+    } catch (err) {
+      alert('Error de conexión');
+    }
+  };
+}
+// Refrescar
+const btnRefrescar = document.getElementById('btn-refrescar-reembolsos');
+if (btnRefrescar) btnRefrescar.onclick = cargarReembolsos;
+// Cargar al entrar a la sección
+if (window.location.hash === '#reembolsos' || document.getElementById('reembolsos-section').style.display !== 'none') {
+  cargarReembolsos();
+}
+
+// ... existing code ...

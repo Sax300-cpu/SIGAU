@@ -181,6 +181,15 @@
             <h2 style="margin-top:0; margin-bottom:14px; font-size:1.2rem; font-weight:700; color:#1e2a3c; letter-spacing:-1px;">Solicitar Nuevo Reembolso</h2>
             <form id="form-nuevo-reembolso" enctype="multipart/form-data" autocomplete="off">
               <div class="form-group" style="margin-bottom:16px;">
+                <label for="policy_id" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Selecciona la póliza:</label>
+                <select id="policy_id" name="policy_id" required style="width:100%; padding:8px 12px; border:1px solid #e3e8f0; border-radius:4px; font-size:1rem;">
+                  <option value="">Seleccione una póliza</option>
+                  {% for c in contracts if c.status == 'activo' %}
+                    <option value="{{ c.policy_id }}">{{ c.name }} ({{ c.policy_id }})</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom:16px;">
                 <label for="refund_type" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Tipo de Reembolso Solicitado:</label>
                 <select id="refund_type" name="refund_type" required style="width:100%; padding:8px 12px; border:1px solid #e3e8f0; border-radius:4px; font-size:1rem;">
                   <option value="">Seleccione una opción</option>
