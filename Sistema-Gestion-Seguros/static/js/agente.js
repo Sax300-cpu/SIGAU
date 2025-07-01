@@ -232,37 +232,34 @@ document.addEventListener('DOMContentLoaded', () => {
         // Estado (igual que ahora)
         const tdEstado = document.createElement('td');
         tdEstado.style.textAlign = 'center';
-        const selectEstado = document.createElement('select');
-        selectEstado.className = 'estado-dropdown custom-estado';
-        selectEstado.setAttribute('data-contract-id', cliente.id);
-        const estados = [
-          { value: 'active', label: 'Activo' },
-          { value: 'inactive', label: 'Inactivo' }
-        ];
-        estados.forEach(opt => {
-          const option = document.createElement('option');
-          option.value = opt.value;
-          option.textContent = opt.label;
-          if ((cliente.status === 'active' && opt.value === 'active') || (cliente.status !== 'active' && opt.value === 'inactive')) option.selected = true;
-          option.style.color = opt.value === 'active' ? '#2ecc71' : '#e74c3c';
-          selectEstado.appendChild(option);
-        });
-        function actualizarColorEstado(sel) {
-          if (sel.value === 'active') {
-            sel.style.background = '#eafaf1';
-            sel.style.color = '#27ae60';
-            sel.style.borderColor = '#27ae60';
-          } else {
-            sel.style.background = '#fdeaea';
-            sel.style.color = '#c0392b';
-            sel.style.borderColor = '#c0392b';
-          }
+        // Crear badge visual en vez de select
+        const estado = cliente.status || 'inactivo';
+        let estadoTexto = '';
+        let estadoClase = '';
+        switch (estado) {
+          case 'active':
+          case 'activo':
+            estadoTexto = 'activo';
+            estadoClase = 'estado-activo';
+            break;
+          case 'inactive':
+          case 'inactivo':
+            estadoTexto = 'inactivo';
+            estadoClase = 'estado-inactivo';
+            break;
+          case 'deactivated':
+          case 'desactivado':
+            estadoTexto = 'desactivado';
+            estadoClase = 'estado-desactivado';
+            break;
+          default:
+            estadoTexto = estado;
+            estadoClase = '';
         }
-        actualizarColorEstado(selectEstado);
-        selectEstado.addEventListener('change', function() {
-          actualizarColorEstado(this);
-        });
-        tdEstado.appendChild(selectEstado);
+        const spanEstado = document.createElement('span');
+        spanEstado.className = `estado-badge ${estadoClase}`;
+        spanEstado.textContent = estadoTexto;
+        tdEstado.appendChild(spanEstado);
         // Acciones (dropdown)
         const tdAcciones = document.createElement('td');
         tdAcciones.style.textAlign = 'center';
@@ -604,38 +601,34 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Columna Estado con dropdown ---
         const tdEstado = document.createElement('td');
         tdEstado.style.textAlign = 'center';
-        const selectEstado = document.createElement('select');
-        selectEstado.className = 'estado-dropdown custom-estado';
-        selectEstado.setAttribute('data-contract-id', cliente.id);
-        const estados = [
-          { value: 'active', label: 'Activo' },
-          { value: 'inactive', label: 'Inactivo' }
-        ];
-        estados.forEach(opt => {
-          const option = document.createElement('option');
-          option.value = opt.value;
-          option.textContent = opt.label;
-          if ((cliente.status === 'active' && opt.value === 'active') || (cliente.status !== 'active' && opt.value === 'inactive')) option.selected = true;
-          option.style.color = opt.value === 'active' ? '#2ecc71' : '#e74c3c';
-          selectEstado.appendChild(option);
-        });
-        // Aplicar color al select según valor
-        function actualizarColorEstado(sel) {
-          if (sel.value === 'active') {
-            sel.style.background = '#eafaf1';
-            sel.style.color = '#27ae60';
-            sel.style.borderColor = '#27ae60';
-          } else {
-            sel.style.background = '#fdeaea';
-            sel.style.color = '#c0392b';
-            sel.style.borderColor = '#c0392b';
-          }
+        // Crear badge visual en vez de select
+        const estado = cliente.status || 'inactivo';
+        let estadoTexto = '';
+        let estadoClase = '';
+        switch (estado) {
+          case 'active':
+          case 'activo':
+            estadoTexto = 'activo';
+            estadoClase = 'estado-activo';
+            break;
+          case 'inactive':
+          case 'inactivo':
+            estadoTexto = 'inactivo';
+            estadoClase = 'estado-inactivo';
+            break;
+          case 'deactivated':
+          case 'desactivado':
+            estadoTexto = 'desactivado';
+            estadoClase = 'estado-desactivado';
+            break;
+          default:
+            estadoTexto = estado;
+            estadoClase = '';
         }
-        actualizarColorEstado(selectEstado);
-        selectEstado.addEventListener('change', function() {
-          actualizarColorEstado(this);
-        });
-        tdEstado.appendChild(selectEstado);
+        const spanEstado = document.createElement('span');
+        spanEstado.className = `estado-badge ${estadoClase}`;
+        spanEstado.textContent = estadoTexto;
+        tdEstado.appendChild(spanEstado);
         // --- Fin columna Estado ---
         // --- Columna Acciones con dropdown tipo select ---
         const tdAcciones = document.createElement('td');
