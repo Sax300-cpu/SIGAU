@@ -168,58 +168,284 @@
         </div>
       </div>
       <div class="content" id="reembolso-section" style="display:none;" data-has-contracts="{% if contracts and contracts|selectattr('status', 'equalto', 'activo')|list|length > 0 %}true{% else %}false{% endif %}">
-        {% set active_contracts = contracts|selectattr('status', 'equalto', 'activo')|list %}
-        {% if active_contracts and active_contracts|length > 0 %}
-          <div style="display: flex; flex-direction: column; gap: 24px; margin-top: 40px;">
-            {% for c in active_contracts %}
-              <div style="position: relative; border: 1.5px solid #e3e8f0; border-radius: 10px; padding: 22px 24px 18px 24px; background: #f9fbfd; box-shadow: 0 2px 8px rgba(30,42,60,0.06);">
-                {% if c.refund_status == 'rejected' %}
-                  <button id="btn-solicitar-reembolso-{{ c.id }}" data-contract-id="{{ c.id }}" style="position: absolute; top: 18px; right: 18px; background: #ff9800; color: #fff; border: none; border-radius: 4px; padding: 7px 18px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s;">
-                    Solicitar de nuevo
-                  </button>
-                {% elif c.refund_status == 'pending' %}
-                  <button id="btn-solicitar-reembolso-{{ c.id }}" data-contract-id="{{ c.id }}" style="position: absolute; top: 18px; right: 18px; background: #9e9e9e; color: #fff; border: none; border-radius: 4px; padding: 7px 18px; font-size: 1rem; font-weight: 500; cursor: not-allowed; transition: all 0.2s;" disabled>
-                    Enviado
-                  </button>
-                {% elif c.refund_status == 'approved' %}
-                  <button id="btn-solicitar-reembolso-{{ c.id }}" data-contract-id="{{ c.id }}" style="position: absolute; top: 18px; right: 18px; background: #4caf50; color: #fff; border: none; border-radius: 4px; padding: 7px 18px; font-size: 1rem; font-weight: 500; cursor: not-allowed; transition: all 0.2s;" disabled>
-                    Aprobado
-                  </button>
-                {% else %}
-                  <button id="btn-solicitar-reembolso-{{ c.id }}" data-contract-id="{{ c.id }}" style="position: absolute; top: 18px; right: 18px; background: #1976d2; color: #fff; border: none; border-radius: 4px; padding: 7px 18px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s;">
-                    Solicitar Reembolso
-                  </button>
-                {% endif %}
-                <div style="font-size: 1.2rem; font-weight: 600; color: #1e2a3c; margin-bottom: 6px;">{{ c.name }}</div>
-                <div style="font-size: 1rem; color: #444; margin-bottom: 2px;"><strong>N.º de contrato:</strong> {{ c.id }}</div>
-                <div style="font-size: 1rem; color: #444; margin-bottom: 2px;"><strong>Prima:</strong> ${{ c.amount }}</div>
-                <div style="font-size: 1rem; color: #444; margin-bottom: 2px;"><strong>Frecuencia:</strong> {{ c.freq }}</div>
-                <div style="font-size: 1rem; color: #444;"><strong>Estado:</strong> {{ c.status|capitalize }}</div>
+        <!-- Botón para solicitar un nuevo reembolso -->
+        <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 30px;">
+          <button id="btn-nuevo-reembolso" style="background: #1976d2; color: #fff; border: none; border-radius: 50px; padding: 12px 28px 12px 18px; font-size: 1.1rem; font-weight: 600; box-shadow: 0 2px 8px rgba(30,42,60,0.10); display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background 0.2s;">
+            <span style="font-size: 1.5rem; font-weight: bold; display: inline-block; margin-right: 8px;">+</span> Solicitar un nuevo reembolso
+          </button>
+        </div>
+        <!-- Modal para nuevo reembolso -->
+        <div id="modal-nuevo-reembolso" class="modal hidden">
+          <div class="modal-content" style="max-width: 520px; border-radius: 14px; box-shadow: 0 8px 32px rgba(30,42,60,0.18); padding: 28px 24px 18px 24px; position: relative; background: #fff; border: 1.5px solid #e3e8f0;">
+            <button id="btn-close-nuevo-reembolso" type="button" aria-label="Cerrar" style="position:absolute;top:12px;right:16px;font-size:1.3rem;background:none;border:none;cursor:pointer;color:#1976d2;">&times;</button>
+            <h2 style="margin-top:0; margin-bottom:14px; font-size:1.2rem; font-weight:700; color:#1e2a3c; letter-spacing:-1px;">Solicitar Nuevo Reembolso</h2>
+            <form id="form-nuevo-reembolso" enctype="multipart/form-data" autocomplete="off">
+              <div class="form-group" style="margin-bottom:16px;">
+                <label for="refund_type" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Tipo de Reembolso Solicitado:</label>
+                <select id="refund_type" name="refund_type" required style="width:100%; padding:8px 12px; border:1px solid #e3e8f0; border-radius:4px; font-size:1rem;">
+                  <option value="">Seleccione una opción</option>
+                  <option value="gastos_medicos">Gastos Médicos (Salud)</option>
+                  <option value="fallecimiento">Beneficio por Fallecimiento (Vida)</option>
+                  <option value="discapacidad">Indemnización por Discapacidad (Vida/Salud)</option>
+                  <option value="otros">Otros (especificar)</option>
+                </select>
               </div>
-            {% endfor %}
+              <div class="form-group" id="grupo-refund-type-other" style="margin-bottom:16px; display:none;">
+                <label for="refund_type_other" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Especifique el tipo de reembolso:</label>
+                <input type="text" id="refund_type_other" name="refund_type_other" style="width:100%; padding:8px 12px; border:1px solid #e3e8f0; border-radius:4px; font-size:1rem;" maxlength="255">
+              </div>
+              <div class="form-group" style="margin-bottom:16px;">
+                <label for="event_description" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Descripción Detallada del Evento/Gasto:</label>
+                <textarea id="event_description" name="event_description" rows="4" required placeholder="Sé lo más específico posible, incluyendo fechas, diagnósticos, procedimientos, etc." style="width:100%; padding:8px 12px; border:1px solid #e3e8f0; border-radius:4px; font-size:1rem; resize:vertical;"></textarea>
+              </div>
+              <div class="form-group" style="margin-bottom:16px;">
+                <label for="event_date" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Fecha del Evento/Gasto:</label>
+                <input type="date" id="event_date" name="event_date" required style="width:100%; padding:8px 12px; border:1px solid #e3e8f0; border-radius:4px; font-size:1rem;">
+              </div>
+              <div class="form-group" style="margin-bottom:16px;">
+                <label for="amount" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Monto Total Solicitado para Reembolso:</label>
+                <input type="number" id="amount" name="amount" required min="0.01" step="0.01" placeholder="$0.00" style="width:100%; padding:8px 12px; border:1px solid #e3e8f0; border-radius:4px; font-size:1rem;">
+              </div>
+              <div class="form-group" style="margin-bottom:18px;">
+                <label for="documentos" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Subir Documentos de Respaldo (facturas, informes, etc.):</label>
+                <input type="file" id="documentos" name="documentos" multiple required style="width:100%;">
+              </div>
+              <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" id="btn-cancelar-nuevo-reembolso" style="background:#e3e8f0; color:#1e2a3c; border:1px solid #b0b8c1; border-radius:4px; padding:7px 18px; font-size:1rem; cursor:pointer;">Cancelar</button>
+                <button type="submit" id="btn-enviar-nuevo-reembolso" style="background:#1976d2; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Enviar Solicitud</button>
+              </div>
+            </form>
           </div>
-        {% else %}
-          <div style="text-align:center; margin-top:40px;">
-            <div style="font-size:2rem; color:#111; font-weight:700;">No tiene seguros contratados</div>
-            <div style="font-size:1rem; color:#111; margin-top:18px;">Para solicitar reembolsos, primero debe contratar un seguro.</div>
-            <div style="font-size:1rem; color:#111; margin-top:4px;">Contacte a nuestros agentes: 0992352247</div>
+        </div>
+
+        <!-- Modal pequeño de éxito para nuevo reembolso -->
+        <div id="modal-exito-nuevo-reembolso" class="modal hidden">
+          <div class="modal-content" style="max-width: 340px; border-radius: 12px; box-shadow: 0 4px 16px rgba(30,42,60,0.18); padding: 24px 20px 16px 20px; position: relative; background: #fff; border: 1.5px solid #e3e8f0; text-align:center;">
+            <button id="btn-cerrar-exito-nuevo-reembolso" type="button" aria-label="Cerrar" style="position:absolute;top:10px;right:14px;font-size:1.2rem;background:none;border:none;cursor:pointer;color:#1976d2;">&times;</button>
+            <div style="margin-bottom:10px;"><i class="fas fa-check-circle" style="color:#388e3c; font-size:2.2rem;"></i></div>
+            <h3 style="margin:0 0 8px 0; font-size:1.1rem; font-weight:700; color:#388e3c;">¡Solicitud enviada con éxito!</h3>
+            <p style="margin:0; color:#1e2a3c; font-size:1rem;">Tu solicitud de reembolso ha sido registrada.</p>
           </div>
-        {% endif %}
-        
+        </div>
         <!-- Sección de historial de reembolsos -->
         <div style="margin-top: 40px; border-top: 2px solid #e3e8f0; padding-top: 30px;">
           <h2 style="font-size: 1.5rem; font-weight: 600; color: #1e2a3c; margin-bottom: 20px;">Historial de Reembolsos</h2>
-          <div id="historial-reembolsos" style="display: flex; flex-direction: column; gap: 16px;">
-            <!-- Se cargará dinámicamente -->
-            <div style="text-align: center; color: #666; padding: 20px;">
-              <i class="fas fa-spinner fa-spin" style="font-size: 1.2rem; margin-right: 8px;"></i>
-              Cargando historial de reembolsos...
+          <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px;">
+            <button id="btn-borrar-todo-historial" type="button" style="background: #f44336; color: #fff; border: none; border-radius: 6px; padding: 7px 18px; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: background 0.2s;">
+              <i class="fas fa-trash-alt" style="margin-right: 7px;"></i>Borrar todo el historial
+            </button>
+        </div>
+        <!-- Modal de confirmación para eliminar individual -->
+        <div id="modal-confirmar-eliminar" class="modal hidden">
+          <div class="modal-content" style="max-width: 340px; border-radius: 12px; box-shadow: 0 4px 16px rgba(30,42,60,0.18); padding: 24px 20px 16px 20px; position: relative; background: #fff; border: 1.5px solid #e3e8f0; text-align:center;">
+            <button id="btn-cerrar-modal-eliminar" type="button" aria-label="Cerrar" style="position:absolute;top:10px;right:14px;font-size:1.2rem;background:none;border:none;cursor:pointer;color:#1976d2;">&times;</button>
+            <div style="margin-bottom:10px;"><i class="fas fa-exclamation-triangle" style="color:#f44336; font-size:2.2rem;"></i></div>
+            <h3 style="margin:0 0 8px 0; font-size:1.1rem; font-weight:700; color:#f44336;">¿Eliminar este reembolso?</h3>
+            <p style="margin:0; color:#1e2a3c; font-size:1rem;">Esta acción no se puede deshacer.</p>
+            <div style="margin-top:18px; display:flex; justify-content:center; gap:12px;">
+              <button id="btn-cancelar-eliminar" type="button" style="background:#e3e8f0; color:#1e2a3c; border:1px solid #b0b8c1; border-radius:4px; padding:7px 18px; font-size:1rem; cursor:pointer;">Cancelar</button>
+              <button id="btn-confirmar-eliminar" type="button" style="background:#f44336; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Eliminar</button>
             </div>
+          </div>
+        </div>
+        <!-- Modal de confirmación para eliminar todo el historial -->
+        <div id="modal-confirmar-eliminar-todo" class="modal hidden">
+          <div class="modal-content" style="max-width: 340px; border-radius: 12px; box-shadow: 0 4px 16px rgba(30,42,60,0.18); padding: 24px 20px 16px 20px; position: relative; background: #fff; border: 1.5px solid #e3e8f0; text-align:center;">
+            <button id="btn-cerrar-modal-eliminar-todo" type="button" aria-label="Cerrar" style="position:absolute;top:10px;right:14px;font-size:1.2rem;background:none;border:none;cursor:pointer;color:#1976d2;">&times;</button>
+            <div style="margin-bottom:10px;"><i class="fas fa-exclamation-triangle" style="color:#f44336; font-size:2.2rem;"></i></div>
+            <h3 style="margin:0 0 8px 0; font-size:1.1rem; font-weight:700; color:#f44336;">¿Borrar todo el historial?</h3>
+            <p style="margin:0; color:#1e2a3c; font-size:1rem;">Esta acción eliminará todos los reembolsos y no se puede deshacer.</p>
+            <div style="margin-top:18px; display:flex; justify-content:center; gap:12px;">
+              <button id="btn-cancelar-eliminar-todo" type="button" style="background:#e3e8f0; color:#1e2a3c; border:1px solid #b0b8c1; border-radius:4px; padding:7px 18px; font-size:1rem; cursor:pointer;">Cancelar</button>
+              <button id="btn-confirmar-eliminar-todo" type="button" style="background:#f44336; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Eliminar todo</button>
+            </div>
+          </div>
+        </div>
+          </div>
+          <div id="historial-reembolsos" style="display: flex; flex-direction: column; gap: 16px;"></div>
+        <!-- El historial se renderiza dinámicamente con la nueva implementación -->
           </div>
         </div>
       </div>
       <script>
+        // Definir variables globales para todo el cliente
+        let historialReembolsosMock = [];
+        const HISTORIAL_KEY = 'historialReembolsosMock';
+        // ---
         document.addEventListener('DOMContentLoaded', function() {
+          // Nueva implementación: historial de reembolsos simple, muestra los datos enviados en la sesión
+          // (En producción, esto debe ser reemplazado por una consulta real al backend)
+          // Persistencia local del historial de reembolsos
+          function guardarHistorial() {
+            localStorage.setItem(HISTORIAL_KEY, JSON.stringify(historialReembolsosMock));
+          }
+          function cargarHistorial() {
+            const data = localStorage.getItem(HISTORIAL_KEY);
+            if (data) {
+              try {
+                historialReembolsosMock = JSON.parse(data);
+              } catch (e) {
+                historialReembolsosMock = [];
+              }
+            }
+          }
+          cargarHistorial();
+        // --- FUNCIÓN GLOBAL: Renderizar historial de reembolsos (mock local) ---
+        window.renderHistorialReembolsos = function renderHistorialReembolsos() {
+          const historialContainer = document.getElementById('historial-reembolsos');
+          if (!historialContainer) return;
+          if (historialReembolsosMock.length === 0) {
+            historialContainer.innerHTML = `<div style="text-align: center; color: #b0b8c1; padding: 20px; font-size: 1.05rem;">El historial está Vacío</div>`;
+            return;
+          }
+          historialContainer.innerHTML = '';
+          historialReembolsosMock.slice().reverse().forEach(reembolso => {
+            const card = document.createElement('div');
+            card.style.cssText = 'border: 1.5px solid #e3e8f0; border-radius: 10px; padding: 20px; background: #fff; box-shadow: 0 2px 8px rgba(30,42,60,0.06); margin-bottom: 12px; position: relative;';
+            card.innerHTML = `
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                <div>
+                  <h3 style="margin: 0 0 8px 0; font-size: 1.1rem; color: #1e2a3c;">${reembolso.refund_type_label}</h3>
+                  <p style="margin: 0; color: #666; font-size: 0.9rem;">Solicitado el ${reembolso.fecha}</p>
+                </div>
+                <button class="btn-borrar-reembolso" title="Eliminar este reembolso" style="background: #f44336; color: #fff; border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.3rem; font-weight: bold; line-height: 1;">
+                  &times;
+                </button>
+              </div>
+              <div style="margin-bottom: 10px;"><strong style="color: #1e2a3c;">Monto:</strong> <span style="color: #666; margin-left: 5px;">$${reembolso.amount}</span></div>
+              <div style="margin-bottom: 10px;"><strong style="color: #1e2a3c;">Descripción:</strong> <span style="color: #666; margin-left: 5px;">${reembolso.event_description}</span></div>
+              <div style="margin-bottom: 10px;"><strong style="color: #1e2a3c;">Fecha del evento:</strong> <span style="color: #666; margin-left: 5px;">${reembolso.event_date}</span></div>
+              <div style="margin-bottom: 10px;"><strong style="color: #1e2a3c;">Documentos:</strong> <span style="color: #666; margin-left: 5px;">${reembolso.documentos.map(f=>f.name).join(', ')}</span></div>
+              <div style="margin-top: 12px; text-align: right;">
+                <span style="background: #fff3e0; color: #f57c00; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; border: 1px solid #f57c0020;">Pendiente</span>
+              </div>
+            `;
+            // Acción borrar individual con modal
+            card.querySelector('.btn-borrar-reembolso').addEventListener('click', function() {
+              window._reembolsoAEliminar = reembolso;
+              document.getElementById('modal-confirmar-eliminar').classList.remove('hidden');
+            });
+            historialContainer.appendChild(card);
+          });
+          // Acción borrar todo el historial con modal
+          document.addEventListener('click', function(e) {
+            // Individual
+            if (e.target && (e.target.id === 'btn-cerrar-modal-eliminar' || e.target.id === 'btn-cancelar-eliminar')) {
+              document.getElementById('modal-confirmar-eliminar').classList.add('hidden');
+              window._reembolsoAEliminar = null;
+            }
+            if (e.target && e.target.id === 'btn-confirmar-eliminar') {
+              if (window._reembolsoAEliminar) {
+                const idx = historialReembolsosMock.indexOf(window._reembolsoAEliminar);
+                if (idx > -1) {
+                  historialReembolsosMock.splice(idx, 1);
+                  guardarHistorial();
+                  renderHistorialReembolsos();
+                }
+              }
+              document.getElementById('modal-confirmar-eliminar').classList.add('hidden');
+              window._reembolsoAEliminar = null;
+            }
+            // Todo el historial
+            if (e.target && (e.target.id === 'btn-borrar-todo-historial' || (e.target.closest && e.target.closest('#btn-borrar-todo-historial')))) {
+              if (historialReembolsosMock.length === 0) return;
+              document.getElementById('modal-confirmar-eliminar-todo').classList.remove('hidden');
+            }
+            if (e.target && (e.target.id === 'btn-cerrar-modal-eliminar-todo' || e.target.id === 'btn-cancelar-eliminar-todo')) {
+              document.getElementById('modal-confirmar-eliminar-todo').classList.add('hidden');
+            }
+            if (e.target && e.target.id === 'btn-confirmar-eliminar-todo') {
+              historialReembolsosMock.length = 0;
+              guardarHistorial();
+              renderHistorialReembolsos();
+              document.getElementById('modal-confirmar-eliminar-todo').classList.add('hidden');
+            }
+          });
+        };
+          // Mostrar modal al hacer clic en el botón de nuevo reembolso
+          var btnNuevoReembolso = document.getElementById('btn-nuevo-reembolso');
+          var modalNuevoReembolso = document.getElementById('modal-nuevo-reembolso');
+          var btnCloseNuevoReembolso = document.getElementById('btn-close-nuevo-reembolso');
+          var btnCancelarNuevoReembolso = document.getElementById('btn-cancelar-nuevo-reembolso');
+          var modalExitoNuevoReembolso = document.getElementById('modal-exito-nuevo-reembolso');
+          var btnCerrarExitoNuevoReembolso = document.getElementById('btn-cerrar-exito-nuevo-reembolso');
+          if (btnNuevoReembolso && modalNuevoReembolso) {
+            btnNuevoReembolso.addEventListener('click', function() {
+              modalNuevoReembolso.classList.remove('hidden');
+            });
+          }
+          if (btnCloseNuevoReembolso && modalNuevoReembolso) {
+            btnCloseNuevoReembolso.addEventListener('click', function() {
+              modalNuevoReembolso.classList.add('hidden');
+            });
+          }
+          if (btnCancelarNuevoReembolso && modalNuevoReembolso) {
+            btnCancelarNuevoReembolso.addEventListener('click', function() {
+              modalNuevoReembolso.classList.add('hidden');
+            });
+          }
+          if (btnCerrarExitoNuevoReembolso && modalExitoNuevoReembolso) {
+            btnCerrarExitoNuevoReembolso.addEventListener('click', function() {
+              modalExitoNuevoReembolso.classList.add('hidden');
+            });
+          }
+          // Mostrar/ocultar campo "otros" según selección
+          var refundTypeSelect = document.getElementById('refund_type');
+          var grupoRefundTypeOther = document.getElementById('grupo-refund-type-other');
+          if (refundTypeSelect && grupoRefundTypeOther) {
+            refundTypeSelect.addEventListener('change', function() {
+              if (refundTypeSelect.value === 'otros') {
+                grupoRefundTypeOther.style.display = 'block';
+                document.getElementById('refund_type_other').required = true;
+              } else {
+                grupoRefundTypeOther.style.display = 'none';
+                document.getElementById('refund_type_other').required = false;
+              }
+            });
+          }
+
+          // Envío del formulario de nuevo reembolso (solo frontend, muestra modal de éxito)
+          var formNuevoReembolso = document.getElementById('form-nuevo-reembolso');
+          if (formNuevoReembolso && modalNuevoReembolso && modalExitoNuevoReembolso) {
+            formNuevoReembolso.addEventListener('submit', function(e) {
+              e.preventDefault();
+              // Obtener datos del formulario
+              const refund_type = formNuevoReembolso.refund_type.value;
+              const refund_type_label = refund_type === 'gastos_medicos' ? 'Gastos Médicos (Salud)' :
+                refund_type === 'fallecimiento' ? 'Beneficio por Fallecimiento (Vida)' :
+                refund_type === 'discapacidad' ? 'Indemnización por Discapacidad (Vida/Salud)' :
+                refund_type === 'otros' ? 'Otros' : '';
+              const refund_type_other = formNuevoReembolso.refund_type_other.value;
+              const event_description = formNuevoReembolso.event_description.value;
+              const event_date = formNuevoReembolso.event_date.value;
+              const amount = parseFloat(formNuevoReembolso.amount.value).toFixed(2);
+              const documentos = Array.from(formNuevoReembolso.documentos.files);
+              const fecha = new Date().toLocaleDateString('es-ES');
+              // Guardar en el mock del historial
+              historialReembolsosMock.push({
+                refund_type,
+                refund_type_label: refund_type === 'otros' && refund_type_other ? refund_type_other : refund_type_label,
+                event_description,
+                event_date,
+                amount,
+                documentos,
+                fecha
+              });
+              guardarHistorial();
+              // Actualizar historial visual
+              renderHistorialReembolsos();
+              // Cerrar modal y mostrar éxito
+              modalNuevoReembolso.classList.add('hidden');
+              formNuevoReembolso.reset();
+              grupoRefundTypeOther.style.display = 'none';
+              document.getElementById('refund_type_other').required = false;
+              setTimeout(function() {
+                modalExitoNuevoReembolso.classList.remove('hidden');
+              }, 250);
+            });
+          // Renderizar historial al cargar la página
+          renderHistorialReembolsos();
+          }
           var polizasLink = document.getElementById('mis-polizas-link');
           var polizasSection = document.getElementById('mis-polizas-section');
           var inicioLink = document.getElementById('inicio-link');
@@ -886,201 +1112,141 @@
             if (!response.ok) {
               throw new Error('Error al cargar reembolsos');
             }
-            
             const reembolsos = await response.json();
             console.log('Reembolsos cargados del servidor:', reembolsos);
-            
             const historialContainer = document.getElementById('historial-reembolsos');
-            
             // Siempre actualizar los botones, independientemente de si hay reembolsos o no
             console.log('Actualizando botones con los reembolsos cargados...');
             actualizarBotonesReembolso(reembolsos);
-            
-            if (reembolsos.length === 0) {
-              console.log('No hay reembolsos, mostrando mensaje vacío');
-              historialContainer.innerHTML = `
-                <div style="text-align: center; color: #666; padding: 20px;">
-                  <i class="fas fa-info-circle" style="font-size: 1.2rem; margin-right: 8px;"></i>
-                  No tienes solicitudes de reembolso registradas.
-                </div>
-              `;
+
+            // --- PROTECCIÓN EXTRA: Si el backend devuelve vacío pero hay pendientes en localStorage, NO los borres ---
+            if (Array.isArray(reembolsos) && reembolsos.length > 0) {
+              // Renderizar historial desde backend (como antes)
+              // ...código original de renderizado backend...
+              // Agrupar reembolsos por policy_id para controlar duplicados y numerar solicitudes
+              const reembolsosPorPolitica = {};
+              reembolsos.forEach(reembolso => {
+                if (!reembolsosPorPolitica[reembolso.policy_id]) {
+                  reembolsosPorPolitica[reembolso.policy_id] = [];
+                }
+                reembolsosPorPolitica[reembolso.policy_id].push(reembolso);
+              });
+              const fragment = document.createDocumentFragment();
+              const estadoConfig = {
+                'pending': { color: '#f57c00', bg: '#fff3e0', text: 'Pendiente' },
+                'approved': { color: '#388e3c', bg: '#e8f5e9', text: 'Aprobado' },
+                'rejected': { color: '#d32f2f', bg: '#ffebee', text: 'Rechazado' },
+                'processed': { color: '#1976d2', bg: '#e3f2fd', text: 'Procesado' }
+              };
+              const motivosMap = {
+                'cambio_circunstancias': 'Cambio en circunstancias',
+                'insatisfaccion_servicio': 'Insatisfacción con servicio',
+                'problemas_economicos': 'Problemas económicos',
+                'encontre_mejor_opcion': 'Encontró mejor opción',
+                'duplicacion_cobertura': 'Duplicación de cobertura',
+                'otro': 'Otro motivo',
+                'cancelation': 'Cancelación',
+                'overpayment': 'Pago excesivo',
+                'adjustment': 'Ajuste',
+                'other': 'Otro'
+              };
+              Object.keys(reembolsosPorPolitica).forEach(policyId => {
+                const reembolsosDeEstaPolitica = reembolsosPorPolitica[policyId];
+                reembolsosDeEstaPolitica.sort((a, b) => new Date(b.request_date) - new Date(a.request_date));
+                const reembolso = reembolsosDeEstaPolitica[0];
+                const numeroSolicitud = reembolsosDeEstaPolitica.length;
+                const esNuevaSolicitud = numeroSolicitud > 1;
+                const card = document.createElement('div');
+                card.style.cssText = `border: 1.5px solid #e3e8f0; border-radius: 10px; padding: 20px; background: #fff; box-shadow: 0 2px 8px rgba(30,42,60,0.06); cursor: pointer; transition: all 0.2s ease;`;
+                if (reembolso.status === 'rejected') {
+                  card.style.cursor = 'pointer';
+                  card.style.borderColor = '#ffcdd2';
+                  card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-2px)';
+                    card.style.boxShadow = '0 4px 12px rgba(30,42,60,0.1)';
+                  });
+                  card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0)';
+                    card.style.boxShadow = '0 2px 8px rgba(30,42,60,0.06)';
+                  });
+                  card.addEventListener('click', () => {
+                    mostrarDetalleReembolso(reembolso);
+                  });
+                }
+                const estado = estadoConfig[reembolso.status] || { color: '#666', bg: '#f5f5f5', text: reembolso.status };
+                const motivo = motivosMap[reembolso.reason] || reembolso.reason;
+                const fecha = new Date(reembolso.request_date).toLocaleDateString('es-ES');
+                const monto = parseFloat(reembolso.amount).toFixed(2);
+                const indicadorSolicitud = esNuevaSolicitud ? `<div style="background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; margin-bottom: 8px; border: 1px solid #ffeaa7; display: inline-block;"><i class=\"fas fa-redo\" style=\"margin-right: 4px;\"></i>Solicitud #${numeroSolicitud}</div>` : '';
+                card.innerHTML = `
+                  ${indicadorSolicitud}
+                  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                    <div>
+                      <h3 style="margin: 0 0 8px 0; font-size: 1.1rem; color: #1e2a3c;">${reembolso.policy_name}</h3>
+                      <p style="margin: 0; color: #666; font-size: 0.9rem;">Solicitado el ${fecha}</p>
+                    </div>
+                    <span style="background: ${estado.bg}; color: ${estado.color}; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; border: 1px solid ${estado.color}20;">${estado.text}</span>
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                      <strong style=\"color: #1e2a3c;\">Monto:</strong>
+                      <span style=\"color: #666; margin-left: 5px;\">$${monto}</span>
+                    </div>
+                    <div>
+                      <strong style=\"color: #1e2a3c;\">Motivo:</strong>
+                      <span style=\"color: #666; margin-left: 5px;\">${motivo}</span>
+                    </div>
+                  </div>
+                  ${reembolso.reason_description ? `<div style=\"margin-bottom: 15px;\"><strong style=\"color: #1e2a3c;\">Descripción:</strong><p style=\"color: #666; margin: 5px 0 0 0; font-style: italic;\">${reembolso.reason_description}</p></div>` : ''}
+                  ${reembolso.status === 'rejected' ? `<div style=\"background: #ffebee; border: 1px solid #ffcdd2; border-radius: 6px; padding: 12px; margin-top: 10px;\"><div style=\"display: flex; align-items: center; margin-bottom: 8px;\"><i class=\"fas fa-times-circle\" style=\"color: #d32f2f; margin-right: 8px;\"></i><strong style=\"color: #d32f2f;\">Rechazado</strong></div><p style=\"color: #d32f2f; margin: 0; font-size: 0.9rem;\">Su solicitud de reembolso ha sido rechazada por nuestro equipo de revisión.</p></div>` : ''}
+                  ${reembolso.status === 'approved' ? `<div style=\"background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 6px; padding: 12px; margin-top: 10px;\"><div style=\"display: flex; align-items: center; margin-bottom: 8px;\"><i class=\"fas fa-check-circle\" style=\"color: #388e3c; margin-right: 8px;\"></i><strong style=\"color: #388e3c;\">Aprobado</strong></div><p style=\"color: #388e3c; margin: 0; font-size: 0.9rem;\">Su solicitud de reembolso ha sido aprobada. El reembolso será procesado próximamente.</p></div>` : ''}
+                `;
+                fragment.appendChild(card);
+              });
+              historialContainer.innerHTML = '';
+              historialContainer.appendChild(fragment);
               return;
             }
-            
-            // Agrupar reembolsos por policy_id para controlar duplicados y numerar solicitudes
-            const reembolsosPorPolitica = {};
-            reembolsos.forEach(reembolso => {
-              if (!reembolsosPorPolitica[reembolso.policy_id]) {
-                reembolsosPorPolitica[reembolso.policy_id] = [];
+
+            // Si el backend devuelve vacío, pero hay pendientes en localStorage, renderizar historial local
+            const localData = localStorage.getItem(HISTORIAL_KEY);
+            let localPendientes = [];
+            if (localData) {
+              try {
+                localPendientes = JSON.parse(localData);
+              } catch (e) {
+                localPendientes = [];
               }
-              reembolsosPorPolitica[reembolso.policy_id].push(reembolso);
-            });
-            
-            // Usar DocumentFragment para mejorar performance
-            const fragment = document.createDocumentFragment();
-            
-            // Mapear estados a colores y texto (definido una sola vez)
-            const estadoConfig = {
-              'pending': { color: '#f57c00', bg: '#fff3e0', text: 'Pendiente' },
-              'approved': { color: '#388e3c', bg: '#e8f5e9', text: 'Aprobado' },
-              'rejected': { color: '#d32f2f', bg: '#ffebee', text: 'Rechazado' },
-              'processed': { color: '#1976d2', bg: '#e3f2fd', text: 'Procesado' }
-            };
-            
-            // Mapear motivos a español (definido una sola vez)
-            const motivosMap = {
-              'cambio_circunstancias': 'Cambio en circunstancias',
-              'insatisfaccion_servicio': 'Insatisfacción con servicio',
-              'problemas_economicos': 'Problemas económicos',
-              'encontre_mejor_opcion': 'Encontró mejor opción',
-              'duplicacion_cobertura': 'Duplicación de cobertura',
-              'otro': 'Otro motivo',
-              'cancelation': 'Cancelación',
-              'overpayment': 'Pago excesivo',
-              'adjustment': 'Ajuste',
-              'other': 'Otro'
-            };
-            
-            // Procesar cada grupo de reembolsos por póliza
-            Object.keys(reembolsosPorPolitica).forEach(policyId => {
-              const reembolsosDeEstaPolitica = reembolsosPorPolitica[policyId];
-              
-              // Ordenar por fecha de solicitud (más reciente primero)
-              reembolsosDeEstaPolitica.sort((a, b) => new Date(b.request_date) - new Date(a.request_date));
-              
-              // Mostrar solo el reembolso más reciente de cada póliza
-              const reembolso = reembolsosDeEstaPolitica[0];
-              const numeroSolicitud = reembolsosDeEstaPolitica.length;
-              const esNuevaSolicitud = numeroSolicitud > 1;
-              
-              const card = document.createElement('div');
-              card.style.cssText = `
-                border: 1.5px solid #e3e8f0;
-                border-radius: 10px;
-                padding: 20px;
-                background: #fff;
-                box-shadow: 0 2px 8px rgba(30,42,60,0.06);
-                cursor: pointer;
-                transition: all 0.2s ease;
-              `;
-              
-              // Hacer la tarjeta clickeable para reembolsos rechazados
-              if (reembolso.status === 'rejected') {
-                card.style.cursor = 'pointer';
-                card.style.borderColor = '#ffcdd2';
-                card.addEventListener('mouseenter', () => {
-                  card.style.transform = 'translateY(-2px)';
-                  card.style.boxShadow = '0 4px 12px rgba(30,42,60,0.1)';
-                });
-                card.addEventListener('mouseleave', () => {
-                  card.style.transform = 'translateY(0)';
-                  card.style.boxShadow = '0 2px 8px rgba(30,42,60,0.06)';
-                });
-                card.addEventListener('click', () => {
-                  mostrarDetalleReembolso(reembolso);
-                });
-              }
-              
-              const estado = estadoConfig[reembolso.status] || { color: '#666', bg: '#f5f5f5', text: reembolso.status };
-              const motivo = motivosMap[reembolso.reason] || reembolso.reason;
-              const fecha = new Date(reembolso.request_date).toLocaleDateString('es-ES');
-              const monto = parseFloat(reembolso.amount).toFixed(2);
-              
-              // Indicador de número de solicitud si es más de una
-              const indicadorSolicitud = esNuevaSolicitud ? 
-                `<div style="background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; margin-bottom: 8px; border: 1px solid #ffeaa7; display: inline-block;">
-                  <i class="fas fa-redo" style="margin-right: 4px;"></i>Solicitud #${numeroSolicitud}
-                </div>` : '';
-              
-              card.innerHTML = `
-                ${indicadorSolicitud}
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                  <div>
-                    <h3 style="margin: 0 0 8px 0; font-size: 1.1rem; color: #1e2a3c;">${reembolso.policy_name}</h3>
-                    <p style="margin: 0; color: #666; font-size: 0.9rem;">Solicitado el ${fecha}</p>
-                  </div>
-                  <span style="
-                    background: ${estado.bg};
-                    color: ${estado.color};
-                    padding: 4px 12px;
-                    border-radius: 20px;
-                    font-size: 0.85rem;
-                    font-weight: 500;
-                    border: 1px solid ${estado.color}20;
-                  ">${estado.text}</span>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                  <div>
-                    <strong style="color: #1e2a3c;">Monto:</strong>
-                    <span style="color: #666; margin-left: 5px;">$${monto}</span>
-                  </div>
-                  <div>
-                    <strong style="color: #1e2a3c;">Motivo:</strong>
-                    <span style="color: #666; margin-left: 5px;">${motivo}</span>
-                  </div>
-                </div>
-                
-                ${reembolso.reason_description ? `
-                  <div style="margin-bottom: 15px;">
-                    <strong style="color: #1e2a3c;">Descripción:</strong>
-                    <p style="color: #666; margin: 5px 0 0 0; font-style: italic;">${reembolso.reason_description}</p>
-                  </div>
-                ` : ''}
-                
-                ${reembolso.status === 'rejected' ? `
-                  <div style="
-                    background: #ffebee;
-                    border: 1px solid #ffcdd2;
-                    border-radius: 6px;
-                    padding: 12px;
-                    margin-top: 10px;
-                  ">
-                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                      <i class="fas fa-times-circle" style="color: #d32f2f; margin-right: 8px;"></i>
-                      <strong style="color: #d32f2f;">Rechazado</strong>
-                    </div>
-                    <p style="color: #d32f2f; margin: 0; font-size: 0.9rem;">
-                      Su solicitud de reembolso ha sido rechazada por nuestro equipo de revisión.
-                    </p>
-                  </div>
-                ` : ''}
-                
-                ${reembolso.status === 'approved' ? `
-                  <div style="
-                    background: #e8f5e9;
-                    border: 1px solid #c8e6c9;
-                    border-radius: 6px;
-                    padding: 12px;
-                    margin-top: 10px;
-                  ">
-                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                      <i class="fas fa-check-circle" style="color: #388e3c; margin-right: 8px;"></i>
-                      <strong style="color: #388e3c;">Aprobado</strong>
-                    </div>
-                    <p style="color: #388e3c; margin: 0; font-size: 0.9rem;">
-                      Su solicitud de reembolso ha sido aprobada. El reembolso será procesado próximamente.
-                    </p>
-                  </div>
-                ` : ''}
-              `;
-              
-              fragment.appendChild(card);
-            });
-            
-            // Limpiar contenedor y agregar fragmento de una vez
-            historialContainer.innerHTML = '';
-            historialContainer.appendChild(fragment);
-            
+            }
+            if (Array.isArray(localPendientes) && localPendientes.length > 0) {
+              historialReembolsosMock = localPendientes;
+              renderHistorialReembolsos();
+              return;
+            }
+
+            // Si no hay nada en backend ni en localStorage, mostrar mensaje vacío
+            historialContainer.innerHTML = `<div style=\"text-align: center; color: #b0b8c1; padding: 20px; font-size: 1.05rem;\">El historial está Vacío</div>`;
+            return;
           } catch (error) {
-            console.error('Error al cargar historial de reembolsos:', error);
+            // Si hay error de red, mostrar historial local si existe
+            const localData = localStorage.getItem(HISTORIAL_KEY);
+            let localPendientes = [];
+            if (localData) {
+              try {
+                localPendientes = JSON.parse(localData);
+              } catch (e) {
+                localPendientes = [];
+              }
+            }
+            if (Array.isArray(localPendientes) && localPendientes.length > 0) {
+              historialReembolsosMock = localPendientes;
+              renderHistorialReembolsos();
+              return;
+            }
             const historialContainer = document.getElementById('historial-reembolsos');
-            historialContainer.innerHTML = `
-              <div style="text-align: center; color: #d32f2f; padding: 20px;">
-                <i class="fas fa-exclamation-triangle" style="font-size: 1.2rem; margin-right: 8px;"></i>
-                Error al cargar el historial de reembolsos.
-              </div>
-            `;
+            if (historialContainer) {
+              historialContainer.innerHTML = `<div style=\"text-align: center; color: #b0b8c1; padding: 20px; font-size: 1.05rem;\">El historial está Vacío</div>`;
+            }
           }
         }
         

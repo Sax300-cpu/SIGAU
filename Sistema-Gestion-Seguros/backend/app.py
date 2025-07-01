@@ -1,3 +1,5 @@
+
+
 import os
 import re
 from functools import wraps
@@ -1237,34 +1239,40 @@ def update_contract_status(contract_id):
 # RUTAS DE REEMBOLSO
 # ===================================
 
+
+import uuid
+
 @app.route('/refunds', methods=['POST'])
 @login_required
 def create_refund_request():
-    """Crear una solicitud de reembolso desde el cliente"""
+    """Crear una solicitud de reembolso con todos los campos nuevos"""
     try:
-        # Verificar que el usuario es cliente
         if session.get('role_id') != 3:
             return jsonify({'error': 'Solo los clientes pueden solicitar reembolsos'}), 403
-        
+
         data = request.get_json()
         print(f"DEBUG: Datos recibidos en create_refund_request: {data}")
-        
+
         contract_id = data.get('contract_id')
         policy_id = data.get('policy_id')
-        reason = data.get('reason', 'cancelation')
-        reason_description = data.get('reason_description', 'Solicitud de cancelación y reembolso del cliente')
-        
-        print(f"DEBUG: contract_id={contract_id}, policy_id={policy_id}")
-        
-        if not contract_id and not policy_id:
-            print("DEBUG: Error - No se proporcionó contract_id ni policy_id")
-            return jsonify({'error': 'ID de contrato o póliza requerido'}), 400
-        
+        # Nuevos campos
+        health_institution_name = data.get('health_institution_name')
+        health_institution_type = data.get('health_institution_type')
+        refund_type = data.get('refund_type')
+        refund_type_other = data.get('refund_type_other')
+        event_description = data.get('event_description')
+        event_date = data.get('event_date')
+        payment_method = data.get('payment_method')
+        account_holder_name = data.get('account_holder_name')
+        bank_account_number = data.get('bank_account_number')
+        bank_name = data.get('bank_name')
+        account_type = data.get('account_type')
+        swift_aba_code = data.get('swift_aba_code')
+        payment_method_other = data.get('payment_method_other')
+
+        # Buscar datos de la póliza y cliente
         cur = mysql.connection.cursor()
-        
         if contract_id:
-            print(f"DEBUG: Procesando contract_id: {contract_id}")
-            # Buscar en client_policies para obtener el policy_id y otros datos
             cur.execute("""
                 SELECT cp.policy_id, cp.client_id, cp.agent_id, cp.premium_amount, p.name
                 FROM client_policies cp
@@ -1274,16 +1282,11 @@ def create_refund_request():
                 )
             """, (contract_id, session['user_id']))
             contract_data = cur.fetchone()
-            print(f"DEBUG: Resultado de búsqueda por contract_id: {contract_data}")
             if not contract_data:
                 cur.close()
-                print(f"DEBUG: Contrato no encontrado para contract_id={contract_id}, user_id={session['user_id']}")
                 return jsonify({'error': 'Contrato no encontrado o no autorizado'}), 404
             policy_id, client_id, agent_id, premium_amount, policy_name = contract_data
-            print(f"DEBUG: Datos extraídos - policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, premium_amount={premium_amount}, policy_name={policy_name}")
         elif policy_id:
-            print(f"DEBUG: Procesando policy_id: {policy_id}")
-            # Obtener información de la póliza desde client_policies y verificar que pertenece al cliente
             cur.execute("""
                 SELECT cp.policy_id, cp.client_id, cp.agent_id, cp.premium_amount, p.name
                 FROM client_policies cp
@@ -1293,42 +1296,47 @@ def create_refund_request():
                 )
             """, (policy_id, session['user_id']))
             policy_data = cur.fetchone()
-            print(f"DEBUG: Resultado de búsqueda por policy_id: {policy_data}")
             if not policy_data:
                 cur.close()
-                print(f"DEBUG: Póliza no encontrada para policy_id={policy_id}, user_id={session['user_id']}")
                 return jsonify({'error': 'Póliza no encontrada o no autorizada'}), 404
             policy_id, client_id, agent_id, premium_amount, policy_name = policy_data
-            print(f"DEBUG: Datos extraídos - policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, premium_amount={premium_amount}, policy_name={policy_name}")
-        # Verificar que tenemos todos los datos necesarios
-        if not all([policy_id, client_id, agent_id, premium_amount, policy_name]):
+        else:
             cur.close()
-            print(f"DEBUG: Datos incompletos - policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, premium_amount={premium_amount}, policy_name={policy_name}")
-            return jsonify({'error': 'Datos de póliza incompletos'}), 400
-        # Crear la solicitud de reembolso
-        print(f"DEBUG: Insertando refund con datos: policy_id={policy_id}, client_id={client_id}, agent_id={agent_id}, amount={premium_amount}, reason={reason}")
+            return jsonify({'error': 'ID de contrato o póliza requerido'}), 400
+
+        # Generar UUID para el reembolso
+        refund_id = str(uuid.uuid4())
+
+        # Insertar reembolso
         cur.execute("""
-            INSERT INTO refunds 
-            (policy_id, client_id, agent_id, amount, reason, reason_description, status, created_by)
-            VALUES (%s, %s, %s, %s, %s, %s, 'pending', %s)
-        """, (policy_id, client_id, agent_id, premium_amount, reason, reason_description, session['user_id']))
-        
-        refund_id = cur.lastrowid
+            INSERT INTO refunds (
+                id, policy_id, client_id, agent_id, amount,
+                health_institution_name, health_institution_type,
+                refund_type, refund_type_other, event_description, event_date,
+                payment_method, account_holder_name, bank_account_number, bank_name, account_type, swift_aba_code, payment_method_other,
+                status, created_by
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending', %s)
+        """, (
+            refund_id, policy_id, client_id, agent_id, premium_amount,
+            health_institution_name, health_institution_type,
+            refund_type, refund_type_other, event_description, event_date,
+            payment_method, account_holder_name, bank_account_number, bank_name, account_type, swift_aba_code, payment_method_other,
+            session['user_id']
+        ))
         mysql.connection.commit()
         cur.close()
-        
+
         print(f"DEBUG: Refund creado exitosamente con ID: {refund_id}")
-        
+
         return jsonify({
             'success': True,
             'message': f'Solicitud de reembolso creada para {policy_name}. Su solicitud será revisada por nuestro equipo.',
             'refund_id': refund_id
         }), 201
-        
+
     except Exception as e:
         mysql.connection.rollback()
         print(f"ERROR en create_refund_request: {str(e)}")
-        print(f"DEBUG: Tipo de error: {type(e).__name__}")
         import traceback
         print(f"DEBUG: Traceback completo: {traceback.format_exc()}")
         return jsonify({'error': f'Error interno del servidor: {str(e)}'}), 500
@@ -1342,7 +1350,7 @@ def list_refunds():
         cur = mysql.connection.cursor()
         
         if session.get('role_id') == 2:  # Agente
-            # Agentes ven solicitudes de sus clientes
+            # Agentes ven solicitudes de sus clientes (solo si el cliente es suyo)
             print(f"DEBUG: Consultando reembolsos para agente ID: {session['user_id']}")
             cur.execute("""
                 SELECT 
@@ -1351,11 +1359,24 @@ def list_refunds():
                     r.amount,
                     r.request_date,
                     r.status,
-                    r.reason,
-                    r.reason_description,
+                    p.name AS policy_name,
                     CONCAT(c.first_name, ' ', c.last_name) AS client_name,
-                    u.email AS client_email
+                    u.email AS client_email,
+                    r.health_institution_name,
+                    r.health_institution_type,
+                    r.refund_type,
+                    r.refund_type_other,
+                    r.event_description,
+                    r.event_date,
+                    r.payment_method,
+                    r.account_holder_name,
+                    r.bank_account_number,
+                    r.bank_name,
+                    r.account_type,
+                    r.swift_aba_code,
+                    r.payment_method_other
                 FROM refunds r
+                JOIN policies p ON r.policy_id = p.id
                 JOIN clients c ON r.client_id = c.id
                 JOIN users u ON c.user_id = u.id
                 WHERE r.agent_id = %s
@@ -1372,11 +1393,11 @@ def list_refunds():
                     r.amount,
                     r.request_date,
                     r.status,
-                    r.reason,
-                    r.reason_description,
+                    p.name AS policy_name,
                     CONCAT(c.first_name, ' ', c.last_name) AS client_name,
                     u.email AS client_email
                 FROM refunds r
+                JOIN policies p ON r.policy_id = p.id
                 JOIN clients c ON r.client_id = c.id
                 JOIN users u ON c.user_id = u.id
                 ORDER BY r.request_date DESC
@@ -1392,9 +1413,9 @@ def list_refunds():
                     r.amount,
                     r.request_date,
                     r.status,
-                    r.reason,
-                    r.reason_description
+                    p.name AS policy_name
                 FROM refunds r
+                JOIN policies p ON r.policy_id = p.id
                 WHERE r.client_id = (
                     SELECT id FROM clients WHERE user_id = %s
                 )
@@ -1413,20 +1434,42 @@ def list_refunds():
                     'amount': float(row[2]),
                     'request_date': row[3].isoformat() if row[3] else None,
                     'status': row[4],
-                    'reason': row[5],
-                    'reason_description': row[6]
+                    'policy_name': row[5]
                 })
-            else:  # Agente o Admin
+            elif session.get('role_id') == 2:  # Agente
                 refunds.append({
                     'refund_id': row[0],
                     'client_id': row[1],
                     'amount': float(row[2]),
                     'request_date': row[3].isoformat() if row[3] else None,
                     'status': row[4],
-                    'reason': row[5],
-                    'reason_description': row[6],
-                    'client_name': row[7],
-                    'client_email': row[8]
+                    'policy_name': row[5],
+                    'client_name': row[6],
+                    'client_email': row[7],
+                    'health_institution_name': row[8],
+                    'health_institution_type': row[9],
+                    'refund_type': row[10],
+                    'refund_type_other': row[11],
+                    'event_description': row[12],
+                    'event_date': row[13].isoformat() if row[13] else None,
+                    'payment_method': row[14],
+                    'account_holder_name': row[15],
+                    'bank_account_number': row[16],
+                    'bank_name': row[17],
+                    'account_type': row[18],
+                    'swift_aba_code': row[19],
+                    'payment_method_other': row[20]
+                })
+            else:  # Admin
+                refunds.append({
+                    'refund_id': row[0],
+                    'client_id': row[1],
+                    'amount': float(row[2]),
+                    'request_date': row[3].isoformat() if row[3] else None,
+                    'status': row[4],
+                    'policy_name': row[5],
+                    'client_name': row[6],
+                    'client_email': row[7]
                 })
         
         print(f"DEBUG: Devolviendo {len(refunds)} reembolsos procesados")
@@ -1643,8 +1686,7 @@ def test_refunds():
                 r.agent_id,
                 r.amount,
                 r.request_date,
-                r.status,
-                r.reason
+                r.status
             FROM refunds r
             LIMIT 5
         """)
@@ -1657,8 +1699,7 @@ def test_refunds():
                 'agent_id': row[2],
                 'amount': float(row[3]) if row[3] else 0,
                 'request_date': row[4].isoformat() if row[4] else None,
-                'status': row[5],
-                'reason': row[6]
+                'status': row[5]
             })
         
         cur.close()
