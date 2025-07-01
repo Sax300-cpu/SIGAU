@@ -60,7 +60,7 @@ def allowed_file(filename):
 mysql = init_db(app)
 
 # ===================================
-# DECORADORES
+# DECORADORESss
 # ===================================
 
 # Evitar cache tras logout
