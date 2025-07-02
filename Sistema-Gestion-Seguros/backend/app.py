@@ -1331,33 +1331,44 @@ def list_refunds():
             return jsonify([])
         client_id = row[0]
         cur.execute('''
-            SELECT r.id AS refund_id, r.policy_id, r.client_id, r.amount, r.status, r.request_date, r.refund_type, r.refund_type_other, r.event_description, r.event_date, p.name AS policy_name, r.insurance_category
+            SELECT r.id AS refund_id, r.policy_id, r.client_id, r.amount, r.status, r.request_date, r.refund_type, r.refund_type_other, r.event_description, r.event_date, p.name AS policy_name, r.insurance_category,
+                   c.first_name, c.last_name, u.email
             FROM refunds r
             JOIN policies p ON r.policy_id = p.id
+            JOIN clients c ON r.client_id = c.id
+            JOIN users u ON c.user_id = u.id
             WHERE r.client_id = %s
             ORDER BY r.request_date DESC
         ''', (client_id,))
     elif role_id == 2:
-        # Agente: reembolsos de sus clientes
-        cur.execute("SELECT id FROM agents WHERE user_id = %s", (user_id,))
-        row = cur.fetchone()
-        if not row:
+        # Agente: reembolsos de sus clientes (usando clients.agent_id)
+        cur.execute("SELECT id FROM clients WHERE agent_id = %s", (user_id,))
+        client_rows = cur.fetchall()
+        if not client_rows:
             cur.close()
             return jsonify([])
-        agent_id = row[0]
-        cur.execute('''
-            SELECT r.id AS refund_id, r.policy_id, r.client_id, r.amount, r.status, r.request_date, r.refund_type, r.refund_type_other, r.event_description, r.event_date, p.name AS policy_name, r.insurance_category
+        client_ids = [row[0] for row in client_rows]
+        format_strings = ','.join(['%s'] * len(client_ids))
+        query = f'''
+            SELECT r.id AS refund_id, r.policy_id, r.client_id, r.amount, r.status, r.request_date, r.refund_type, r.refund_type_other, r.event_description, r.event_date, p.name AS policy_name, r.insurance_category,
+                   c.first_name, c.last_name, u.email
             FROM refunds r
             JOIN policies p ON r.policy_id = p.id
-            WHERE r.agent_id = %s
+            JOIN clients c ON r.client_id = c.id
+            JOIN users u ON c.user_id = u.id
+            WHERE r.client_id IN ({format_strings})
             ORDER BY r.request_date DESC
-        ''', (agent_id,))
+        '''
+        cur.execute(query, tuple(client_ids))
     else:
         # Admin: todos los reembolsos
         cur.execute('''
-            SELECT r.id AS refund_id, r.policy_id, r.client_id, r.amount, r.status, r.request_date, r.refund_type, r.refund_type_other, r.event_description, r.event_date, p.name AS policy_name, r.insurance_category
+            SELECT r.id AS refund_id, r.policy_id, r.client_id, r.amount, r.status, r.request_date, r.refund_type, r.refund_type_other, r.event_description, r.event_date, p.name AS policy_name, r.insurance_category,
+                   c.first_name, c.last_name, u.email
             FROM refunds r
             JOIN policies p ON r.policy_id = p.id
+            JOIN clients c ON r.client_id = c.id
+            JOIN users u ON c.user_id = u.id
             ORDER BY r.request_date DESC
         ''')
     reembolsos = []
@@ -1374,7 +1385,9 @@ def list_refunds():
             "event_description": row[8],
             "event_date": row[9].isoformat() if row[9] else None,
             "policy_name": row[10],
-            "category": row[11] if len(row) > 11 else None
+            "category": row[11] if len(row) > 11 else None,
+            "client_name": f"{row[12]} {row[13]}",
+            "client_email": row[14]
         })
     cur.close()
     return jsonify(reembolsos)
@@ -1628,32 +1641,30 @@ def test_refunds():
         cur.execute("SELECT COUNT(*) FROM refunds")
         total_refunds = cur.fetchone()[0]
         
-        # Obtener algunos reembolsos de ejemplo (sin usar contract_id por ahora)
+        # Obtener algunos reembolsos de ejemplo (solo columnas existentes)
         cur.execute("""
             SELECT 
                 r.id AS refund_id,
                 r.client_id,
-                r.agent_id,
                 r.amount,
                 r.request_date,
                 r.status
             FROM refunds r
             LIMIT 5
         """)
-        
+
         sample_refunds = []
         for row in cur.fetchall():
             sample_refunds.append({
                 'refund_id': row[0],
                 'client_id': row[1],
-                'agent_id': row[2],
-                'amount': float(row[3]) if row[3] else 0,
-                'request_date': row[4].isoformat() if row[4] else None,
-                'status': row[5]
+                'amount': float(row[2]) if row[2] else 0,
+                'request_date': row[3].isoformat() if row[3] else None,
+                'status': row[4]
             })
-        
+
         cur.close()
-        
+
         return jsonify({
             'total_refunds': total_refunds,
             'sample_refunds': sample_refunds,

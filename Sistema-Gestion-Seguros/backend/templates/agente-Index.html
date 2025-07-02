@@ -114,9 +114,7 @@ href="{{ url_for('static', filename='css/agente-styles.css') }}"
           <th>Cliente</th>
           <th>Email</th>
           <th>Fecha</th>
-          <th>Monto</th>
-          <th>Motivo</th>
-          <th>Estado</th>
+          <th>Detalles</th>
           <th>Acciones</th>
         </tr>
       </thead>
@@ -125,28 +123,29 @@ href="{{ url_for('static', filename='css/agente-styles.css') }}"
       </tbody>
     </table>
   </div>
+
   <div id="mensaje-reembolsos-agente" style="margin-top:30px; text-align:center; color:#1976d2;"></div>
 
   <!-- Modal de detalle y procesamiento de reembolso -->
-  <div id="modal-detalle-reembolso-agente" class="modal hidden">
-    <div class="modal-overlay"></div>
-    <div class="modal-content" style="max-width:600px;">
-      <h3>Detalle de Solicitud de Reembolso</h3>
-      <div id="detalle-reembolso-agente-content">
-        <!-- Aquí se inyecta el detalle -->
+      <div id="modal-detalle-reembolso-agente" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width:600px; position:relative;">
+          <h3>Detalle de Solicitud de Reembolso</h3>
+          <div id="detalle-reembolso-agente-content">
+            <!-- Aquí se inyecta el detalle -->
+          </div>
+          <button id="btn-cerrar-modal-detalle-reembolso" class="btn-cancel" style="position:absolute;top:18px;right:18px;z-index:2;">Cerrar</button>
+          <div id="procesar-reembolso-actions" style="margin-top:20px; display:flex; gap:10px; display:none;">
+            <select id="select-accion-reembolso" style="padding:6px 12px;">
+              <option value="">Seleccionar acción</option>
+              <option value="approved">Aprobar</option>
+              <option value="rejected">Rechazar</option>
+            </select>
+            <input type="text" id="input-nota-reembolso" placeholder="Notas (opcional)" style="flex:1; padding:6px 12px;">
+            <button id="btn-guardar-accion-reembolso" class="btn-green">Guardar</button>
+          </div>
+        </div>
       </div>
-      <div id="procesar-reembolso-actions" style="margin-top:20px; display:flex; gap:10px;">
-        <select id="select-accion-reembolso" style="padding:6px 12px;">
-          <option value="">Seleccionar acción</option>
-          <option value="approved">Aprobar</option>
-          <option value="rejected">Rechazar</option>
-        </select>
-        <input type="text" id="input-nota-reembolso" placeholder="Notas (opcional)" style="flex:1; padding:6px 12px;">
-        <button id="btn-guardar-accion-reembolso" class="btn-green">Guardar</button>
-        <button id="btn-cerrar-modal-reembolso" class="btn-cancel">Cerrar</button>
-      </div>
-    </div>
-  </div>
 </section>
 
 <section class="content-section" id="reportes-section" style="display:none;">

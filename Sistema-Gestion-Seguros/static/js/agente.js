@@ -1525,11 +1525,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================
   
   // Referencias a elementos de reembolsos
-  const tablaReembolsosBody = document.querySelector('#tabla-reembolsos tbody');
+    const tablaReembolsosBody = document.querySelector('#tabla-reembolsos-agente tbody');
   const btnRefrescarReembolsos = document.getElementById('btn-refrescar-reembolsos');
   const modalProcesarReembolso = document.getElementById('modal-procesar-reembolso');
   const btnCancelarReembolso = document.getElementById('btn-cancelar-reembolso');
-  const btnProcesarReembolso = document.getElementById('btn-procesar-reembolso');
+  // Cambiar el botón procesar por guardar
+  const btnGuardarReembolso = document.getElementById('btn-procesar-reembolso');
+  if (btnGuardarReembolso) {
+    btnGuardarReembolso.textContent = 'Guardar';
+  }
 
   // Verificar que los elementos necesarios estén disponibles
   console.log('DEBUG: Elementos de reembolsos encontrados:');
@@ -1910,106 +1914,409 @@ async function cargarReembolsos() {
   try {
     const resp = await fetch('/refunds');
     if (!resp.ok) throw new Error('Error al obtener reembolsos');
-    const reembolsos = await resp.json();
-    if (!Array.isArray(reembolsos) || reembolsos.length === 0) {
+    window.reembolsos = await resp.json();
+    if (!Array.isArray(window.reembolsos) || window.reembolsos.length === 0) {
       if (mensaje) mensaje.textContent = 'No hay solicitudes de reembolso pendientes.';
       return;
     }
-    reembolsos.forEach(r => {
+    window.reembolsos.forEach(r => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${r.client_name || ''}</td>
         <td>${r.client_email || ''}</td>
         <td>${r.request_date ? new Date(r.request_date).toLocaleDateString('es-ES') : ''}</td>
-        <td>$${parseFloat(r.amount).toFixed(2)}</td>
-        <td>${r.refund_type_other || r.refund_type || ''}</td>
-        <td>${r.status || ''}</td>
-        <td><button class="btn-ver-reembolso" data-id="${r.refund_id}">Ver Detalle</button></td>
+        <td>
+          <button class="btn-ver-reembolso" style="background:#1976d2;color:#fff;border:none;padding:6px 18px;border-radius:5px;font-weight:600;cursor:pointer;" data-id="${r.refund_id}">Detalles</button>
+        </td>
+        <td>
+          <button class="btn-procesar-reembolso" style="background:#43a047;color:#fff;border:none;padding:6px 18px;border-radius:5px;font-weight:600;cursor:pointer;" data-id="${r.refund_id}">Procesar</button>
+        </td>
       `;
       tablaBody.appendChild(tr);
     });
     document.querySelectorAll('.btn-ver-reembolso').forEach(btn => {
       btn.addEventListener('click', async function() {
         const refundId = btn.getAttribute('data-id');
-        const reembolso = reembolsos.find(r => r.refund_id === refundId);
-        if (!reembolso) return;
-        // Obtener documentos del cliente (simulación: buscar en /clients/:id/contracts y mostrar links a documentos)
+        // Usar solo los datos ya cargados en window.reembolsos
+        const reembolso = window.reembolsos.find(r => String(r.refund_id) === String(refundId));
+        if (!reembolso) {
+          alert('No se encontraron los detalles de la solicitud.');
+          return;
+        }
+
+        // Documentos adjuntos de la solicitud de reembolso (documents_refunds)
         let documentosHTML = '<div style="color:#888;">No hay documentos adjuntos.</div>';
-        try {
-          const respDocs = await fetch(`/clients/${reembolso.client_id}/contracts`);
-          if (respDocs.ok) {
-            const contratos = await respDocs.json();
-            const docs = [];
-            contratos.forEach(c => {
-              if (Array.isArray(c.documents)) {
-                c.documents.forEach(d => docs.push({...d, contract_id: c.id}));
+        if (Array.isArray(reembolso.documents) && reembolso.documents.length > 0) {
+          documentosHTML = '<ul>' + reembolso.documents.map(d => `<li><a href="/refunds/${reembolso.refund_id}/docs/${encodeURIComponent(d.filename)}" target="_blank">${d.filename}</a></li>`).join('') + '</ul>';
+        } else {
+          // Fallback: buscar documentos de documents_refunds por API
+          try {
+            const respDocs = await fetch(`/refunds/${reembolso.refund_id}/documents`);
+            if (respDocs.ok) {
+              const docs = await respDocs.json();
+              if (Array.isArray(docs) && docs.length > 0) {
+                documentosHTML = '<ul>' + docs.map(d => `<li><a href="/refunds/${reembolso.refund_id}/docs/${encodeURIComponent(d.filename)}" target="_blank">${d.filename}</a></li>`).join('') + '</ul>';
               }
-            });
-            if (docs.length > 0) {
-              documentosHTML = '<ul>' + docs.map(d => `<li><a href="/contracts/${d.contract_id}/docs/${encodeURIComponent(d.filename)}" target="_blank">${d.filename}</a></li>`).join('') + '</ul>';
             }
-          }
-        } catch {}
-        // Mostrar detalle en el modal
-        const detalle = `
-          <div><b>Cliente:</b> ${reembolso.client_name || ''} (${reembolso.client_email || ''})</div>
-          <div><b>Fecha de solicitud:</b> ${reembolso.request_date ? new Date(reembolso.request_date).toLocaleDateString('es-ES') : ''}</div>
-          <div><b>Monto solicitado:</b> $${parseFloat(reembolso.amount).toFixed(2)}</div>
-          <div><b>Motivo:</b> ${reembolso.refund_type_other || reembolso.refund_type || ''}</div>
-          <div><b>Descripción:</b> ${reembolso.event_description || ''}</div>
-          <div><b>Estado:</b> ${reembolso.status || ''}</div>
-          <div style="margin-top:10px;"><b>Documentos adjuntos:</b> ${documentosHTML}</div>
+          } catch {}
+        }
+
+        // Mostrar solo información, NO controles de procesar
+        document.getElementById('procesar-reembolso-actions').style.display = 'none';
+
+        // Modal tipo cliente: detalles claros y documento subido
+        let detalle = `<div class="detalle-reembolso-modal">
+          <div style="margin-bottom:10px;"><b>Cliente:</b> ${reembolso.client_name || ''} (${reembolso.client_email || ''})</div>
+          <div style="margin-bottom:10px;"><b>Fecha de solicitud:</b> ${reembolso.request_date ? new Date(reembolso.request_date).toLocaleDateString('es-ES') : ''}</div>
+          <div style="margin-bottom:10px;"><b>Póliza:</b> ${reembolso.policy_name || ''}</div>
+          <div style="margin-bottom:10px;"><b>Monto solicitado:</b> $${reembolso.amount !== undefined ? parseFloat(reembolso.amount).toFixed(2) : ''}</div>
+          <div style="margin-bottom:10px;"><b>Motivo:</b> ${reembolso.refund_type_other || reembolso.refund_type || ''}</div>
+          <div style="margin-bottom:10px;"><b>Descripción:</b> ${reembolso.event_description || ''}</div>
+          <div style="margin-bottom:10px;"><b>Estado:</b> ${reembolso.status || ''}</div>
         `;
+        // Campos adicionales
+        if (reembolso.extra_data && typeof reembolso.extra_data === 'object') {
+          Object.entries(reembolso.extra_data).forEach(([key, value]) => {
+            detalle += `<div style='margin-bottom:8px;'><b>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</b> ${value}</div>`;
+          });
+        }
+        // Documentos adjuntos (solo muestra el primero si es tipo reembolso)
+        if (Array.isArray(reembolso.documents) && reembolso.documents.length > 0) {
+          detalle += `<div style='margin-top:14px;'><b>Documento subido:</b><br>`;
+          reembolso.documents.forEach(d => {
+            detalle += `<a href="/refunds/${reembolso.refund_id}/docs/${encodeURIComponent(d.filename)}" target="_blank" style="color:#1976d2;text-decoration:underline;">${d.filename}</a><br>`;
+          });
+          detalle += `</div>`;
+        } else {
+          // Fallback: buscar documentos por contratos del cliente
+          if (documentosHTML && documentosHTML.includes('<ul>')) {
+            detalle += `<div style='margin-top:14px;'><b>Documentos adjuntos:</b>${documentosHTML}</div>`;
+          } else {
+            detalle += `<div style='margin-top:14px;'><b>Documento subido:</b> <span style='color:#888;'>No hay documento adjunto.</span></div>`;
+          }
+        }
+        detalle += `</div>`;
+
         document.getElementById('detalle-reembolso-agente-content').innerHTML = detalle;
         document.getElementById('modal-detalle-reembolso-agente').classList.remove('hidden');
         document.getElementById('modal-detalle-reembolso-agente').style.display = 'flex';
         // Guardar id para procesar
         document.getElementById('btn-guardar-accion-reembolso').setAttribute('data-id', refundId);
+        // Mostrar botón cerrar modal detalle
+        document.getElementById('btn-cerrar-modal-detalle-reembolso').style.display = 'block';
       });
     });
+
+    // Botón verde "Procesar" para abrir el modal de procesamiento
+    document.querySelectorAll('.btn-procesar-reembolso').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const refundId = btn.getAttribute('data-id');
+        // Guardar id para procesar
+        document.getElementById('btn-guardar-accion-reembolso').setAttribute('data-id', refundId);
+        // Limpiar campos de acción y nota
+        document.getElementById('select-accion-reembolso').value = '';
+        document.getElementById('input-nota-reembolso').value = '';
+        // Mostrar controles de procesar
+        document.getElementById('procesar-reembolso-actions').style.display = 'flex';
+        // Ocultar botón cerrar modal detalle
+        document.getElementById('btn-cerrar-modal-detalle-reembolso').style.display = 'none';
+
+        // Mostrar el pequeño modal de procesar (modal-procesar-reembolso)
+        const modalDetalle = document.getElementById('modal-detalle-reembolso-agente');
+        if (modalDetalle) {
+          modalDetalle.classList.add('hidden');
+          modalDetalle.style.display = 'none';
+        }
+        // Eliminar referencia al modal-procesar-reembolso (legacy) para evitar error
+        // const oldModalProcesar = document.getElementById('modal-procesar-reembolso');
+        // if (oldModalProcesar) oldModalProcesar.classList.remove('hidden');
+
+        // Usar el nuevo modal de procesar reembolso en vez del antiguo
+        const modalNuevo = crearNuevoModalProcesarReembolso();
+        if (modalNuevo) {
+          modalNuevo.classList.remove('hidden');
+          modalNuevo.style.display = 'flex';
+          // Asegurar que el botón cancelar cierra el modal correctamente
+          const btnCancelar = document.getElementById('btn-cancelar-procesar-reembolso-nuevo');
+          if (btnCancelar) {
+            btnCancelar.onclick = function() {
+              modalNuevo.classList.add('hidden');
+              modalNuevo.style.display = 'none';
+            };
+          }
+          // También cerrar con overlay
+          const overlay = modalNuevo.querySelector('.modal-overlay');
+          if (overlay) {
+            overlay.onclick = function() {
+              modalNuevo.classList.add('hidden');
+              modalNuevo.style.display = 'none';
+            };
+          }
+
+          // --- Mostrar todas las pólizas activas y detalles al seleccionar ---
+          const selectPoliza = document.getElementById('select-poliza-reembolso');
+          // Crear o buscar el div de detalles
+          let detallesDiv = document.getElementById('detalles-poliza-reembolso');
+          if (!detallesDiv) {
+            detallesDiv = document.createElement('div');
+            detallesDiv.id = 'detalles-poliza-reembolso';
+            detallesDiv.style = 'background:#f5f5f5;padding:12px 10px 10px 10px;border-radius:7px;margin-bottom:12px;text-align:left;font-size:0.98em;';
+            selectPoliza.parentNode.insertAdjacentElement('afterend', detallesDiv);
+          }
+          // Función para mostrar detalles de la póliza seleccionada
+          function mostrarDetallesPoliza(poliza) {
+            if (!poliza) {
+              detallesDiv.innerHTML = '<span style="color:#888;">Selecciona una póliza para ver los detalles.</span>';
+              return;
+            }
+            detallesDiv.innerHTML = `
+              <div><b>Póliza:</b> ${poliza.policy_name || ''}</div>
+              <div><b>ID Contrato:</b> ${poliza.contract_id || ''}</div>
+              <div><b>Prima:</b> $${poliza.premium_amount !== undefined ? parseFloat(poliza.premium_amount).toFixed(2) : ''}</div>
+              <div><b>Frecuencia:</b> ${poliza.payment_frequency || ''}</div>
+              <div><b>Estado:</b> ${poliza.status || ''}</div>
+              <div><b>Fecha inicio:</b> ${poliza.start_date ? new Date(poliza.start_date).toLocaleDateString('es-ES') : ''}</div>
+              <div><b>Fecha fin:</b> ${poliza.end_date ? new Date(poliza.end_date).toLocaleDateString('es-ES') : ''}</div>
+            `;
+          }
+          // Obtener todas las pólizas activas del cliente
+          let polizasActivas = [];
+          if (Array.isArray(reembolso.policies) && reembolso.policies.length > 0) {
+            polizasActivas = reembolso.policies.filter(p => p.status === 'activo' || p.status === 'activa');
+          } else if (reembolso.policy_name && reembolso.contract_id) {
+            polizasActivas = [{
+              policy_name: reembolso.policy_name,
+              contract_id: reembolso.contract_id,
+              premium_amount: reembolso.premium_amount,
+              payment_frequency: reembolso.payment_frequency,
+              status: reembolso.status,
+              start_date: reembolso.start_date,
+              end_date: reembolso.end_date
+            }];
+          }
+          // Mostrar detalles de la primera póliza activa por defecto
+          if (polizasActivas.length > 0) {
+            mostrarDetallesPoliza(polizasActivas[0]);
+            selectPoliza.value = polizasActivas[0].contract_id;
+          } else {
+            mostrarDetallesPoliza(null);
+          }
+          // Evento para mostrar detalles al cambiar selección
+          selectPoliza.onchange = function() {
+            const polizaSel = polizasActivas.find(p => String(p.contract_id) === String(selectPoliza.value));
+            mostrarDetallesPoliza(polizaSel);
+          };
+        }
+        // Eliminar cualquier referencia al modal-procesar-reembolso antiguo para evitar errores
+        // const oldModalProcesar = document.getElementById('modal-procesar-reembolso');
+        // if (oldModalProcesar) oldModalProcesar.classList.remove('hidden');
+
+        // Cargar detalles en el modal-procesar-reembolso
+        const reembolso = window.reembolsos.find(r => String(r.refund_id) === String(refundId));
+        // Solo asignar si los elementos existen en el DOM (puede que el modal no tenga estos campos)
+        const detalleCliente = document.getElementById('detalle-cliente-reembolso');
+        if (detalleCliente) detalleCliente.textContent = `${reembolso.client_name || ''} (${reembolso.client_email || ''})`;
+        const detalleTipoSeguro = document.getElementById('detalle-tipo-seguro-reembolso');
+        if (detalleTipoSeguro) detalleTipoSeguro.textContent = reembolso.policy_name || '';
+        const detalleContrato = document.getElementById('detalle-contrato-reembolso');
+        if (detalleContrato) detalleContrato.textContent = reembolso.contract_id || '';
+        const detalleMonto = document.getElementById('detalle-monto-reembolso');
+        if (detalleMonto) detalleMonto.textContent = reembolso.amount !== undefined ? parseFloat(reembolso.amount).toFixed(2) : '';
+        const detalleFecha = document.getElementById('detalle-fecha-reembolso');
+        if (detalleFecha) detalleFecha.textContent = reembolso.request_date ? new Date(reembolso.request_date).toLocaleDateString('es-ES') : '';
+        const detalleMotivo = document.getElementById('detalle-motivo-reembolso');
+        if (detalleMotivo) detalleMotivo.textContent = reembolso.refund_type_other || reembolso.refund_type || '';
+        const detalleRazones = document.getElementById('detalle-razones-cliente');
+        if (detalleRazones) detalleRazones.textContent = reembolso.event_description || '';
+      });
+    });
+
+    // Botón cerrar del modal de detalle
+    const btnCerrarDetalle = document.getElementById('btn-cerrar-modal-detalle-reembolso');
+    if (btnCerrarDetalle) {
+      btnCerrarDetalle.onclick = function() {
+        document.getElementById('modal-detalle-reembolso-agente').classList.add('hidden');
+        document.getElementById('modal-detalle-reembolso-agente').style.display = 'none';
+      };
+    }
   } catch (err) {
     if (mensaje) mensaje.textContent = 'Error al cargar reembolsos.';
     console.error(err);
   }
 }
-// Cerrar modal
-const btnCerrarModal = document.getElementById('btn-cerrar-modal-reembolso');
-if (btnCerrarModal) {
-  btnCerrarModal.onclick = function() {
-    document.getElementById('modal-detalle-reembolso-agente').classList.add('hidden');
-    document.getElementById('modal-detalle-reembolso-agente').style.display = 'none';
-  };
+// Cerrar modal (modal-procesar-reembolso-nuevo ya no usa este botón ni el modal anterior)
+// Eliminado el código que referenciaba el modal-procesar-reembolso antiguo para evitar errores de null
+// Eliminar el modal de procesar anterior si existe
+const oldModalProcesar = document.getElementById('modal-procesar-reembolso');
+if (oldModalProcesar) oldModalProcesar.remove();
+
+// Crear el nuevo modal de procesar reembolso (solo si no existe)
+function crearNuevoModalProcesarReembolso() {
+  let modal = document.getElementById('modal-procesar-reembolso-nuevo');
+  if (modal) return modal;
+  modal = document.createElement('div');
+  modal.id = 'modal-procesar-reembolso-nuevo';
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal-overlay"></div>
+    <div class="modal-content" style="max-width:400px;text-align:center;padding:28px 18px 22px 18px;border-radius:12px;">
+      <h3 style="font-size:1.1em;margin-bottom:18px;">Procesar solicitud de reembolso</h3>
+      <div style="margin-bottom:18px;text-align:left;">
+        <label for="select-poliza-reembolso" style="font-weight:600;">Selecciona la póliza activa:</label>
+        <select id="select-poliza-reembolso" style="width:100%;margin-top:6px;padding:7px 8px;border-radius:5px;border:1px solid #bbb;"></select>
+      </div>
+      <div style="margin-bottom:18px;text-align:left;">
+        <label for="select-accion-reembolso-nuevo" style="font-weight:600;">Acción:</label>
+        <select id="select-accion-reembolso-nuevo" style="width:100%;margin-top:6px;padding:7px 8px;border-radius:5px;border:1px solid #bbb;">
+          <option value="">Selecciona una acción</option>
+          <option value="aprobado">Aprobar</option>
+          <option value="rechazado">Rechazar</option>
+        </select>
+      </div>
+      <div style="display:flex;justify-content:center;gap:18px;margin-top:18px;">
+        <button id="btn-cancelar-procesar-reembolso-nuevo" class="btn-cancel" style="padding:7px 22px;">Cancelar</button>
+        <button id="btn-guardar-procesar-reembolso-nuevo" class="btn-save" style="padding:7px 22px;background:#1976d2;color:#fff;">Guardar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  return modal;
 }
-// Procesar acción (aprobar/rechazar)
-const btnGuardarAccion = document.getElementById('btn-guardar-accion-reembolso');
-if (btnGuardarAccion) {
-  btnGuardarAccion.onclick = async function() {
-    const refundId = btnGuardarAccion.getAttribute('data-id');
-    const accion = document.getElementById('select-accion-reembolso').value;
-    const nota = document.getElementById('input-nota-reembolso').value;
-    if (!accion) {
-      alert('Selecciona una acción');
+
+// Lógica para mostrar el nuevo modal al hacer click en "Procesar"
+document.querySelectorAll('.btn-procesar-reembolso').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const refundId = btn.getAttribute('data-id');
+    // Buscar reembolso y pólizas activas del cliente
+    const reembolso = window.reembolsos.find(r => String(r.refund_id) === String(refundId));
+    if (!reembolso) {
+      alert('No se encontró la solicitud de reembolso.');
       return;
     }
-    try {
-      const resp = await fetch(`/refunds/${refundId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: accion, notes: nota })
+
+    // Crear y mostrar el modal
+    const modal = crearNuevoModalProcesarReembolso();
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+
+    // Llenar select de pólizas activas
+    const selectPoliza = document.getElementById('select-poliza-reembolso');
+    selectPoliza.innerHTML = '';
+    let polizasActivas = [];
+    if (Array.isArray(reembolso.policies) && reembolso.policies.length > 0) {
+      polizasActivas = reembolso.policies.filter(p => p.status === 'activo' || p.status === 'activa');
+      polizasActivas.forEach(poliza => {
+        const opt = document.createElement('option');
+        opt.value = poliza.contract_id;
+        opt.textContent = poliza.policy_name + ' (ID: ' + poliza.contract_id + ')';
+        selectPoliza.appendChild(opt);
       });
-      if (resp.ok) {
-        alert('Reembolso procesado correctamente');
-        document.getElementById('modal-detalle-reembolso-agente').classList.add('hidden');
-        document.getElementById('modal-detalle-reembolso-agente').style.display = 'none';
-        cargarReembolsos();
-      } else {
-        alert('Error al procesar el reembolso');
-      }
-    } catch (err) {
-      alert('Error de conexión');
+    } else if (reembolso.policy_name && reembolso.contract_id) {
+      // Fallback: solo una póliza
+      polizasActivas = [{
+        policy_name: reembolso.policy_name,
+        contract_id: reembolso.contract_id,
+        premium_amount: reembolso.premium_amount,
+        payment_frequency: reembolso.payment_frequency,
+        status: reembolso.status,
+        start_date: reembolso.start_date,
+        end_date: reembolso.end_date
+      }];
+      const opt = document.createElement('option');
+      opt.value = reembolso.contract_id;
+      opt.textContent = reembolso.policy_name + ' (ID: ' + reembolso.contract_id + ')';
+      selectPoliza.appendChild(opt);
+    } else {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No hay pólizas activas';
+      selectPoliza.appendChild(opt);
     }
-  };
-}
+
+    // --- Mostrar detalles de la póliza seleccionada ---
+    let detallesDiv = document.getElementById('detalles-poliza-reembolso');
+    if (!detallesDiv) {
+      detallesDiv = document.createElement('div');
+      detallesDiv.id = 'detalles-poliza-reembolso';
+      detallesDiv.style = 'background:#f5f5f5;padding:12px 10px 10px 10px;border-radius:7px;margin-bottom:12px;text-align:left;font-size:0.98em;';
+      selectPoliza.parentNode.insertAdjacentElement('afterend', detallesDiv);
+    }
+    function mostrarDetallesPoliza(poliza) {
+      if (!poliza) {
+        detallesDiv.innerHTML = '<span style="color:#888;">Selecciona una póliza para ver los detalles.</span>';
+        return;
+      }
+      detallesDiv.innerHTML = `
+        <div><b>Póliza:</b> ${poliza.policy_name || ''}</div>
+        <div><b>ID Contrato:</b> ${poliza.contract_id || ''}</div>
+        <div><b>Prima:</b> $${poliza.premium_amount !== undefined ? parseFloat(poliza.premium_amount).toFixed(2) : ''}</div>
+        <div><b>Frecuencia:</b> ${poliza.payment_frequency || ''}</div>
+        <div><b>Estado:</b> ${poliza.status || ''}</div>
+        <div><b>Fecha inicio:</b> ${poliza.start_date ? new Date(poliza.start_date).toLocaleDateString('es-ES') : ''}</div>
+        <div><b>Fecha fin:</b> ${poliza.end_date ? new Date(poliza.end_date).toLocaleDateString('es-ES') : ''}</div>
+      `;
+    }
+    // Mostrar detalles de la primera póliza activa por defecto
+    if (polizasActivas.length > 0) {
+      mostrarDetallesPoliza(polizasActivas[0]);
+      selectPoliza.value = polizasActivas[0].contract_id;
+    } else {
+      mostrarDetallesPoliza(null);
+    }
+    // Evento para mostrar detalles al cambiar selección
+    selectPoliza.onchange = function() {
+      const polizaSel = polizasActivas.find(p => String(p.contract_id) === String(selectPoliza.value));
+      mostrarDetallesPoliza(polizaSel);
+    };
+
+    // Limpiar acción
+    document.getElementById('select-accion-reembolso-nuevo').value = '';
+    // Guardar refundId en el botón guardar
+    const btnGuardar = document.getElementById('btn-guardar-procesar-reembolso-nuevo');
+    btnGuardar.setAttribute('data-id', refundId);
+    // Evento guardar
+    btnGuardar.onclick = async function() {
+      const polizaId = selectPoliza.value;
+      const accion = document.getElementById('select-accion-reembolso-nuevo').value;
+      if (!polizaId) {
+        alert('Selecciona una póliza activa.');
+        return;
+      }
+      if (!accion) {
+        alert('Selecciona una acción.');
+        return;
+      }
+      try {
+        const resp = await fetch(`/refunds/${refundId}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: accion, contract_id: polizaId })
+        });
+        if (resp.ok) {
+          alert('Reembolso procesado correctamente');
+          modal.classList.add('hidden');
+          modal.style.display = 'none';
+          cargarReembolsos();
+        } else {
+          alert('Error al procesar el reembolso');
+        }
+      } catch (err) {
+        alert('Error de conexión');
+      }
+    };
+    // Evento cancelar
+    document.getElementById('btn-cancelar-procesar-reembolso-nuevo').onclick = function() {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    };
+    // Cerrar modal al hacer click en overlay
+    const overlay = modal.querySelector('.modal-overlay');
+    if (overlay) overlay.onclick = function() {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    };
+  });
+});
 // Refrescar
 const btnRefrescar = document.getElementById('btn-refrescar-reembolsos');
 if (btnRefrescar) btnRefrescar.onclick = cargarReembolsos;
