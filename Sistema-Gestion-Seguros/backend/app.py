@@ -1427,16 +1427,14 @@ def update_refund_status(refund_id):
         
         data = request.get_json()
         new_status = data.get('status')
-        notes = data.get('notes', '')
         
-        if new_status not in ['approved', 'rejected', 'processed']:
+        if new_status not in ['approved', 'rejected']:
             return jsonify({'error': 'Estado no válido'}), 400
         
         cur = mysql.connection.cursor()
         
         # Verificar que la solicitud existe y pertenece a un cliente del agente (si es agente)
         if session.get('role_id') == 2:  # Agente
-            # Buscar los clientes del agente
             cur.execute("SELECT id FROM clients WHERE agent_id = %s", (session['user_id'],))
             client_rows = cur.fetchall()
             if not client_rows:
@@ -1452,24 +1450,12 @@ def update_refund_status(refund_id):
             cur.close()
             return jsonify({'error': 'Solicitud de reembolso no encontrada'}), 404
         
-        # Actualizar estado del reembolso
+        # Actualizar solo el estado del reembolso
         cur.execute("""
             UPDATE refunds 
-            SET status = %s, processed_date = NOW(), processed_by = %s, notes = %s
+            SET status = %s
             WHERE id = %s
-        """, (new_status, session['user_id'], notes, refund_id))
-
-        # Si el reembolso fue aprobado, marcar la póliza como inactiva
-        if new_status == 'approved':
-            # Obtener policy_id asociado al reembolso
-            cur.execute("SELECT policy_id FROM refunds WHERE id = %s", (refund_id,))
-            row = cur.fetchone()
-            if row:
-                policy_id = row[0]
-                # Marcar como inactivo en policies
-                cur.execute("UPDATE policies SET status = 'inactivo' WHERE id = %s", (policy_id,))
-                # Marcar como inactivo en client_policies
-                cur.execute("UPDATE client_policies SET status = 'inactivo' WHERE policy_id = %s", (policy_id,))
+        """, (new_status, refund_id))
 
         mysql.connection.commit()
         cur.close()

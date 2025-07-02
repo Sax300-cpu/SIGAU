@@ -38,18 +38,18 @@
       </div>
       <nav>
         <ul>
-          <li class="active">
+          <!-- <li class="active">
             <a href="#" id="inicio-link"><i class="fas fa-home"></i><span>Inicio</span></a>
-          </li>
-          <li>
+          </li> -->
+          <li class="active">
             <a href="#" id="mis-polizas-link"><i class="fas fa-file-contract"></i><span>Mis Pólizas</span></a>
           </li>
-          <li>
+          <!-- <li>
             <a href="#" id="salud-link"><i class="fas fa-heartbeat"></i><span>Seguro de Salud</span></a>
           </li>
           <li>
             <a href="#" id="vida-link"><i class="fas fa-user"></i><span>Seguro de Vida</span></a>
-          </li>
+          </li> -->
           <li>
             <a href="#" id="reembolso-link"><i class="fas fa-money-bill-wave"></i><span>Reembolso</span></a>
           </li>
@@ -334,6 +334,19 @@
         const HISTORIAL_KEY = 'historialReembolsosMock';
         // ---
         document.addEventListener('DOMContentLoaded', function() {
+          // Mostrar solo la sección de Mis Pólizas al cargar
+          var polizasSection = document.getElementById('mis-polizas-section');
+          var inicioSection = document.getElementById('inicio-section');
+          var vidaSection = document.getElementById('vida-section');
+          var saludSection = document.getElementById('salud-section');
+          var reembolsoSection = document.getElementById('reembolso-section');
+          var mainTitle = document.getElementById('main-title');
+          if (polizasSection) polizasSection.style.display = 'block';
+          if (inicioSection) inicioSection.style.display = 'none';
+          if (vidaSection) vidaSection.style.display = 'none';
+          if (saludSection) saludSection.style.display = 'none';
+          if (reembolsoSection) reembolsoSection.style.display = 'none';
+          if (mainTitle) mainTitle.textContent = 'Mis Pólizas';
           // Nueva implementación: historial de reembolsos simple, muestra los datos enviados en la sesión
           // (En producción, esto debe ser reemplazado por una consulta real al backend)
           // Persistencia local del historial de reembolsos
