@@ -1434,15 +1434,20 @@ def update_refund_status(refund_id):
         
         cur = mysql.connection.cursor()
         
-        # Verificar que la solicitud existe y pertenece al agente (si es agente)
+        # Verificar que la solicitud existe y pertenece a un cliente del agente (si es agente)
         if session.get('role_id') == 2:  # Agente
-            cur.execute("""
-                SELECT id FROM refunds 
-                WHERE id = %s AND agent_id = %s
-            """, (refund_id, session['user_id']))
+            # Buscar los clientes del agente
+            cur.execute("SELECT id FROM clients WHERE agent_id = %s", (session['user_id'],))
+            client_rows = cur.fetchall()
+            if not client_rows:
+                cur.close()
+                return jsonify({'error': 'No tiene clientes asociados'}), 404
+            client_ids = [row[0] for row in client_rows]
+            format_strings = ','.join(['%s'] * len(client_ids))
+            query = f"SELECT id FROM refunds WHERE id = %s AND client_id IN ({format_strings})"
+            cur.execute(query, (refund_id, *client_ids))
         else:  # Admin
             cur.execute("SELECT id FROM refunds WHERE id = %s", (refund_id,))
-        
         if not cur.fetchone():
             cur.close()
             return jsonify({'error': 'Solicitud de reembolso no encontrada'}), 404
