@@ -1493,13 +1493,6 @@ def get_refund_documents(refund_id):
         client_id = row[0]
         user_id = session.get('user_id')
         role_id = session.get('role_id')
-        # Permitir solo al cliente dueño
-        cur.execute("SELECT client_id FROM refunds WHERE id = %s", (refund_id,))
-        row = cur.fetchone()
-        if not row:
-            cur.close()
-            return jsonify({'error': 'Solicitud de reembolso no encontrada'}), 404
-        client_id = row[0]
         user_client_id = None
         if role_id == 3:
             cur2 = mysql.connection.cursor()
@@ -1508,7 +1501,8 @@ def get_refund_documents(refund_id):
             if row2:
                 user_client_id = row2[0]
             cur2.close()
-        if not (role_id == 3 and user_client_id == client_id):
+        # Permitir acceso si es el cliente dueño o si es agente (role_id == 2)
+        if not ((role_id == 3 and user_client_id == client_id) or role_id == 2):
             cur.close()
             return jsonify({'error': 'No autorizado'}), 403
         cur.execute("SELECT id, file_path, uploaded_at, status, review_comment FROM documents_refunds WHERE refund_id = %s", (refund_id,))
@@ -1516,7 +1510,7 @@ def get_refund_documents(refund_id):
         result = []
         for doc in docs:
             doc_id, fname, uploaded_at, status, review_comment = doc
-            url = url_for('serve_refund_file', refund_id=refund_id, filename=fname, _external=True)
+            url = url_for('serve_refund_file_docs', refund_id=refund_id, filename=fname, _external=True)
             result.append({
                 'id': doc_id,
                 'filename': fname,
@@ -1826,6 +1820,12 @@ def polizas_activas():
         for r in rows
     ]
     return jsonify(polizas), 200
+
+@app.route('/refunds/<refund_id>/docs/<filename>')
+@login_required
+def serve_refund_file_docs(refund_id, filename):
+    folder = os.path.join(REFUND_UPLOAD_ROOT, str(refund_id))
+    return send_from_directory(folder, filename)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
