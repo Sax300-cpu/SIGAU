@@ -1800,16 +1800,15 @@ def upload_refund_docs(refund_id):
             cur.close()
             return jsonify({'error': 'No se enviaron archivos'}), 400
         now = datetime.now()
-        uploaded_by = 'cliente'
         for file in files:
             fname = secure_filename(file.filename)
             fpath = os.path.join(folder, fname)
             file.save(fpath)
             cur.execute("""
-                INSERT INTO documents_refunds (invoice_id, doc_type, file_path, uploaded_at, uploaded_by, upload_date, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO documents_refunds (refund_id, filename, file_path, uploaded_at, status)
+                VALUES (%s, %s, %s, %s, %s)
             """, (
-                refund_id, None, fname, now, uploaded_by, now, 'pendiente'
+                refund_id, fname, fname, now, 'pendiente'
             ))
         mysql.connection.commit()
         cur.close()

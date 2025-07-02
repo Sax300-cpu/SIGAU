@@ -364,83 +364,233 @@ document.addEventListener('DOMContentLoaded', function() {
     // === NUEVA LÓGICA DE ENVÍO DE REEMBOLSO ===
     const formNuevoReembolso = document.getElementById('form-nuevo-reembolso');
     if (formNuevoReembolso) {
-      let submitPendingReembolso = null;
-      formNuevoReembolso.addEventListener('submit', function(e) {
+      formNuevoReembolso.addEventListener('submit', async function(e) {
         e.preventDefault();
-        // Guardar la función de envío pendiente
-        submitPendingReembolso = async function() {
-          const btn = document.getElementById('btn-enviar-nuevo-reembolso');
-          if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
-          try {
-            // 1. Crear la solicitud de reembolso (sin documentos)
-            const datos = new FormData(formNuevoReembolso);
-            const payload = {
-              policy_id: parseInt(datos.get('policy_id'), 10),
-              refund_type: datos.get('refund_type'),
-              refund_type_other: datos.get('refund_type_other'),
-              event_description: datos.get('event_description'),
-              event_date: datos.get('event_date'),
-              amount: datos.get('amount')
-            };
-            if (!payload.policy_id) throw new Error('Debes seleccionar una póliza');
-            const resp = await fetch('/refunds', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload)
-            });
-            if (!resp.ok) throw new Error('Error creando solicitud de reembolso');
-            const refund = await resp.json();
-            const refund_id = refund.id || refund.refund_id || refund.refundId;
-            if (!refund_id) throw new Error('No se obtuvo el ID del reembolso');
-            // 2. Subir documentos
-            const files = document.getElementById('documentos').files;
-            if (files.length > 0) {
-              const fd = new FormData();
-              for (let i = 0; i < files.length; i++) {
-                fd.append('documentos', files[i]);
-              }
-              const respDocs = await fetch(`/refunds/${refund_id}/upload_docs`, {
-                method: 'POST',
-                body: fd
-              });
-              if (!respDocs.ok) {
-                const errMsg = await respDocs.text();
-                throw new Error('Error subiendo documentos: ' + errMsg);
-              }
-            }
-            // 3. Mostrar modal de éxito y resetear
-            document.getElementById('modal-nuevo-reembolso').classList.add('hidden');
-            document.getElementById('modal-exito-nuevo-reembolso').classList.remove('hidden');
-            formNuevoReembolso.reset();
-            setTimeout(()=>{
-              document.getElementById('modal-exito-nuevo-reembolso').classList.add('hidden');
-              cargarHistorialReembolsos && cargarHistorialReembolsos();
-            }, 2000);
-          } catch (err) {
-            alert('Error al enviar la solicitud: ' + (err.message || err));
-          } finally {
-            const btn = document.getElementById('btn-enviar-nuevo-reembolso');
+        const btn = document.getElementById('btn-enviar-nuevo-reembolso') || formNuevoReembolso.querySelector('button[type="submit"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+        try {
+          // Validar archivo
+          const inputArchivo = document.getElementById('documento-reembolso');
+          if (!inputArchivo || !inputArchivo.files || inputArchivo.files.length !== 1) {
+            alert('Debes seleccionar un archivo PDF.');
             if (btn) { btn.disabled = false; btn.textContent = 'Enviar Solicitud'; }
+            return;
           }
-        };
-        // Mostrar el modal de confirmación
-        document.getElementById('modal-confirmar-envio-reembolso').classList.remove('hidden');
-      });
-      // Botones del modal de confirmación
-      document.getElementById('btn-cancelar-envio-reembolso').onclick = function() {
-        document.getElementById('modal-confirmar-envio-reembolso').classList.add('hidden');
-        submitPendingReembolso = null;
-      };
-      document.getElementById('btn-cerrar-modal-confirmar-envio').onclick = function() {
-        document.getElementById('modal-confirmar-envio-reembolso').classList.add('hidden');
-        submitPendingReembolso = null;
-      };
-      document.getElementById('btn-confirmar-envio-reembolso').onclick = async function() {
-        document.getElementById('modal-confirmar-envio-reembolso').classList.add('hidden');
-        if (submitPendingReembolso) {
-          await submitPendingReembolso();
-          submitPendingReembolso = null;
+          const archivo = inputArchivo.files[0];
+          if (archivo.type !== 'application/pdf') {
+            alert('Solo se permite subir archivos PDF.');
+            if (btn) { btn.disabled = false; btn.textContent = 'Enviar Solicitud'; }
+            return;
+          }
+          if (archivo.size > 5 * 1024 * 1024) {
+            alert('El archivo supera el tamaño máximo de 5MB.');
+            if (btn) { btn.disabled = false; btn.textContent = 'Enviar Solicitud'; }
+            return;
+          }
+          // 1. Crear la solicitud de reembolso (sin documentos)
+          const datos = new FormData(formNuevoReembolso);
+          const payload = {
+            policy_id: parseInt(datos.get('policy_id'), 10),
+            refund_type: datos.get('refund_type'),
+            refund_type_other: datos.get('refund_type_other'),
+            event_description: datos.get('event_description'),
+            event_date: datos.get('event_date'),
+            amount: datos.get('amount')
+          };
+          if (!payload.policy_id) throw new Error('Debes seleccionar una póliza');
+          const resp = await fetch('/refunds', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!resp.ok) throw new Error('Error creando solicitud de reembolso');
+          const refund = await resp.json();
+          const refund_id = refund.id || refund.refund_id || refund.refundId;
+          if (!refund_id) throw new Error('No se obtuvo el ID del reembolso');
+          // 2. Subir documento PDF
+          const fd = new FormData();
+          fd.append('documentos', archivo);
+          const respDocs = await fetch(`/refunds/${refund_id}/upload_docs`, {
+            method: 'POST',
+            body: fd
+          });
+          if (!respDocs.ok) {
+            const errMsg = await respDocs.text();
+            throw new Error('Error subiendo documento: ' + errMsg);
+          }
+          // 3. Mostrar modal de éxito y resetear
+          panelFormReembolso.style.display = 'none';
+          btnNuevoReembolso.disabled = false;
+          formNuevoReembolso.reset();
+          document.getElementById('modal-exito-nuevo-reembolso').classList.remove('hidden');
+          setTimeout(()=>{
+            document.getElementById('modal-exito-nuevo-reembolso').classList.add('hidden');
+            renderizarHistorialReembolsosAcordeon && renderizarHistorialReembolsosAcordeon();
+          }, 2000);
+        } catch (err) {
+          alert('Error al enviar la solicitud: ' + (err.message || err));
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = 'Enviar Solicitud'; }
         }
-      };
+      });
+    }
+
+    // === PANEL SOLICITAR REEMBOLSO ===
+    const btnNuevoReembolso = document.getElementById('btn-nuevo-reembolso');
+    const panelFormReembolso = document.getElementById('panel-form-reembolso');
+    if (btnNuevoReembolso && panelFormReembolso) {
+      btnNuevoReembolso.addEventListener('click', async function() {
+        if (panelFormReembolso.style.display === 'none' || panelFormReembolso.style.display === '') {
+          panelFormReembolso.style.display = 'block';
+          btnNuevoReembolso.disabled = true;
+          // Cargar pólizas activas al mostrar el formulario
+          const selectPoliza = document.getElementById('policy_id');
+          if (selectPoliza) {
+            selectPoliza.innerHTML = '<option value="">Seleccione una póliza</option>';
+            try {
+              const res = await fetch('/api/polizas_activas');
+              if (res.ok) {
+                const polizas = await res.json();
+                polizas.forEach(p => {
+                  const opt = document.createElement('option');
+                  opt.value = p.id;
+                  opt.textContent = `${p.name} (${p.category})`;
+                  opt.dataset.category = p.category;
+                  selectPoliza.appendChild(opt);
+                });
+              }
+            } catch (e) {
+              // No hacer nada, el select queda vacío
+            }
+          }
+        }
+      });
+      // Al enviar el formulario, ocultar el panel y habilitar el botón
+      const formNuevoReembolso = document.getElementById('form-nuevo-reembolso');
+      if (formNuevoReembolso) {
+        formNuevoReembolso.addEventListener('submit', function() {
+          panelFormReembolso.style.display = 'none';
+          btnNuevoReembolso.disabled = false;
+        });
+      }
+    }
+
+    // === HISTORIAL DE REEMBOLSOS CON ACORDEÓN ===
+    async function renderizarHistorialReembolsosAcordeon() {
+      const historialContainer = document.getElementById('historial-reembolsos');
+      if (!historialContainer) return;
+      historialContainer.innerHTML = '<div style="color:#888; text-align:center; padding:20px;">Cargando reembolsos...</div>';
+      try {
+        const resp = await fetch('/refunds');
+        if (!resp.ok) throw new Error('Error al cargar reembolsos');
+        const reembolsos = await resp.json();
+        if (!Array.isArray(reembolsos) || reembolsos.length === 0) {
+          historialContainer.innerHTML = '<div style="color:#888; text-align:center; padding:20px;">No tienes solicitudes de reembolso registradas.</div>';
+          return;
+        }
+        historialContainer.innerHTML = '';
+        reembolsos.forEach((r, idx) => {
+          const card = document.createElement('div');
+          card.className = 'reembolso-card';
+          card.style = 'border:1.5px solid #e3e8f0; border-radius:10px; margin-bottom:16px; background:#fff; box-shadow:0 2px 8px rgba(30,42,60,0.06);';
+          card.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 20px;cursor:pointer;">
+              <div>
+                <b>${r.policy_name || ''}</b><br>
+                <span style="color:#666;font-size:0.97em;">${r.request_date ? new Date(r.request_date).toLocaleDateString('es-ES') : ''}</span>
+              </div>
+              <div>
+                <span style="background:#f5f5f5;color:#1976d2;padding:4px 12px;border-radius:20px;font-size:0.95em;">${r.status || ''}</span>
+                <button class="btn-ver-detalle-reembolso" data-id="${r.refund_id}" style="margin-left:18px;background:#1976d2;color:#fff;border:none;border-radius:4px;padding:7px 16px;font-size:0.97em;cursor:pointer;">Ver detalle</button>
+              </div>
+            </div>
+            <div class="panel-detalle-reembolso" id="panel-detalle-reembolso-${r.refund_id}" style="display:none;padding:18px 24px 10px 24px;border-top:1px solid #e3e8f0;background:#f9f9fb;">
+              <div style="color:#888;">Cargando detalle...</div>
+            </div>
+          `;
+          historialContainer.appendChild(card);
+        });
+        // Lógica acordeón: solo uno abierto a la vez
+        let abiertoId = null;
+        document.querySelectorAll('.btn-ver-detalle-reembolso').forEach(btn => {
+          btn.addEventListener('click', async function() {
+            const refundId = btn.getAttribute('data-id');
+            // Cerrar el panel abierto si hay
+            if (abiertoId && abiertoId !== refundId) {
+              const panelAbierto = document.getElementById('panel-detalle-reembolso-' + abiertoId);
+              if (panelAbierto) panelAbierto.style.display = 'none';
+            }
+            const panel = document.getElementById('panel-detalle-reembolso-' + refundId);
+            if (!panel) return;
+            if (panel.style.display === 'block') {
+              panel.style.display = 'none';
+              abiertoId = null;
+              return;
+            }
+            panel.style.display = 'block';
+            abiertoId = refundId;
+            // Cargar detalle y documentos
+            panel.innerHTML = '<div style="color:#888;">Cargando detalle...</div>';
+            try {
+              // Buscar info de reembolso
+              const r = reembolsos.find(x => x.refund_id == refundId);
+              let html = `<div style='margin-bottom:10px;'><b>Póliza:</b> ${r.policy_name || ''}</div>`;
+              html += `<div><b>Fecha de solicitud:</b> ${r.request_date ? new Date(r.request_date).toLocaleDateString('es-ES') : ''}</div>`;
+              html += `<div><b>Monto solicitado:</b> $${parseFloat(r.amount).toFixed(2)}</div>`;
+              html += `<div><b>Motivo:</b> ${r.refund_type_other || r.refund_type || ''}</div>`;
+              html += `<div><b>Descripción:</b> ${r.event_description || ''}</div>`;
+              html += `<div><b>Estado:</b> ${r.status || ''}</div>`;
+              // Documentos
+              html += `<div style='margin-top:14px;'><b>Documentos subidos:</b><div id='docs-reembolso-${refundId}' style='margin-top:6px;'></div></div>`;
+              panel.innerHTML = html;
+              // Cargar documentos
+              const respDocs = await fetch(`/refunds/${refundId}/documents`);
+              if (respDocs.ok) {
+                const docs = await respDocs.json();
+                const docsDiv = document.getElementById('docs-reembolso-' + refundId);
+                if (docsDiv) {
+                  if (Array.isArray(docs) && docs.length > 0) {
+                    docsDiv.innerHTML = '<ul style="padding-left:18px;">' + docs.map(d => `<li><a href="${d.url}" target="_blank">${d.filename}</a> <span style="color:#888;font-size:0.95em;">[${d.status}]</span></li>`).join('') + '</ul>';
+                  } else {
+                    docsDiv.innerHTML = '<span style="color:#888;">No hay documentos subidos.</span>';
+                  }
+                }
+              }
+            } catch (err) {
+              panel.innerHTML = '<div style="color:#d32f2f;">Error al cargar detalle.</div>';
+            }
+          });
+        });
+      } catch (err) {
+        historialContainer.innerHTML = '<div style="color:#d32f2f; text-align:center; padding:20px;">No se pudo conectar con el servidor de reembolsos. Intenta más tarde.</div>';
+      }
+    }
+
+    // Llamar al cargar la página y tras enviar un reembolso
+    renderizarHistorialReembolsosAcordeon();
+    window.cargarHistorialReembolsos = renderizarHistorialReembolsosAcordeon;
+
+    // Asegurar que el select de tipo de reembolso se limpie y rellene correctamente
+    const selectPoliza = document.getElementById('policy_id');
+    const selectTipoReembolso = document.getElementById('refund_type');
+    if (selectPoliza && selectTipoReembolso) {
+      selectPoliza.addEventListener('change', function() {
+        const selected = this.options[this.selectedIndex];
+        const category = selected.dataset.category;
+        selectTipoReembolso.innerHTML = '<option value="">Seleccione una opción</option>';
+        if (category === 'vida') {
+          selectTipoReembolso.innerHTML += `
+            <option value="fallecimiento">Beneficio por Fallecimiento (Vida)</option>
+            <option value="discapacidad">Indemnización por Discapacidad (Vida)</option>
+            <option value="otros">Otros (especificar)</option>
+          `;
+        } else if (category === 'salud') {
+          selectTipoReembolso.innerHTML += `
+            <option value="gastos_medicos">Gastos Médicos (Salud)</option>
+            <option value="discapacidad">Indemnización por Discapacidad (Salud)</option>
+            <option value="otros">Otros (especificar)</option>
+          `;
+        }
+      });
     }
 });
