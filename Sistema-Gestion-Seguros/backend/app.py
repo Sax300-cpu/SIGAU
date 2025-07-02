@@ -948,17 +948,7 @@ def create_contract():
         cur = mysql.connection.cursor()
 
         # Obtener el agente asociado a la póliza
-        cur.execute("""
-            SELECT agent_id
-            FROM client_policies
-            WHERE policy_id = %s AND client_id = %s AND status = 'activo'
-            LIMIT 1
-        """, (policy_id, client_id))
-        row = cur.fetchone()
-        if not row or not row[0]:
-            cur.close()
-            return jsonify({'error': 'No se encontró agente para la póliza seleccionada'}), 400
-        agent_id = row[0]
+        agent_id = session.get('user_id')
 
         # 1. Crear el contrato
         cur.execute("""
