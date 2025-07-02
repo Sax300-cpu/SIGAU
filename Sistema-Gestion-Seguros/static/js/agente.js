@@ -2011,25 +2011,12 @@ async function cargarReembolsos() {
     document.querySelectorAll('.btn-procesar-reembolso').forEach(btn => {
       btn.addEventListener('click', function() {
         const refundId = btn.getAttribute('data-id');
-        // Guardar id para procesar
-        document.getElementById('btn-guardar-accion-reembolso').setAttribute('data-id', refundId);
-        // Limpiar campos de acción y nota
-        document.getElementById('select-accion-reembolso').value = '';
-        document.getElementById('input-nota-reembolso').value = '';
-        // Mostrar controles de procesar
-        document.getElementById('procesar-reembolso-actions').style.display = 'flex';
-        // Ocultar botón cerrar modal detalle
-        document.getElementById('btn-cerrar-modal-detalle-reembolso').style.display = 'none';
-
-        // Mostrar el pequeño modal de procesar (modal-procesar-reembolso)
-        const modalDetalle = document.getElementById('modal-detalle-reembolso-agente');
-        if (modalDetalle) {
-          modalDetalle.classList.add('hidden');
-          modalDetalle.style.display = 'none';
+        // Buscar reembolso y pólizas activas del cliente
+        const reembolso = window.reembolsos.find(r => String(r.refund_id) === String(refundId));
+        if (!reembolso) {
+          alert('No se encontró la solicitud de reembolso.');
+          return;
         }
-        // Eliminar referencia al modal-procesar-reembolso (legacy) para evitar error
-        // const oldModalProcesar = document.getElementById('modal-procesar-reembolso');
-        // if (oldModalProcesar) oldModalProcesar.classList.remove('hidden');
 
         // Usar el nuevo modal de procesar reembolso en vez del antiguo
         const modalNuevo = crearNuevoModalProcesarReembolso();
@@ -2107,27 +2094,6 @@ async function cargarReembolsos() {
             mostrarDetallesPoliza(polizaSel);
           };
         }
-        // Eliminar cualquier referencia al modal-procesar-reembolso antiguo para evitar errores
-        // const oldModalProcesar = document.getElementById('modal-procesar-reembolso');
-        // if (oldModalProcesar) oldModalProcesar.classList.remove('hidden');
-
-        // Cargar detalles en el modal-procesar-reembolso
-        const reembolso = window.reembolsos.find(r => String(r.refund_id) === String(refundId));
-        // Solo asignar si los elementos existen en el DOM (puede que el modal no tenga estos campos)
-        const detalleCliente = document.getElementById('detalle-cliente-reembolso');
-        if (detalleCliente) detalleCliente.textContent = `${reembolso.client_name || ''} (${reembolso.client_email || ''})`;
-        const detalleTipoSeguro = document.getElementById('detalle-tipo-seguro-reembolso');
-        if (detalleTipoSeguro) detalleTipoSeguro.textContent = reembolso.policy_name || '';
-        const detalleContrato = document.getElementById('detalle-contrato-reembolso');
-        if (detalleContrato) detalleContrato.textContent = reembolso.contract_id || '';
-        const detalleMonto = document.getElementById('detalle-monto-reembolso');
-        if (detalleMonto) detalleMonto.textContent = reembolso.amount !== undefined ? parseFloat(reembolso.amount).toFixed(2) : '';
-        const detalleFecha = document.getElementById('detalle-fecha-reembolso');
-        if (detalleFecha) detalleFecha.textContent = reembolso.request_date ? new Date(reembolso.request_date).toLocaleDateString('es-ES') : '';
-        const detalleMotivo = document.getElementById('detalle-motivo-reembolso');
-        if (detalleMotivo) detalleMotivo.textContent = reembolso.refund_type_other || reembolso.refund_type || '';
-        const detalleRazones = document.getElementById('detalle-razones-cliente');
-        if (detalleRazones) detalleRazones.textContent = reembolso.event_description || '';
       });
     });
 
