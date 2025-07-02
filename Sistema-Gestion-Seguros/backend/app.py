@@ -1301,13 +1301,12 @@ def create_refund():
         if cur.fetchone():
             cur.close()
             return jsonify({'error': 'Ya existe una solicitud de reembolso similar (pendiente o aprobada) para esta póliza, fecha, tipo y monto.'}), 400
-        # Insertar reembolso SIN agent_id
+        # Insertar reembolso SIN agent_id, asignando la fecha de creación con NOW()
         cur.execute("""
-            INSERT INTO refunds (
-                policy_id, insurance_category, refund_type, refund_type_other, event_description, event_date, amount, status, client_id, request_date
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', %s, NOW())
+            INSERT INTO refunds (policy_id, client_id, refund_type, refund_type_other, event_description, event_date, amount, status, request_date)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', NOW())
         """, (
-            policy_id, insurance_category, data.get('refund_type'), data.get('refund_type_other'), data.get('event_description'), data.get('event_date'), data.get('amount'), client_id
+            policy_id, client_id, data.get('refund_type'), data.get('refund_type_other'), data.get('event_description'), data.get('event_date'), data.get('amount')
         ))
         mysql.connection.commit()
         refund_id = cur.lastrowid
@@ -1320,139 +1319,65 @@ def create_refund():
 @app.route('/refunds', methods=['GET'])
 @login_required
 def list_refunds():
-    """Listar solicitudes de reembolso según el rol del usuario"""
-    try:
-        print(f"DEBUG: Usuario ID: {session.get('user_id')}, Rol: {session.get('role_id')}")
-        cur = mysql.connection.cursor()
-        if session.get('role_id') == 2:  # Agente
-            print(f"DEBUG: Consultando reembolsos para agente ID: {session['user_id']}")
-            cur.execute("""
-                SELECT 
-                    r.id AS refund_id,
-                    r.client_id,
-                    r.amount,
-                    r.request_date,
-                    r.status,
-                    p.name AS policy_name,
-                    CONCAT(c.first_name, ' ', c.last_name) AS client_name,
-                    u.email AS client_email,
-                    r.health_institution_name,
-                    r.health_institution_type,
-                    r.refund_type,
-                    r.refund_type_other,
-                    r.event_description,
-                    r.event_date,
-                    r.payment_method,
-                    r.account_holder_name,
-                    r.bank_account_number,
-                    r.bank_name,
-                    r.account_type,
-                    r.swift_aba_code,
-                    r.payment_method_other,
-                    r.insurance_category
-                FROM refunds r
-                JOIN policies p ON r.policy_id = p.id
-                JOIN clients c ON r.client_id = c.id
-                JOIN users u ON c.user_id = u.id
-                WHERE r.agent_id = %s
-                ORDER BY r.request_date DESC
-            """, (session['user_id'],))
-        elif session.get('role_id') == 1:  # Admin
-            print("DEBUG: Consultando reembolsos para admin")
-            cur.execute("""
-                SELECT 
-                    r.id AS refund_id,
-                    r.client_id,
-                    r.amount,
-                    r.request_date,
-                    r.status,
-                    p.name AS policy_name,
-                    CONCAT(c.first_name, ' ', c.last_name) AS client_name,
-                    u.email AS client_email,
-                    r.insurance_category
-                FROM refunds r
-                JOIN policies p ON r.policy_id = p.id
-                JOIN clients c ON r.client_id = c.id
-                JOIN users u ON c.user_id = u.id
-                ORDER BY r.request_date DESC
-            """)
-        else:  # Cliente
-            print(f"DEBUG: Consultando reembolsos para cliente user_id: {session['user_id']}")
-            cur.execute("""
-                SELECT 
-                    r.id AS refund_id,
-                    r.client_id,
-                    r.amount,
-                    r.request_date,
-                    r.status,
-                    p.name AS policy_name,
-                    r.policy_id,
-                    r.insurance_category
-                FROM refunds r
-                JOIN policies p ON r.policy_id = p.id
-                WHERE r.client_id = (
-                    SELECT id FROM clients WHERE user_id = %s
-                )
-                ORDER BY r.request_date DESC
-            """, (session['user_id'],))
-        refunds = []
-        rows = cur.fetchall()
-        print(f"DEBUG: Se encontraron {len(rows)} reembolsos para rol {session.get('role_id')}")
-        for row in rows:
-            if session.get('role_id') == 3:  # Cliente
-                refunds.append({
-                    'refund_id': row[0],
-                    'client_id': row[1],
-                    'amount': float(row[2]),
-                    'request_date': row[3].isoformat() if row[3] else None,
-                    'status': row[4],
-                    'policy_name': row[5],
-                    'policy_id': row[6],  # Para el frontend cliente
-                    'category': row[7]
-                })
-            elif session.get('role_id') == 2:  # Agente
-                refunds.append({
-                    'refund_id': row[0],
-                    'client_id': row[1],
-                    'amount': float(row[2]),
-                    'request_date': row[3].isoformat() if row[3] else None,
-                    'status': row[4],
-                    'policy_name': row[5],
-                    'client_name': row[6],
-                    'client_email': row[7],
-                    'health_institution_name': row[8],
-                    'health_institution_type': row[9],
-                    'refund_type': row[10],
-                    'refund_type_other': row[11],
-                    'event_description': row[12],
-                    'event_date': row[13].isoformat() if row[13] else None,
-                    'payment_method': row[14],
-                    'account_holder_name': row[15],
-                    'bank_account_number': row[16],
-                    'bank_name': row[17],
-                    'account_type': row[18],
-                    'swift_aba_code': row[19],
-                    'payment_method_other': row[20],
-                    'category': row[21]
-                })
-            else:  # Admin
-                refunds.append({
-                    'refund_id': row[0],
-                    'client_id': row[1],
-                    'amount': float(row[2]),
-                    'request_date': row[3].isoformat() if row[3] else None,
-                    'status': row[4],
-                    'policy_name': row[5],
-                    'client_name': row[6],
-                    'client_email': row[7],
-                    'category': row[8]
-                })
-        print(f"DEBUG: Devolviendo {len(refunds)} reembolsos procesados para rol {session.get('role_id')}")
-        cur.close()
-        return jsonify(refunds), 200
-    except Exception as e:
-        print("Error al listar reembolsos:", str(e))
-        return jsonify({'error': str(e)}), 500
+    cur = mysql.connection.cursor()
+    user_id = session.get('user_id')
+    role_id = session.get('role_id')
+    if role_id == 3:
+        # Cliente: solo sus reembolsos
+        cur.execute("SELECT id FROM clients WHERE user_id = %s", (user_id,))
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify([])
+        client_id = row[0]
+        cur.execute('''
+            SELECT r.id AS refund_id, r.policy_id, r.client_id, r.amount, r.status, r.request_date, r.refund_type, r.refund_type_other, r.event_description, r.event_date, p.name AS policy_name, r.insurance_category
+            FROM refunds r
+            JOIN policies p ON r.policy_id = p.id
+            WHERE r.client_id = %s
+            ORDER BY r.request_date DESC
+        ''', (client_id,))
+    elif role_id == 2:
+        # Agente: reembolsos de sus clientes
+        cur.execute("SELECT id FROM agents WHERE user_id = %s", (user_id,))
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify([])
+        agent_id = row[0]
+        cur.execute('''
+            SELECT r.id AS refund_id, r.policy_id, r.client_id, r.amount, r.status, r.request_date, r.refund_type, r.refund_type_other, r.event_description, r.event_date, p.name AS policy_name, r.insurance_category
+            FROM refunds r
+            JOIN policies p ON r.policy_id = p.id
+            WHERE r.agent_id = %s
+            ORDER BY r.request_date DESC
+        ''', (agent_id,))
+    else:
+        # Admin: todos los reembolsos
+        cur.execute('''
+            SELECT r.id AS refund_id, r.policy_id, r.client_id, r.amount, r.status, r.request_date, r.refund_type, r.refund_type_other, r.event_description, r.event_date, p.name AS policy_name, r.insurance_category
+            FROM refunds r
+            JOIN policies p ON r.policy_id = p.id
+            ORDER BY r.request_date DESC
+        ''')
+    reembolsos = []
+    for row in cur.fetchall():
+        reembolsos.append({
+            "refund_id": row[0],
+            "policy_id": row[1],
+            "client_id": row[2],
+            "amount": float(row[3]),
+            "status": row[4],
+            "request_date": row[5].isoformat() if row[5] else None,
+            "refund_type": row[6],
+            "refund_type_other": row[7],
+            "event_description": row[8],
+            "event_date": row[9].isoformat() if row[9] else None,
+            "policy_name": row[10],
+            "category": row[11] if len(row) > 11 else None
+        })
+    cur.close()
+    return jsonify(reembolsos)
 
 @app.route('/refunds/<refund_id>/status', methods=['PUT'])
 @login_required
@@ -1522,30 +1447,45 @@ def get_refund_documents(refund_id):
     try:
         cur = mysql.connection.cursor()
         # Verificar que el usuario tiene permiso (agente o cliente dueño)
-        cur.execute("SELECT client_id, agent_id FROM refunds WHERE id = %s", (refund_id,))
+        cur.execute("SELECT client_id FROM refunds WHERE id = %s", (refund_id,))
         row = cur.fetchone()
         if not row:
             cur.close()
             return jsonify({'error': 'Solicitud de reembolso no encontrada'}), 404
-        client_id, agent_id = row
+        client_id = row[0]
         user_id = session.get('user_id')
         role_id = session.get('role_id')
-        # Permitir solo al agente asignado o al cliente dueño
-        if not ((role_id == 2 and get_agent_id_from_user(user_id) == agent_id) or (role_id == 3 and get_client_id_from_session() == client_id)):
+        # Permitir solo al cliente dueño
+        cur.execute("SELECT client_id FROM refunds WHERE id = %s", (refund_id,))
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify({'error': 'Solicitud de reembolso no encontrada'}), 404
+        client_id = row[0]
+        user_client_id = None
+        if role_id == 3:
+            cur2 = mysql.connection.cursor()
+            cur2.execute("SELECT id FROM clients WHERE user_id = %s", (user_id,))
+            row2 = cur2.fetchone()
+            if row2:
+                user_client_id = row2[0]
+            cur2.close()
+        if not (role_id == 3 and user_client_id == client_id):
             cur.close()
             return jsonify({'error': 'No autorizado'}), 403
-        cur.execute("SELECT id, file_path, uploaded_at, status FROM documents_refunds WHERE invoice_id = %s", (refund_id,))
+        cur.execute("SELECT id, file_path, uploaded_at, status, review_comment FROM documents_refunds WHERE refund_id = %s", (refund_id,))
         docs = cur.fetchall()
         result = []
         for doc in docs:
-            doc_id, fname, uploaded_at, status = doc
-            url = url_for('static', filename=f'../uploads/refunds/{refund_id}/{fname}', _external=True)
+            doc_id, fname, uploaded_at, status, review_comment = doc
+            url = url_for('serve_refund_file', refund_id=refund_id, filename=fname, _external=True)
             result.append({
                 'id': doc_id,
                 'filename': fname,
                 'uploaded_at': str(uploaded_at),
                 'status': status,
-                'url': url
+                'url': url,
+                'review_comment': review_comment
             })
         cur.close()
         return jsonify(result)
@@ -1774,6 +1714,14 @@ def update_client_status(client_id):
 REFUND_UPLOAD_ROOT = os.path.join(BASE_DIR, 'uploads', 'refunds')
 os.makedirs(REFUND_UPLOAD_ROOT, exist_ok=True)
 
+# Ruta segura para servir archivos de reembolso
+@app.route('/refunds/<refund_id>/files/<filename>')
+@login_required
+def serve_refund_file(refund_id, filename):
+    folder = os.path.join(REFUND_UPLOAD_ROOT, str(refund_id))
+    return send_from_directory(folder, filename)
+
+# Ruta para subir documentos de reembolso
 @app.route('/refunds/<refund_id>/upload_docs', methods=['POST'])
 @login_required
 def upload_refund_docs(refund_id):
