@@ -168,6 +168,120 @@
         </div>
       </div>
       <div class="content" id="reembolso-section" style="display:none;" data-has-contracts="{% if contracts and contracts|selectattr('status', 'equalto', 'activo')|list|length > 0 %}true{% else %}false{% endif %}">
+        <!-- Nuevo Formulario de Reembolso -->
+        <form id="form-nuevo-reembolso" autocomplete="off" style="max-width: 500px; margin: 0 auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(30,42,60,0.08); padding: 24px 28px;">
+          <div style="margin-bottom: 16px;">
+            <label for="policy_id" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Selecciona la póliza:</label>
+            <select id="policy_id" name="policy_id" required style="width:100%; padding:8px 12px; border:1px solid #e3e8f0; border-radius:4px; font-size:1rem;">
+              <option value="">Seleccione una póliza</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label for="refund_type" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Tipo de Reembolso Solicitado:</label>
+            <select id="refund_type" name="refund_type" required style="width:100%; padding:8px 12px; border:1px solid #e3e8f0; border-radius:4px; font-size:1rem;">
+              <option value="">Seleccione una opción</option>
+            </select>
+          </div>
+          <div id="grupo-refund-type-other" style="margin-bottom: 16px; display:none;">
+            <label for="refund_type_other" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Especifique el tipo de reembolso:</label>
+            <input type="text" id="refund_type_other" name="refund_type_other" maxlength="255" style="width:100%; padding:8px 12px; border:1px solid #e3e8f0; border-radius:4px; font-size:1rem;">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label for="event_description" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Descripción Detallada del Evento/Gasto:</label>
+            <textarea id="event_description" name="event_description" rows="4" required style="width:100%; padding:8px 12px; border:1px solid #e3e8f0; border-radius:4px; font-size:1rem; resize:vertical;"></textarea>
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label for="event_date" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Fecha del Evento/Gasto:</label>
+            <input type="date" id="event_date" name="event_date" required style="width:100%; padding:8px 12px; border:1px solid #e3e8f0; border-radius:4px; font-size:1rem;">
+          </div>
+          <div style="margin-bottom: 18px;">
+            <label for="amount" style="font-weight:500; color:#1e2a3c; display:block; margin-bottom:6px;">Monto Total Solicitado:</label>
+            <input type="number" id="amount" name="amount" required min="0.01" step="0.01" placeholder="$0.00" style="width:100%; padding:8px 12px; border:1px solid #e3e8f0; border-radius:4px; font-size:1rem;">
+          </div>
+          <button type="submit" style="background:#1976d2; color:#fff; border:none; border-radius:4px; padding:10px 18px; font-size:1rem; font-weight:500; cursor:pointer; width:100%;">Enviar Solicitud</button>
+        </form>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          // 1. Cargar pólizas activas del cliente
+          fetch('/api/polizas_activas')
+            .then(res => res.json())
+            .then(polizas => {
+              const select = document.getElementById('policy_id');
+              polizas.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = `${p.name} (${p.category})`;
+                opt.dataset.category = p.category; // vida o salud
+                select.appendChild(opt);
+              });
+            });
+
+          // 2. Cambiar opciones de tipo de reembolso según póliza
+          document.getElementById('policy_id').addEventListener('change', function() {
+            const selected = this.options[this.selectedIndex];
+            const category = selected.dataset.category;
+            const refundType = document.getElementById('refund_type');
+            refundType.innerHTML = '<option value="">Seleccione una opción</option>';
+            if (category === 'vida') {
+              refundType.innerHTML += `
+                <option value="fallecimiento">Beneficio por Fallecimiento (Vida)</option>
+                <option value="discapacidad">Indemnización por Discapacidad (Vida)</option>
+                <option value="otros">Otros (especificar)</option>
+              `;
+            } else if (category === 'salud') {
+              refundType.innerHTML += `
+                <option value="gastos_medicos">Gastos Médicos (Salud)</option>
+                <option value="discapacidad">Indemnización por Discapacidad (Salud)</option>
+                <option value="otros">Otros (especificar)</option>
+              `;
+            }
+          });
+
+          // 3. Mostrar campo "otros" si corresponde
+          document.getElementById('refund_type').addEventListener('change', function() {
+            document.getElementById('grupo-refund-type-other').style.display =
+              this.value === 'otros' ? 'block' : 'none';
+          });
+
+          // 4. Enviar el formulario
+          document.getElementById('form-nuevo-reembolso').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const fd = new FormData(form);
+            const btn = form.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            fetch('/refunds', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                policy_id: fd.get('policy_id'),
+                refund_type: fd.get('refund_type'),
+                refund_type_other: fd.get('refund_type_other'),
+                event_description: fd.get('event_description'),
+                event_date: fd.get('event_date'),
+                amount: fd.get('amount')
+              })
+            })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                alert('¡Reembolso creado! Ahora puedes subir tus documentos.');
+                form.reset();
+                document.getElementById('grupo-refund-type-other').style.display = 'none';
+                // Aquí podrías abrir el modal para subir documentos, usando data.refund_id
+              } else {
+                alert('Error: ' + (data.error || 'No se pudo crear el reembolso'));
+                btn.disabled = false;
+              }
+            })
+            .catch(() => {
+              btn.disabled = false;
+            });
+          });
+        });
+        </script>
+      </div>
+      <div class="content" id="reembolso-section" style="display:none;" data-has-contracts="{% if contracts and contracts|selectattr('status', 'equalto', 'activo')|list|length > 0 %}true{% else %}false{% endif %}">
         <!-- Botón para solicitar un nuevo reembolso -->
         <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 30px;">
           <button id="btn-nuevo-reembolso" style="background: #1976d2; color: #fff; border: none; border-radius: 50px; padding: 12px 28px 12px 18px; font-size: 1.1rem; font-weight: 600; box-shadow: 0 2px 8px rgba(30,42,60,0.10); display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background 0.2s;">
@@ -1514,5 +1628,18 @@
     </div>
   </div>
 
+  <!-- Modal de confirmación para envío de reembolso -->
+  <div id="modal-confirmar-envio-reembolso" class="modal hidden">
+    <div class="modal-content" style="max-width: 340px; border-radius: 12px; box-shadow: 0 4px 16px rgba(30,42,60,0.18); padding: 24px 20px 16px 20px; position: relative; background: #fff; border: 1.5px solid #e3e8f0; text-align:center;">
+      <button id="btn-cerrar-modal-confirmar-envio" type="button" aria-label="Cerrar" style="position:absolute;top:10px;right:14px;font-size:1.2rem;background:none;border:none;cursor:pointer;color:#1976d2;">&times;</button>
+      <div style="margin-bottom:10px;"><i class="fas fa-question-circle" style="color:#1976d2; font-size:2.2rem;"></i></div>
+      <h3 style="margin:0 0 8px 0; font-size:1.1rem; font-weight:700; color:#1976d2;">¿Confirmar envío?</h3>
+      <p style="margin:0; color:#1e2a3c; font-size:1rem;">¿Está seguro que desea enviar esta solicitud de reembolso? Esta acción no se puede deshacer.</p>
+      <div style="margin-top:18px; display:flex; justify-content:center; gap:12px;">
+        <button id="btn-cancelar-envio-reembolso" type="button" style="background:#e3e8f0; color:#1e2a3c; border:1px solid #b0b8c1; border-radius:4px; padding:7px 18px; font-size:1rem; cursor:pointer;">Cancelar</button>
+        <button id="btn-confirmar-envio-reembolso" type="button" style="background:#1976d2; color:#fff; border:none; border-radius:4px; padding:7px 18px; font-size:1rem; font-weight:500; cursor:pointer;">Confirmar envío</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

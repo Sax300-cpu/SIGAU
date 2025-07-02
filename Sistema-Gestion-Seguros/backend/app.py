@@ -947,12 +947,25 @@ def create_contract():
 
         cur = mysql.connection.cursor()
 
+        # Obtener el agente asociado a la póliza
+        cur.execute("""
+            SELECT agent_id
+            FROM client_policies
+            WHERE policy_id = %s AND client_id = %s AND status = 'activo'
+            LIMIT 1
+        """, (policy_id, client_id))
+        row = cur.fetchone()
+        if not row or not row[0]:
+            cur.close()
+            return jsonify({'error': 'No se encontró agente para la póliza seleccionada'}), 400
+        agent_id = row[0]
+
         # 1. Crear el contrato
         cur.execute("""
             INSERT INTO client_policies 
             (client_id, policy_id, agent_id, premium_amount, payment_frequency, start_date, end_date, status)
             VALUES (%s, %s, %s, %s, %s, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 YEAR), 'active')
-        """, (client_id, policy_id, session['user_id'], premium_amount, payment_frequency))
+        """, (client_id, policy_id, agent_id, premium_amount, payment_frequency))
         
         contract_id = cur.lastrowid
         mysql.connection.commit()  # Commit tras crear el contrato y obtener el ID
@@ -1245,35 +1258,61 @@ def create_refund():
         if session.get('role_id') != 3:
             return jsonify({'error': 'Solo los clientes pueden solicitar reembolsos'}), 403
         data = request.get_json()
-        # Obtener datos del cliente y póliza
-        client_id = get_client_id_from_session()
-        if not client_id:
+        # Obtener client_id desde la sesión de forma segura
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT id FROM clients WHERE user_id = %s", (session['user_id'],))
+        row = cur.fetchone()
+        if not row:
+            cur.close()
             return jsonify({'error': 'Cliente no encontrado'}), 400
+        client_id = row[0]
         # Buscar agente asociado a la póliza (o al cliente)
         policy_id = data.get('policy_id')
-        agent_id = get_agent_id_for_policy(policy_id)
-        if not agent_id:
-            return jsonify({'error': 'Agente no encontrado'}), 400
+        # Obtener el agente asociado a la póliza
+        cur.execute("""
+            SELECT agent_id
+            FROM client_policies
+            WHERE policy_id = %s AND client_id = %s AND status = 'activo'
+            LIMIT 1
+        """, (policy_id, client_id))
+        row = cur.fetchone()
+        if not row or not row[0]:
+            cur.close()
+            return jsonify({'error': 'No se encontró agente para la póliza seleccionada'}), 400
+        agent_id = row[0]
         refund_id = str(uuid.uuid4())
         cur = mysql.connection.cursor()
+        # Obtener el tipo de póliza para determinar la categoría
         cur.execute("""
-            INSERT INTO refunds (id, policy_id, client_id, agent_id, request_date, amount, refund_type, refund_type_other, event_description, event_date, status, created_by)
-            VALUES (%s, %s, %s, %s, NOW(), %s, %s, %s, %s, %s, 'pending', %s)
+            SELECT pt.name FROM policies p
+            JOIN policy_types pt ON p.type_id = pt.id
+            WHERE p.id = %s
+        """, (policy_id,))
+        type_name = cur.fetchone()[0]
+        if 'vida' in type_name.lower():
+            insurance_category = 'vida'
+        else:
+            insurance_category = 'salud'
+        # Validar duplicados antes de insertar (mejorada)
+        cur.execute("""
+            SELECT id FROM refunds
+            WHERE policy_id = %s AND client_id = %s AND event_date = %s AND refund_type = %s AND amount = %s AND status IN ('pending', 'approved')
+        """, (policy_id, client_id, data.get('event_date'), data.get('refund_type'), data.get('amount')))
+        if cur.fetchone():
+            cur.close()
+            return jsonify({'error': 'Ya existe una solicitud de reembolso similar (pendiente o aprobada) para esta póliza, fecha, tipo y monto.'}), 400
+        # Insertar reembolso SIN agent_id
+        cur.execute("""
+            INSERT INTO refunds (
+                policy_id, insurance_category, refund_type, refund_type_other, event_description, event_date, amount, status, client_id, request_date
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', %s, NOW())
         """, (
-            refund_id,
-            policy_id,
-            client_id,
-            agent_id,
-            data.get('amount'),
-            data.get('refund_type'),
-            data.get('refund_type_other'),
-            data.get('event_description'),
-            data.get('event_date'),
-            session['user_id']
+            policy_id, insurance_category, data.get('refund_type'), data.get('refund_type_other'), data.get('event_description'), data.get('event_date'), data.get('amount'), client_id
         ))
         mysql.connection.commit()
+        refund_id = cur.lastrowid
         cur.close()
-        return jsonify({'id': refund_id}), 201
+        return jsonify({'success': True, 'refund_id': refund_id}), 201
     except Exception as e:
         mysql.connection.rollback()
         return jsonify({'error': str(e)}), 500
@@ -1309,7 +1348,8 @@ def list_refunds():
                     r.bank_name,
                     r.account_type,
                     r.swift_aba_code,
-                    r.payment_method_other
+                    r.payment_method_other,
+                    r.insurance_category
                 FROM refunds r
                 JOIN policies p ON r.policy_id = p.id
                 JOIN clients c ON r.client_id = c.id
@@ -1328,7 +1368,8 @@ def list_refunds():
                     r.status,
                     p.name AS policy_name,
                     CONCAT(c.first_name, ' ', c.last_name) AS client_name,
-                    u.email AS client_email
+                    u.email AS client_email,
+                    r.insurance_category
                 FROM refunds r
                 JOIN policies p ON r.policy_id = p.id
                 JOIN clients c ON r.client_id = c.id
@@ -1345,7 +1386,8 @@ def list_refunds():
                     r.request_date,
                     r.status,
                     p.name AS policy_name,
-                    r.policy_id
+                    r.policy_id,
+                    r.insurance_category
                 FROM refunds r
                 JOIN policies p ON r.policy_id = p.id
                 WHERE r.client_id = (
@@ -1365,7 +1407,8 @@ def list_refunds():
                     'request_date': row[3].isoformat() if row[3] else None,
                     'status': row[4],
                     'policy_name': row[5],
-                    'policy_id': row[6]  # Para el frontend cliente
+                    'policy_id': row[6],  # Para el frontend cliente
+                    'category': row[7]
                 })
             elif session.get('role_id') == 2:  # Agente
                 refunds.append({
@@ -1389,7 +1432,8 @@ def list_refunds():
                     'bank_name': row[17],
                     'account_type': row[18],
                     'swift_aba_code': row[19],
-                    'payment_method_other': row[20]
+                    'payment_method_other': row[20],
+                    'category': row[21]
                 })
             else:  # Admin
                 refunds.append({
@@ -1400,7 +1444,8 @@ def list_refunds():
                     'status': row[4],
                     'policy_name': row[5],
                     'client_name': row[6],
-                    'client_email': row[7]
+                    'client_email': row[7],
+                    'category': row[8]
                 })
         print(f"DEBUG: Devolviendo {len(refunds)} reembolsos procesados para rol {session.get('role_id')}")
         cur.close()
@@ -1772,6 +1817,32 @@ def upload_refund_docs(refund_id):
     except Exception as e:
         mysql.connection.rollback()
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/polizas_activas', methods=['GET'])
+@login_required
+def polizas_activas():
+    if session.get('role_id') != 3:
+        return jsonify({'error': 'Solo los clientes pueden ver sus pólizas activas'}), 403
+    cur = mysql.connection.cursor()
+    cur.execute('''
+        SELECT p.id, p.name, pt.name as type_name
+        FROM client_policies cp
+        JOIN policies p ON cp.policy_id = p.id
+        JOIN policy_types pt ON p.type_id = pt.id
+        WHERE cp.client_id = (SELECT id FROM clients WHERE user_id = %s)
+          AND cp.status = 'activo'
+    ''', (session['user_id'],))
+    rows = cur.fetchall()
+    cur.close()
+    polizas = [
+        {
+            'id': r[0],
+            'name': r[1],
+            'category': 'vida' if 'vida' in r[2].lower() else 'salud'
+        }
+        for r in rows
+    ]
+    return jsonify(polizas), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

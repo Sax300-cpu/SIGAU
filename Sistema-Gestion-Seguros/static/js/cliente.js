@@ -364,60 +364,83 @@ document.addEventListener('DOMContentLoaded', function() {
     // === NUEVA LÓGICA DE ENVÍO DE REEMBOLSO ===
     const formNuevoReembolso = document.getElementById('form-nuevo-reembolso');
     if (formNuevoReembolso) {
-      formNuevoReembolso.addEventListener('submit', async function(e) {
+      let submitPendingReembolso = null;
+      formNuevoReembolso.addEventListener('submit', function(e) {
         e.preventDefault();
-        const btn = document.getElementById('btn-enviar-nuevo-reembolso');
-        if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
-        try {
-          // 1. Crear la solicitud de reembolso (sin documentos)
-          const datos = new FormData(formNuevoReembolso);
-          const payload = {
-            policy_id: parseInt(datos.get('policy_id'), 10),
-            refund_type: datos.get('refund_type'),
-            refund_type_other: datos.get('refund_type_other'),
-            event_description: datos.get('event_description'),
-            event_date: datos.get('event_date'),
-            amount: datos.get('amount')
-          };
-          if (!payload.policy_id) throw new Error('Debes seleccionar una póliza');
-          const resp = await fetch('/refunds', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          if (!resp.ok) throw new Error('Error creando solicitud de reembolso');
-          const refund = await resp.json();
-          const refund_id = refund.id || refund.refund_id || refund.refundId;
-          if (!refund_id) throw new Error('No se obtuvo el ID del reembolso');
-          // 2. Subir documentos
-          const files = document.getElementById('documentos').files;
-          if (files.length > 0) {
-            const fd = new FormData();
-            for (let i = 0; i < files.length; i++) {
-              fd.append('documentos', files[i]);
-            }
-            const respDocs = await fetch(`/refunds/${refund_id}/upload_docs`, {
+        // Guardar la función de envío pendiente
+        submitPendingReembolso = async function() {
+          const btn = document.getElementById('btn-enviar-nuevo-reembolso');
+          if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+          try {
+            // 1. Crear la solicitud de reembolso (sin documentos)
+            const datos = new FormData(formNuevoReembolso);
+            const payload = {
+              policy_id: parseInt(datos.get('policy_id'), 10),
+              refund_type: datos.get('refund_type'),
+              refund_type_other: datos.get('refund_type_other'),
+              event_description: datos.get('event_description'),
+              event_date: datos.get('event_date'),
+              amount: datos.get('amount')
+            };
+            if (!payload.policy_id) throw new Error('Debes seleccionar una póliza');
+            const resp = await fetch('/refunds', {
               method: 'POST',
-              body: fd
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
             });
-            if (!respDocs.ok) {
-              const errMsg = await respDocs.text();
-              throw new Error('Error subiendo documentos: ' + errMsg);
+            if (!resp.ok) throw new Error('Error creando solicitud de reembolso');
+            const refund = await resp.json();
+            const refund_id = refund.id || refund.refund_id || refund.refundId;
+            if (!refund_id) throw new Error('No se obtuvo el ID del reembolso');
+            // 2. Subir documentos
+            const files = document.getElementById('documentos').files;
+            if (files.length > 0) {
+              const fd = new FormData();
+              for (let i = 0; i < files.length; i++) {
+                fd.append('documentos', files[i]);
+              }
+              const respDocs = await fetch(`/refunds/${refund_id}/upload_docs`, {
+                method: 'POST',
+                body: fd
+              });
+              if (!respDocs.ok) {
+                const errMsg = await respDocs.text();
+                throw new Error('Error subiendo documentos: ' + errMsg);
+              }
             }
+            // 3. Mostrar modal de éxito y resetear
+            document.getElementById('modal-nuevo-reembolso').classList.add('hidden');
+            document.getElementById('modal-exito-nuevo-reembolso').classList.remove('hidden');
+            formNuevoReembolso.reset();
+            setTimeout(()=>{
+              document.getElementById('modal-exito-nuevo-reembolso').classList.add('hidden');
+              cargarHistorialReembolsos && cargarHistorialReembolsos();
+            }, 2000);
+          } catch (err) {
+            alert('Error al enviar la solicitud: ' + (err.message || err));
+          } finally {
+            const btn = document.getElementById('btn-enviar-nuevo-reembolso');
+            if (btn) { btn.disabled = false; btn.textContent = 'Enviar Solicitud'; }
           }
-          // 3. Mostrar modal de éxito y resetear
-          document.getElementById('modal-nuevo-reembolso').classList.add('hidden');
-          document.getElementById('modal-exito-nuevo-reembolso').classList.remove('hidden');
-          formNuevoReembolso.reset();
-          setTimeout(()=>{
-            document.getElementById('modal-exito-nuevo-reembolso').classList.add('hidden');
-            cargarHistorialReembolsos && cargarHistorialReembolsos();
-          }, 2000);
-        } catch (err) {
-          alert('Error al enviar la solicitud: ' + (err.message || err));
-        } finally {
-          if (btn) { btn.disabled = false; btn.textContent = 'Enviar Solicitud'; }
-        }
+        };
+        // Mostrar el modal de confirmación
+        document.getElementById('modal-confirmar-envio-reembolso').classList.remove('hidden');
       });
+      // Botones del modal de confirmación
+      document.getElementById('btn-cancelar-envio-reembolso').onclick = function() {
+        document.getElementById('modal-confirmar-envio-reembolso').classList.add('hidden');
+        submitPendingReembolso = null;
+      };
+      document.getElementById('btn-cerrar-modal-confirmar-envio').onclick = function() {
+        document.getElementById('modal-confirmar-envio-reembolso').classList.add('hidden');
+        submitPendingReembolso = null;
+      };
+      document.getElementById('btn-confirmar-envio-reembolso').onclick = async function() {
+        document.getElementById('modal-confirmar-envio-reembolso').classList.add('hidden');
+        if (submitPendingReembolso) {
+          await submitPendingReembolso();
+          submitPendingReembolso = null;
+        }
+      };
     }
 });
