@@ -1372,8 +1372,9 @@ def list_refunds():
             ORDER BY r.request_date DESC
         ''')
     reembolsos = []
-    for row in cur.fetchall():
-        reembolsos.append({
+    all_rows = cur.fetchall()
+    for row in all_rows:
+        refund = {
             "refund_id": row[0],
             "policy_id": row[1],
             "client_id": row[2],
@@ -1388,7 +1389,31 @@ def list_refunds():
             "category": row[11] if len(row) > 11 else None,
             "client_name": f"{row[12]} {row[13]}",
             "client_email": row[14]
-        })
+        }
+        # --- Agregar pólizas activas del cliente ---
+        client_id = row[2]
+        cur2 = mysql.connection.cursor()
+        cur2.execute('''
+            SELECT cp.id, p.name, cp.premium_amount, cp.payment_frequency, cp.status, cp.start_date, cp.end_date
+            FROM client_policies cp
+            JOIN policies p ON cp.policy_id = p.id
+            WHERE cp.client_id = %s AND (cp.status = 'activo' OR cp.status = 'active')
+            ORDER BY cp.created_at DESC
+        ''', (client_id,))
+        policies = []
+        for p in cur2.fetchall():
+            policies.append({
+                "contract_id": p[0],
+                "policy_name": p[1],
+                "premium_amount": float(p[2]) if p[2] is not None else None,
+                "payment_frequency": p[3],
+                "status": p[4],
+                "start_date": p[5].isoformat() if p[5] else None,
+                "end_date": p[6].isoformat() if p[6] else None
+            })
+        refund["policies"] = policies
+        cur2.close()
+        reembolsos.append(refund)
     cur.close()
     return jsonify(reembolsos)
 
