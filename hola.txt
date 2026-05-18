@@ -307,3 +307,16 @@ public class FormEstudiantes extends javax.swing.JFrame {
     // El método main y el bloque de código "Generated Code" de NetBeans permanecen abajo intactos...
 }
 
+-----Otro generar reporte mio------
+private void jbtnReporteActionPerformed(java.awt.event.ActionEvent evt) {                                            
+          try {
+            Conexion cc = new Conexion();
+            Connection cn = cc.conectar();
+            Map cedula = new HashMap();
+            JasperReport reporte = JasperCompileManager.compileReport("C:\\Users\\Usuario\\Documents\\NetBeansProjects\\Test1\\src\\reportes\\report1.jrxml");
+            JasperPrint imprimir = JasperFillManager.fillReport(reporte, null, cc.conectar());
+            JasperViewer.viewReport(imprimir);
+        } catch (JRException ex) {
+            JOptionPane.showMessageDialog(null, ex.toString());
+        }
+    }     
