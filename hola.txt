@@ -1,0 +1,309 @@
+Clase Conexion
+import java.sql.*;
+import javax.swing.JOptionPane;
+/**
+ *
+ * @author Usuario
+ */
+public class Conexion {
+
+    public static Connection getConexion() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+    Connection conectar ;
+    public Connection conectar (){
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            //jdbc:mysql://localhost:aquivaelpuertodelxampp3315/nombredelaBD","root",""
+            conectar = DriverManager.getConnection("jdbc:mysql://localhost:3315/cuarto","root","");
+            //JOptionPane.showMessageDialog(null, "Conectado");
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(null, ex);
+        }
+        return conectar;
+    }
+}
+
+Clase Estudiante
+public class Estudiante {
+    // 1. Atributos (Si es Empresa, cambias estos atributos por ruc, nombre, etc.)
+    private int id;
+    private String cedula;
+    private String nombre;
+
+    // 2. Constructores
+    public Estudiante() {}
+
+    public Estudiante(int id, String cedula, String nombre) {
+        this.id = id;
+        this.cedula = cedula;
+        this.nombre = nombre;
+    }
+
+    // 3. Getters y Setters
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+
+    public String getCedula() { return cedula; }
+    public void setCedula(String cedula) { this.cedula = cedula; }
+
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+}
+
+Clase DAO
+import java.awt.List;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
+import java.sql.*;
+import java.util.ArrayList;
+import modelo.Estudiante; // Si cambias de escenario, importas tu otro modelo, modelo vendria a ser el package
+
+public class EstudianteDAO {
+    
+    // C - CREATE: Insertar datos
+    public boolean insertar(Estudiante objeto) {
+        String sql = "INSERT INTO estudiante (cedula, nombre) VALUES (?, ?)";
+        try (Connection con = Conexion.getConexion(); 
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            
+            ps.setString(1, objeto.getCedula());
+            ps.setString(2, objeto.getNombre());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.out.println("Error al insertar: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // R - READ: Listar/Mostrar datos en la JTable
+    public List<Estudiante> listar() {
+        List<Estudiante> lista = new ArrayList<>();
+        String sql = "SELECT * FROM estudiante";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            
+            while (rs.next()) {
+                Estudiante obj = new Estudiante();
+                obj.setId(rs.getInt("id"));
+                obj.setCedula(rs.getString("cedula"));
+                obj.setNombre(rs.getString("nombre"));
+                lista.add(obj);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al listar: " + e.getMessage());
+        }
+        return lista;
+    }
+
+    // U - UPDATE: Modificar datos existentes
+    public boolean modificar(Estudiante objeto) {
+        String sql = "UPDATE estudiante SET cedula=?, nombre=? WHERE id=?";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            
+            ps.setString(1, objeto.getCedula());
+            ps.setString(2, objeto.getNombre());
+            ps.setInt(3, objeto.getId());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.out.println("Error al modificar: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // D - DELETE: Eliminar por ID
+    public boolean eliminar(int id) {
+        String sql = "DELETE FROM estudiante WHERE id=?";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            
+            ps.setInt(1, id);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.out.println("Error al eliminar: " + e.getMessage());
+            return false;
+        }
+    }
+}
+
+Clase del Form
+import java.awt.List;
+import javax.swing.table.DefaultTableModel;
+import java.sql.Connection;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JOptionPane;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperCompileManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.view.JasperViewer;
+
+public class FormEstudiantes extends javax.swing.JFrame {
+
+    // 1. Variables globales para el CRUD y la Tabla
+    private final EstudianteDAO dao = new EstudianteDAO();
+    private DefaultTableModel modeloTabla;
+
+    public FormEstudiantes() {
+        initComponents();
+        this.setLocationRelativeTo(null); // Centra la ventana en la pantalla
+        txtId.setVisible(false);          // Ocultamos el campo ID para que el usuario no lo altere
+        configurarTabla();                // Prepara las columnas de la JTable
+        listarEstudiantes();              // Carga los datos apenas abre el programa
+    }
+
+    // 2. Inicializa el modelo de la tabla
+    private void configurarTabla() {
+        modeloTabla = new DefaultTableModel(
+            new Object[][] {},
+            new String[] {"ID", "Cédula", "Nombre"} // Encabezados de la JTable
+        ) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Hace que las celdas no sean editables directamente
+            }
+        };
+        tblDatos.setModel(modeloTabla);
+    }
+
+    // 3. Método para refrescar la tabla llamando al DAO
+    private void listarEstudiantes() {
+        modeloTabla.setRowCount(0); // Limpia la tabla antes de cargar los datos
+        List<Estudiante> lista = dao.listar();
+        
+        for (Estudiante est : lista) {
+            modeloTabla.addRow(new Object[]{
+                est.getId(),
+                est.getCedula(),
+                est.getNombre()
+            });
+        }
+    }
+
+    // 4. Limpia las cajas de texto de la pantalla
+    private void limpiarCampos() {
+        txtId.setText("");
+        txtCedula.setText("");
+        txtNombre.setText("");
+        tblDatos.clearSelection();
+    }
+
+    // --- AQUÍ COMIENZAN LOS EVENTOS DE LOS BOTONES ---
+
+    // EVENTO: Botón Guardar
+    private void btnGuardarActionPerformed(java.awt.event.ActionEvent evt) {                                           
+        if (txtCedula.getText().isEmpty() || txtNombre.getText().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Por favor, llene todos los campos.");
+            return;
+        }
+
+        Estudiante est = new Estudiante();
+        est.setCedula(txtCedula.getText());
+        est.setNombre(txtNombre.getText());
+
+        if (dao.insertar(est)) {
+            JOptionPane.showMessageDialog(this, "Estudiante guardado con éxito.");
+            listarEstudiantes();
+            limpiarCampos();
+        } else {
+            JOptionPane.showMessageDialog(this, "Error al guardar el estudiante.");
+        }
+    }                                          
+
+    // EVENTO: Botón Modificar
+    private void btnModificarActionPerformed(java.awt.event.ActionEvent evt) {                                             
+        if (txtId.getText().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Seleccione un estudiante de la tabla para modificar.");
+            return;
+        }
+
+        Estudiante est = new Estudiante();
+        est.setId(Integer.parseInt(txtId.getText()));
+        est.setCedula(txtCedula.getText());
+        est.setNombre(txtNombre.getText());
+
+        if (dao.modificar(est)) {
+            JOptionPane.showMessageDialog(this, "Registro actualizado con éxito.");
+            listarEstudiantes();
+            limpiarCampos();
+        } else {
+            JOptionPane.showMessageDialog(this, "Error al actualizar el registro.");
+        }
+    }                                            
+
+    // EVENTO: Botón Eliminar
+    private void btnEliminarActionPerformed(java.awt.event.ActionEvent evt) {                                            
+        if (txtId.getText().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Seleccione un estudiante de la tabla para eliminar.");
+            return;
+        }
+
+        int confirmar = JOptionPane.showConfirmDialog(this, 
+                "¿Está seguro de eliminar este estudiante?", "Confirmar", JOptionPane.YES_NO_OPTION);
+        
+        if (confirmar == JOptionPane.YES_OPTION) {
+            int id = Integer.parseInt(txtId.getText());
+            if (dao.eliminar(id)) {
+                JOptionPane.showMessageDialog(this, "Estudiante eliminado.");
+                listarEstudiantes();
+                limpiarCampos();
+            } else {
+                JOptionPane.showMessageDialog(this, "Error al eliminar.");
+            }
+        }
+    }                                           
+
+    // EVENTO: Botón Limpiar
+    private void btnLimpiarActionPerformed(java.awt.event.ActionEvent evt) {                                           
+        limpiarCampos();
+    }                                          
+
+    // EVENTO: Botón Generar Reporte (JasperReports)
+    private void btnReporteActionPerformed(java.awt.event.ActionEvent evt) {                                           
+        try {
+            java.sql.Connection con = controlador.Conexion.getConexion();
+            
+            // Ruta relativa del reporte compilado dentro de tu paquete de fuentes
+            String rutaReporte = "src/reportes/ReporteEstudiantes.jasper"; 
+            
+            // Llenar el reporte pasándole la conexión a la base de datos
+            net.sf.jasperreports.engine.JasperPrint print = 
+                net.sf.jasperreports.engine.JasperFillManager.fillReport(rutaReporte, null, con);
+            
+            // Crea y despliega el visor flotante oficial de Jasper independiente del plugin
+            net.sf.jasperreports.view.JasperViewer viewer = new net.sf.jasperreports.view.JasperViewer(print, false);
+            viewer.setTitle("Reporte General de Estudiantes");
+            viewer.setVisible(true);
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error al generar el reporte: " + e.getMessage());
+        }
+    }                                          
+
+    // EVENTO DE LA TABLA (Mouse Clicked)
+    // Importante: Genera este evento dando clic derecho a la JTable en el diseño -> Events -> Mouse -> mouseClicked
+    private void tblDatosMouseClicked(java.awt.event.MouseEvent evt) {                                      
+        int filaSeleccionada = tblDatos.getSelectedRow();
+        if (filaSeleccionada != -1) {
+            // Mapea los datos de la fila de la JTable de vuelta a los JTextField
+            txtId.setText(tblDatos.getValueAt(filaSeleccionada, 0).toString());
+            txtCedula.setText(tblDatos.getValueAt(filaSeleccionada, 1).toString());
+            txtNombre.setText(tblDatos.getValueAt(filaSeleccionada, 2).toString());
+        }
+    }                                     
+
+    // El método main y el bloque de código "Generated Code" de NetBeans permanecen abajo intactos...
+}
+
