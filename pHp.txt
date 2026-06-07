@@ -1,3 +1,5 @@
+Entrar a la URL: http://localhost/PracticaVisual/index.php
+
 Archivo agregar.php
 <?php
 require_once "conexion.php";
