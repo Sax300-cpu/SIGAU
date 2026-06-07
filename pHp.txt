@@ -1,0 +1,176 @@
+Archivo agregar.php
+<?php
+require_once "conexion.php";
+
+$nombre = trim($_POST["nombre"]);
+$categoria_id = $_POST["categoria_id"];
+
+if ($nombre == "" || $categoria_id == "") {
+    header("Location: index.php?error=1");
+    exit;
+}
+
+$sql = "SELECT id FROM categorias WHERE id = " . intval($categoria_id);
+$resultado = mysqli_query($conexion, $sql);
+
+if (mysqli_num_rows($resultado) == 0) {
+    header("Location: index.php?error=2");
+    exit;
+}
+
+$nombre_seguro = mysqli_real_escape_string($conexion, $nombre);
+$id_categoria = intval($categoria_id);
+
+$sql_insertar = "INSERT INTO productos (nombre, categoria_id) VALUES ('" . $nombre_seguro . "', " . $id_categoria . ")";
+mysqli_query($conexion, $sql_insertar);
+
+header("Location: index.php?ok=1");
+exit;
+
+==================================================
+Archivo conexion.php
+<?php
+$host = "localhost";
+$usuario = "root";
+$clave = "";
+$port = "3315";
+$base = "gestion_productos";
+
+$conexion = mysqli_connect($host, $usuario, $clave, $base, intval($port));
+
+if (!$conexion) {
+    die("Error de conexion: " . mysqli_connect_error());
+}
+
+mysqli_set_charset($conexion, "utf8");
+===================================================
+<?php
+$host = "localhost";
+$usuario = "root";
+$clave = "";
+$base = "gestion_productos";
+
+$conexion = mysqli_connect($host, $usuario, $clave, $base);
+
+if (!$conexion) {
+    die("Error de conexion: " . mysqli_connect_error());
+}
+
+mysqli_set_charset($conexion, "utf8");
+===================================================
+
+Archivo index.php
+<?php
+require_once "conexion.php";
+
+$sql_categorias = "SELECT id, nombre FROM categorias ORDER BY nombre";
+$resultado_categorias = mysqli_query($conexion, $sql_categorias);
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestion de Productos</title>
+</head>
+<body>
+    <h1>Gestion de Productos</h1>
+
+    <?php
+    if (isset($_GET["ok"])) {
+        echo "<p>Producto agregado correctamente.</p>";
+    }
+    if (isset($_GET["error"])) {
+        echo "<p>Error al agregar el producto.</p>";
+    }
+    ?>
+
+    <h2>Agregar producto</h2>
+    <form action="agregar.php" method="post" id="formAgregar">
+        <label>Nombre del producto:</label>
+        <input type="text" name="nombre" id="nombreProducto" required>
+        <br><br>
+        <label>Categoria:</label>
+        <select name="categoria_id" id="categoriaAgregar" required>
+            <option value="">Seleccione...</option>
+            <?php
+            while ($categoria = mysqli_fetch_assoc($resultado_categorias)) {
+                echo "<option value='" . $categoria["id"] . "'>" . $categoria["nombre"] . "</option>";
+            }
+            ?>
+        </select>
+        <br><br>
+        <button type="submit">Agregar producto</button>
+    </form>
+
+    <hr>
+
+    <h2>Buscar productos por categoria</h2>
+    <form method="get" action="index.php">
+        <label>Categoria:</label>
+        <select name="categoria_id" required>
+            <option value="">Seleccione...</option>
+            <?php
+            $categoria_buscar = isset($_GET["categoria_id"]) ? $_GET["categoria_id"] : "";
+            mysqli_data_seek($resultado_categorias, 0);
+            while ($categoria = mysqli_fetch_assoc($resultado_categorias)) {
+                $selected = ($categoria["id"] == $categoria_buscar) ? " selected" : "";
+                echo "<option value='" . $categoria["id"] . "'" . $selected . ">" . $categoria["nombre"] . "</option>";
+            }
+            ?>
+        </select>
+        <br><br>
+        <button type="submit">Buscar</button>
+    </form>
+
+    <?php
+    if (isset($_GET["categoria_id"])) {
+        $categoria_id = $_GET["categoria_id"];
+
+        if ($categoria_id == "") {
+            echo "<p>Seleccione una categoria.</p>";
+        } else {
+            $id = intval($categoria_id);
+
+            $sql = "SELECT p.id, p.nombre, c.nombre AS categoria
+                    FROM productos p
+                    INNER JOIN categorias c ON p.categoria_id = c.id
+                    WHERE p.categoria_id = " . $id;
+
+            $resultado = mysqli_query($conexion, $sql);
+
+            if (mysqli_num_rows($resultado) == 0) {
+                echo "<p>No hay productos en esta categoria.</p>";
+            } else {
+                echo "<h3>Productos encontrados</h3><ul>";
+                while ($producto = mysqli_fetch_assoc($resultado)) {
+                    echo "<li>" . $producto["nombre"] . " (" . $producto["categoria"] . ")</li>";
+                }
+                echo "</ul>";
+            }
+        }
+    }
+    ?>
+</body>
+</html>
+======================================
+Codigo sql para mandar a php admin y crear la BD
+desde la seccion SQL
+
+CREATE DATABASE IF NOT EXISTS gestion_productos;
+USE gestion_productos;
+
+CREATE TABLE categorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE productos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    categoria_id INT NOT NULL,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+);
+
+INSERT INTO categorias (nombre) VALUES ('limpieza');
+INSERT INTO categorias (nombre) VALUES ('electrónica');
+INSERT INTO categorias (nombre) VALUES ('deportes');
