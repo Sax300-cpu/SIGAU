@@ -1,0 +1,970 @@
+======index
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Clientes y Pedidos</title>
+</head>
+<body>
+
+<h1>Gestión de Clientes y Pedidos</h1>
+
+<!-- ===================== 1. Registrar pedido ===================== -->
+<h2>1. Registrar nuevo pedido</h2>
+<form id="formPedido">
+    <label>Cliente:</label>
+    <select id="cedula" name="cedula" required>
+        <option value="">-- Seleccione --</option>
+    </select>
+    <br><br>
+    <label>Producto:</label>
+    <select id="id_producto" name="id_producto" required>
+        <option value="">-- Seleccione --</option>
+    </select>
+    <br><br>
+    <button type="submit">Registrar pedido</button>
+</form>
+<p id="mensajePedido"></p>
+
+<!-- ===================== 2. Consultar clientes ===================== -->
+<h2>2. Consultar clientes</h2>
+
+<h3>Buscar cliente por cédula</h3>
+<input type="text" id="buscarCedula" placeholder="Cédula">
+<button type="button" onclick="buscarCliente()">Buscar</button>
+<p id="resultadoBusqueda"></p>
+
+<h3>Todos los clientes</h3>
+<table border="1" id="tablaClientes">
+    <thead>
+        <tr>
+            <th>Cédula</th>
+            <th>Apellido</th>
+            <th>Nombre</th>
+            <th>Ver pedidos</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<!-- ===================== 3. Pedidos por cliente ===================== -->
+<h2>3. Pedidos por cliente</h2>
+<div id="pedidosCliente">
+    <p>Seleccione un cliente para ver sus pedidos.</p>
+</div>
+
+<script>
+    const API = 'api/';
+
+    // Carga los clientes en el select del formulario y en la tabla
+    function cargarClientes() {
+        fetch(API + 'clientes')
+            .then(function (r) { return r.json(); })
+            .then(function (clientes) {
+                var sel = document.getElementById('cedula');
+                sel.innerHTML = '<option value="">-- Seleccione --</option>';
+                clientes.forEach(function (c) {
+                    sel.innerHTML += '<option value="' + c.cedula + '">'
+                        + c.apellido + ' ' + c.nombre + '</option>';
+                });
+
+                var tbody = document.querySelector('#tablaClientes tbody');
+                tbody.innerHTML = '';
+                clientes.forEach(function (c) {
+                    tbody.innerHTML += '<tr>'
+                        + '<td>' + c.cedula + '</td>'
+                        + '<td>' + c.apellido + '</td>'
+                        + '<td>' + c.nombre + '</td>'
+                        + '<td><button type="button" onclick="verPedidos(\'' + c.cedula + '\')">Ver pedidos</button></td>'
+                        + '</tr>';
+                });
+            });
+    }
+
+    // Carga los productos en el select del formulario
+    function cargarProductos() {
+        fetch(API + 'productos')
+            .then(function (r) { return r.json(); })
+            .then(function (productos) {
+                var sel = document.getElementById('id_producto');
+                sel.innerHTML = '<option value="">-- Seleccione --</option>';
+                productos.forEach(function (p) {
+                    sel.innerHTML += '<option value="' + p.id_producto + '">' + p.nombre + '</option>';
+                });
+            });
+    }
+
+    // Busca un cliente por cédula
+    function buscarCliente() {
+        var cedula = document.getElementById('buscarCedula').value.trim();
+        var out = document.getElementById('resultadoBusqueda');
+        if (!cedula) {
+            out.textContent = 'Ingrese una cédula.';
+            return;
+        }
+        fetch(API + 'clientes/' + encodeURIComponent(cedula))
+            .then(function (r) { return r.json(); })
+            .then(function (c) {
+                if (c.error) {
+                    out.textContent = 'Cliente no encontrado.';
+                } else {
+                    out.textContent = c.cedula + ' - ' + c.apellido + ' ' + c.nombre;
+                }
+            });
+    }
+
+    // Muestra los pedidos de un cliente
+    function verPedidos(cedula) {
+        fetch(API + 'pedidos/' + encodeURIComponent(cedula))
+            .then(function (r) { return r.json(); })
+            .then(function (pedidos) {
+                var div = document.getElementById('pedidosCliente');
+                var html = '<h3>Pedidos de la cédula ' + cedula + '</h3>';
+                if (!pedidos.length) {
+                    html += '<p>Este cliente no tiene pedidos.</p>';
+                } else {
+                    html += '<table border="1"><tr><th># Pedido</th><th>Producto</th><th>Cliente</th></tr>';
+                    pedidos.forEach(function (p) {
+                        html += '<tr>'
+                            + '<td>' + p.id_pedido + '</td>'
+                            + '<td>' + p.nombreProducto + '</td>'
+                            + '<td>' + p.apellidoCliente + ' ' + p.nombreCliente + '</td>'
+                            + '</tr>';
+                    });
+                    html += '</table>';
+                }
+                div.innerHTML = html;
+            });
+    }
+
+    // Envío del formulario de pedido
+    document.getElementById('formPedido').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var cedula = document.getElementById('cedula').value;
+        var idProducto = document.getElementById('id_producto').value;
+        var mensaje = document.getElementById('mensajePedido');
+
+        if (!cedula || !idProducto) {
+            mensaje.textContent = 'Seleccione un cliente y un producto.';
+            return;
+        }
+
+        var body = new URLSearchParams();
+        body.append('cedula', cedula);
+        body.append('id_producto', idProducto);
+
+        fetch(API + 'pedidos', { method: 'POST', body: body })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                mensaje.textContent = res.mensaje;
+                if (res.estado === 'ok') {
+                    verPedidos(cedula);
+                }
+            });
+    });
+
+    // Carga inicial
+    cargarClientes();
+    cargarProductos();
+</script>
+
+</body>
+</html>
+=================================
+======Conexion
+--Conexion.java
+package Conexion;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+/**
+ * Clase de conexión JDBC a la base de datos MySQL (XAMPP).
+ */
+public class Conexion {
+
+    private static final String URL = "jdbc:mysql://localhost:3306/bd_pedidos"
+            + "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+    private static final String USUARIO = "root";
+    private static final String CLAVE = "";
+
+    /**
+     * Devuelve una conexión activa a la base de datos.
+     *
+     * @return Connection
+     * @throws SQLException si no se puede conectar
+     */
+    public static Connection getConexion() throws SQLException {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new SQLException("No se encontró el driver de MySQL.", e);
+        }
+        return DriverManager.getConnection(URL, USUARIO, CLAVE);
+    }
+}
+
+Controller
+--Api.java
+package Controller;
+
+import Model.Cliente;
+import Model.Pedido;
+import Model.Producto;
+import Servicios.ClienteServicio;
+import Servicios.PedidoServicio;
+import Servicios.ProductoServicio;
+import com.google.gson.Gson;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.FormParam;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * API REST de la aplicación.
+ * Expone endpoints en /api/clientes, /api/productos y /api/pedidos.
+ */
+@Path("/")
+public class Api {
+
+    private final Gson gson = new Gson();
+    private final ClienteServicio clienteServicio = new ClienteServicio();
+    private final ProductoServicio productoServicio = new ProductoServicio();
+    private final PedidoServicio pedidoServicio = new PedidoServicio();
+
+    // ============ CLIENTES ============
+
+    /** Listar todos los clientes. */
+    @GET
+    @Path("clientes")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response listarClientes() {
+        List<Cliente> clientes = clienteServicio.listar();
+        return Response.ok(gson.toJson(clientes)).build();
+    }
+
+    /** Buscar cliente por cédula. */
+    @GET
+    @Path("clientes/{cedula}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response buscarCliente(@PathParam("cedula") String cedula) {
+        Cliente c = clienteServicio.buscarPorCedula(cedula);
+        if (c == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity("{\"error\":\"Cliente no encontrado\"}")
+                    .build();
+        }
+        return Response.ok(gson.toJson(c)).build();
+    }
+
+    // ============ PRODUCTOS ============
+
+    /** Listar productos disponibles (predefinidos). */
+    @GET
+    @Path("productos")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response listarProductos() {
+        List<Producto> productos = productoServicio.listar();
+        return Response.ok(gson.toJson(productos)).build();
+    }
+
+    // ============ PEDIDOS ============
+
+    /** Registrar un pedido (un solo producto por pedido). */
+    @POST
+    @Path("pedidos")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response registrarPedido(@FormParam("cedula") String cedula,
+                                    @FormParam("id_producto") int idProducto) {
+        Map<String, String> resultado = pedidoServicio.registrar(cedula, idProducto);
+        return Response.ok(gson.toJson(resultado)).build();
+    }
+
+    /** Visualizar los pedidos de un cliente con su detalle. */
+    @GET
+    @Path("pedidos/{cedula}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response pedidosPorCliente(@PathParam("cedula") String cedula) {
+        List<Pedido> pedidos = pedidoServicio.listarPorCliente(cedula);
+        return Response.ok(gson.toJson(pedidos)).build();
+    }
+}
+
+DAO
+--ClienteDAO
+package DAO;
+
+import Conexion.Conexion;
+import Model.Cliente;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Acceso a datos de la tabla cliente.
+ */
+public class ClienteDAO {
+
+    /**
+     * Lista todos los clientes ordenados por apellido y nombre.
+     */
+    public List<Cliente> listar() {
+        List<Cliente> lista = new ArrayList<>();
+        String sql = "SELECT cedula, apellido, nombre FROM cliente ORDER BY apellido, nombre";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                lista.add(new Cliente(
+                        rs.getString("cedula"),
+                        rs.getString("apellido"),
+                        rs.getString("nombre")));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error listar clientes: " + e.getMessage());
+        }
+        return lista;
+    }
+
+    /**
+     * Busca un cliente por su cédula. Devuelve null si no existe.
+     */
+    public Cliente buscarPorCedula(String cedula) {
+        String sql = "SELECT cedula, apellido, nombre FROM cliente WHERE cedula = ?";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, cedula);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new Cliente(
+                            rs.getString("cedula"),
+                            rs.getString("apellido"),
+                            rs.getString("nombre"));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error buscar cliente: " + e.getMessage());
+        }
+        return null;
+    }
+}
+--PedidoDAO
+package DAO;
+
+import Conexion.Conexion;
+import Model.Pedido;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Acceso a datos de la tabla pedido.
+ */
+public class PedidoDAO {
+
+    /**
+     * Inserta un pedido (un solo producto por pedido).
+     *
+     * @return true si se insertó correctamente
+     */
+    public boolean insertar(String cedula, int idProducto) {
+        String sql = "INSERT INTO pedido (cedula, id_producto) VALUES (?, ?)";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, cedula);
+            ps.setInt(2, idProducto);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Error insertar pedido: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Lista los pedidos de un cliente con su detalle (producto y cliente).
+     */
+    public List<Pedido> listarPorCliente(String cedula) {
+        List<Pedido> lista = new ArrayList<>();
+        String sql = "SELECT p.id_pedido, p.cedula, p.id_producto, "
+                + "       pr.nombre AS nombre_producto, "
+                + "       c.apellido AS apellido_cliente, c.nombre AS nombre_cliente "
+                + "FROM pedido p "
+                + "JOIN producto pr ON p.id_producto = pr.id_producto "
+                + "JOIN cliente  c  ON p.cedula = c.cedula "
+                + "WHERE p.cedula = ? "
+                + "ORDER BY p.id_pedido";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, cedula);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Pedido p = new Pedido(
+                            rs.getInt("id_pedido"),
+                            rs.getString("cedula"),
+                            rs.getInt("id_producto"));
+                    p.setNombreProducto(rs.getString("nombre_producto"));
+                    p.setApellidoCliente(rs.getString("apellido_cliente"));
+                    p.setNombreCliente(rs.getString("nombre_cliente"));
+                    lista.add(p);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error listar pedidos: " + e.getMessage());
+        }
+        return lista;
+    }
+}
+
+--ProductoDAO
+package DAO;
+
+import Conexion.Conexion;
+import Model.Producto;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Acceso a datos de la tabla producto.
+ */
+public class ProductoDAO {
+
+    /**
+     * Lista todos los productos disponibles (predefinidos).
+     */
+    public List<Producto> listar() {
+        List<Producto> lista = new ArrayList<>();
+        String sql = "SELECT id_producto, nombre FROM producto ORDER BY nombre";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                lista.add(new Producto(rs.getInt("id_producto"), rs.getString("nombre")));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error listar productos: " + e.getMessage());
+        }
+        return lista;
+    }
+
+    /**
+     * Busca un producto por su id. Devuelve null si no existe.
+     */
+    public Producto buscarPorId(int id) {
+        String sql = "SELECT id_producto, nombre FROM producto WHERE id_producto = ?";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new Producto(rs.getInt("id_producto"), rs.getString("nombre"));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error buscar producto: " + e.getMessage());
+        }
+        return null;
+    }
+}
+
+Model
+--Cliente
+package Model;
+
+/**
+ * Cliente de la empresa. Se maneja por Apellido y Nombre, identificado por cédula.
+ */
+public class Cliente {
+
+    private String cedula;
+    private String apellido;
+    private String nombre;
+
+    public Cliente() {
+    }
+
+    public Cliente(String cedula, String apellido, String nombre) {
+        this.cedula = cedula;
+        this.apellido = apellido;
+        this.nombre = nombre;
+    }
+
+    public String getCedula() {
+        return cedula;
+    }
+
+    public void setCedula(String cedula) {
+        this.cedula = cedula;
+    }
+
+    public String getApellido() {
+        return apellido;
+    }
+
+    public void setApellido(String apellido) {
+        this.apellido = apellido;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+}
+
+--Pedido
+package Model;
+
+/**
+ * Pedido de un cliente. Un solo producto por pedido.
+ * Los campos de detalle (nombreProducto, apellidoCliente, nombreCliente)
+ * se completan con la consulta JOIN para su visualización.
+ */
+public class Pedido {
+
+    private int id_pedido;
+    private String cedula;
+    private int id_producto;
+
+    // Detalles para la visualización (JOIN)
+    private String nombreProducto;
+    private String apellidoCliente;
+    private String nombreCliente;
+
+    public Pedido() {
+    }
+
+    public Pedido(int id_pedido, String cedula, int id_producto) {
+        this.id_pedido = id_pedido;
+        this.cedula = cedula;
+        this.id_producto = id_producto;
+    }
+
+    public int getId_pedido() {
+        return id_pedido;
+    }
+
+    public void setId_pedido(int id_pedido) {
+        this.id_pedido = id_pedido;
+    }
+
+    public String getCedula() {
+        return cedula;
+    }
+
+    public void setCedula(String cedula) {
+        this.cedula = cedula;
+    }
+
+    public int getId_producto() {
+        return id_producto;
+    }
+
+    public void setId_producto(int id_producto) {
+        this.id_producto = id_producto;
+    }
+
+    public String getNombreProducto() {
+        return nombreProducto;
+    }
+
+    public void setNombreProducto(String nombreProducto) {
+        this.nombreProducto = nombreProducto;
+    }
+
+    public String getApellidoCliente() {
+        return apellidoCliente;
+    }
+
+    public void setApellidoCliente(String apellidoCliente) {
+        this.apellidoCliente = apellidoCliente;
+    }
+
+    public String getNombreCliente() {
+        return nombreCliente;
+    }
+
+    public void setNombreCliente(String nombreCliente) {
+        this.nombreCliente = nombreCliente;
+    }
+}
+
+--Producto
+package Model;
+
+/**
+ * Producto predefinido de la empresa (jabón, shampoo, pasta dental).
+ */
+public class Producto {
+
+    private int id_producto;
+    private String nombre;
+
+    public Producto() {
+    }
+
+    public Producto(int id_producto, String nombre) {
+        this.id_producto = id_producto;
+        this.nombre = nombre;
+    }
+
+    public int getId_producto() {
+        return id_producto;
+    }
+
+    public void setId_producto(int id_producto) {
+        this.id_producto = id_producto;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+}
+
+
+
+Servicios
+
+--ClienteServicio
+package Servicios;
+
+import DAO.ClienteDAO;
+import Model.Cliente;
+import java.util.List;
+
+/**
+ * Lógica de negocio para clientes.
+ */
+public class ClienteServicio {
+
+    private final ClienteDAO clienteDAO = new ClienteDAO();
+
+    public List<Cliente> listar() {
+        return clienteDAO.listar();
+    }
+
+    public Cliente buscarPorCedula(String cedula) {
+        return clienteDAO.buscarPorCedula(cedula);
+    }
+}
+
+--PedidoServicio
+package Servicios;
+
+import DAO.ClienteDAO;
+import DAO.PedidoDAO;
+import DAO.ProductoDAO;
+import Model.Pedido;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Lógica de negocio para pedidos.
+ * Valida que el cliente y el producto existan antes de registrar.
+ */
+public class PedidoServicio {
+
+    private final PedidoDAO pedidoDAO = new PedidoDAO();
+    private final ClienteDAO clienteDAO = new ClienteDAO();
+    private final ProductoDAO productoDAO = new ProductoDAO();
+
+    /**
+     * Registra un pedido (un solo producto por pedido) solo para clientes
+     * y productos existentes.
+     */
+    public Map<String, String> registrar(String cedula, int idProducto) {
+        Map<String, String> resultado = new HashMap<>();
+
+        if (cedula == null || cedula.trim().isEmpty()) {
+            resultado.put("estado", "error");
+            resultado.put("mensaje", "Debe seleccionar un cliente.");
+            return resultado;
+        }
+        if (clienteDAO.buscarPorCedula(cedula) == null) {
+            resultado.put("estado", "error");
+            resultado.put("mensaje", "El cliente no existe.");
+            return resultado;
+        }
+        if (productoDAO.buscarPorId(idProducto) == null) {
+            resultado.put("estado", "error");
+            resultado.put("mensaje", "El producto no existe.");
+            return resultado;
+        }
+
+        if (pedidoDAO.insertar(cedula, idProducto)) {
+            resultado.put("estado", "ok");
+            resultado.put("mensaje", "Pedido registrado correctamente.");
+        } else {
+            resultado.put("estado", "error");
+            resultado.put("mensaje", "No se pudo registrar el pedido.");
+        }
+        return resultado;
+    }
+
+    public List<Pedido> listarPorCliente(String cedula) {
+        return pedidoDAO.listarPorCliente(cedula);
+    }
+}
+
+--ProductoServicio
+package Servicios;
+
+import DAO.ProductoDAO;
+import Model.Producto;
+import java.util.List;
+
+/**
+ * Lógica de negocio para productos.
+ */
+public class ProductoServicio {
+
+    private final ProductoDAO productoDAO = new ProductoDAO();
+
+    public List<Producto> listar() {
+        return productoDAO.listar();
+    }
+}
+
+Servlet
+--InicioServlet
+package Servlet;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
+/**
+ * Servlet de entrada. Mapeado a la raíz del contexto ("") para que, al abrir
+ * la aplicación, cargue el index.html. Los datos se sirven vía el Api.java (REST).
+ */
+@WebServlet(name = "InicioServlet", urlPatterns = {""})
+public class InicioServlet extends HttpServlet {
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.getRequestDispatcher("/index.html").forward(request, response);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        doGet(request, response);
+    }
+}
+pom.xml
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.mycompany</groupId>
+    <artifactId>pruebaProductos</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>war</packaging>
+    <name>pruebaProductos-1.0-SNAPSHOT</name>
+    
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jakartaee>10.0.0</jakartaee>
+    </properties>
+    
+    <dependencies>
+        <dependency>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+            <version>${jakartaee}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Source: https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.13.2</version>
+            <scope>compile</scope>
+        </dependency>
+        <!-- Conexión JDBC a MySQL (XAMPP) -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>8.4.0</version>
+        </dependency>
+        <!-- Implementación JAX-RS (Jersey) para poder exponer la API REST -->
+        <dependency>
+            <groupId>org.glassfish.jersey.containers</groupId>
+            <artifactId>jersey-container-servlet</artifactId>
+            <version>3.1.7</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.inject</groupId>
+            <artifactId>jersey-hk2</artifactId>
+            <version>3.1.7</version>
+        </dependency>
+    </dependencies>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>11</source>
+                    <target>11</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.3.2</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+SQL
+-- =====================================================================
+--  Proyecto: pruebaProductos
+--  Gestión de clientes y pedidos (productos predefinidos)
+--  Ejecutar en MySQL (XAMPP): phpMyAdmin o consola mysql
+-- =====================================================================
+
+CREATE DATABASE IF NOT EXISTS bd_pedidos
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+
+USE bd_pedidos;
+
+DROP TABLE IF EXISTS pedido;
+DROP TABLE IF EXISTS producto;
+DROP TABLE IF EXISTS cliente;
+
+-- ---------------------------------------------------------------------
+-- Clientes (se cargan directo en la base)
+-- ---------------------------------------------------------------------
+CREATE TABLE cliente (
+    cedula   VARCHAR(20)  NOT NULL,
+    apellido VARCHAR(100) NOT NULL,
+    nombre   VARCHAR(100) NOT NULL,
+    PRIMARY KEY (cedula)
+) ENGINE=InnoDB;
+
+-- ---------------------------------------------------------------------
+-- Productos predefinidos (quemados en la base)
+-- ---------------------------------------------------------------------
+CREATE TABLE producto (
+    id_producto INT          NOT NULL AUTO_INCREMENT,
+    nombre      VARCHAR(100) NOT NULL,
+    PRIMARY KEY (id_producto),
+    UNIQUE KEY uq_producto_nombre (nombre)
+) ENGINE=InnoDB;
+
+-- ---------------------------------------------------------------------
+-- Pedidos (un solo producto por pedido)
+-- ---------------------------------------------------------------------
+CREATE TABLE pedido (
+    id_pedido   INT         NOT NULL AUTO_INCREMENT,
+    cedula      VARCHAR(20) NOT NULL,
+    id_producto INT         NOT NULL,
+    PRIMARY KEY (id_pedido),
+    CONSTRAINT fk_pedido_cliente  FOREIGN KEY (cedula)      REFERENCES cliente (cedula),
+    CONSTRAINT fk_pedido_producto FOREIGN KEY (id_producto) REFERENCES producto (id_producto)
+) ENGINE=InnoDB;
+
+-- ---------------------------------------------------------------------
+-- Datos iniciales
+-- ---------------------------------------------------------------------
+
+-- Productos predefinidos: jabón, shampoo y pasta dental
+INSERT INTO producto (nombre) VALUES ('Jabón'), ('Shampoo'), ('Pasta Dental');
+
+-- Clientes de prueba
+INSERT INTO cliente (cedula, apellido, nombre) VALUES
+('12345678', 'Pérez',  'Juan'),
+('87654321', 'García', 'María'),
+('11122233', 'López',  'Carlos');
+
+
+============
+Prompt
+Actúa como desarrollador Java senior. Genera ÚNICAMENTE el CÓDIGO completo de un
+proyecto web Maven (WAR), sin explicaciones largas. En la primera línea de cada
+archivo indica su ruta como comentario.
+
+TECNOLOGÍAS OBLIGATORIAS:
+- Jakarta EE 10 (jakarta.*), Java 11, Maven, empaquetado WAR.
+- Base de datos MySQL (XAMPP), acceso con JDBC puro (sin JPA, sin Hibernate).
+- API REST con JAX-RS (implementación Jersey) + Gson para JSON.
+- Frontend: UN solo index.html PURO (HTML + JavaScript vanilla con fetch()).
+  PROHIBIDO: CSS, Bootstrap, jQuery y cualquier librería JS externa.
+
+ESTRUCTURA DE PAQUETES EXACTA (en src/main/java):
+1. Conexion/   -> Conexion.java  (conexión JDBC a MySQL, método estático getConexion()).
+2. Model/      -> un POJO por entidad (atributos privados, constructor vacío, getters/setters).
+3. DAO/        -> una clase por entidad: listar, buscarPorX, insertar (PreparedStatement, try-with-resources).
+4. Servicios/  -> una clase por entidad: lógica de negocio, valida antes de insertar y delega al DAO.
+5. Controller/ -> Api.java  (controlador REST JAX-RS, expone todo en JSON).
+6. Servlet/    -> InicioServlet.java  (@WebServlet urlPatterns "" que hace forward a /index.html).
+7. com.mycompany.pruebaproductos/ -> JakartaRestConfiguration.java con @ApplicationPath("api").
+
+DOMINIO A IMPLEMENTAR:
+[DESCRIBE AQUÍ LAS ENTIDADES, SUS CAMPOS, RELACIONES Y OPERACIONES.
+Formato sugerido:
+- ENTIDAD_A: campo1 (PK), campo2, campo3.
+- ENTIDAD_B: campo1 (PK), campo2, fk_entidadA (FK a ENTIDAD_A).
+- Operaciones: registrar ENTIDAD_B solo si ENTIDAD_A existe; listar ENTIDAD_A;
+  buscar ENTIDAD_A por campo1; ver los ENTIDAD_B de cada ENTIDAD_A con detalle (JOIN).]
+
+REGLAS DE NEGOCIO:
+[DESCRÍBELAS AQUÍ. Ej: "solo registrar X para Y existentes".]
+
+ENTREGABLES (genera TODOS estos archivos completos):
+1. pom.xml  (dependencias: jakarta.jakartaee-api [provided], gson, mysql-connector-j,
+   jersey-container-servlet, jersey-hk2; maven-compiler-plugin source/target 11; maven-war-plugin).
+2. script.sql  (crea la base de datos, tablas con claves foráneas y datos de prueba "quemados").
+3. Conexion/Conexion.java
+4. Model/<cada entidad>.java
+5. DAO/<cada entidad>DAO.java
+6. Servicios/<cada entidad>Servicio.java
+7. Controller/Api.java  (endpoints GET/POST/DELETE del dominio)
+8. Servlet/InicioServlet.java
+9. com/mycompany/pruebaproductos/JakartaRestConfiguration.java
+10. src/main/webapp/WEB-INF/web.xml  (mínimo)
+11. src/main/webapp/index.html  (puro: formulario de registro, listado en tabla,
+    búsqueda y detalle, todo con fetch hacia "api/...")
+
+DETALLES OBLIGATORIOS DEL CÓDIGO:
+- Api.java usa @Path("/") a nivel de clase y @Path("entidad"), @Path("entidad/{id}")
+  a nivel de método; devuelve Response con Gson: Response.ok(gson.toJson(dato)).
+- Los DAO usan PreparedStatement y cierran recursos con try-with-resources (nunca concatenar SQL).
+- Conexion.java usa DriverManager, URL jdbc:mysql://localhost:3306/<nombre_bd>, usuario "root", clave "".
+- El index.html carga las opciones con fetch al iniciar y envía formularios con URLSearchParams.
+
+Genera ahora todo el código para el dominio descrito.
